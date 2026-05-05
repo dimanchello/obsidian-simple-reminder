@@ -30,6 +30,12 @@
 
 ## Установка
 
+### Через список Community Plugins *(скоро)*
+
+1. Открыть **Settings → Community plugins → Browse**
+2. Найти **Simple Reminder**
+3. Нажать **Install**, затем **Enable**
+
 ### Ручная установка
 
 1. Скачать последний `simple-reminder-plugin.zip` из раздела [Releases](../../releases)
@@ -44,7 +50,7 @@
 **Требования:** Node.js ≥ 18, npm ≥ 9
 
 ```bash
-git clone https://github.com/dimanchello/obsidian-simple-reminder
+git clone https://github.com/your-username/simple-reminder.git
 cd simple-reminder
 npm install
 
