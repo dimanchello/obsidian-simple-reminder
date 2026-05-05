@@ -1,0 +1,10 @@
+{
+  "id": "simple-reminder",
+  "name": "Simple Reminder",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Reminder list with system notifications. Supports interval, one-shot and scheduled types.",
+  "author": "Dimon",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}
