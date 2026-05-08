@@ -32,7 +32,10 @@ interface FormData {
   perUnit:       PeriodicUnit;
   perN:          number;
   perTime:       string;
-  perStart:      string;       // date string for input[type=date]
+  perStart:      string;
+  perDaysOfWeek: boolean[];
+  perDayOfMonth: number;
+  perMonth:      number;
 }
 
 function tsToLocal(ts: number): string {
@@ -76,11 +79,13 @@ function reminderToFD(r: Reminder): FormData {
     perN:          r.periodicN     ?? 1,
     perTime:       r.periodicTime  ?? '09:00',
     perStart:      r.periodicStart ? tsToDate(r.periodicStart) : todayStr(),
+    perDaysOfWeek: Array.from({ length: 7 }, (_, i) => Array.isArray(r.periodicDayOfWeek) ? r.periodicDayOfWeek.includes(i) : false),
+    perDayOfMonth: r.periodicDayOfMonth ?? 1,
+    perMonth:      r.periodicMonth ?? 0,
   };
 }
 
 function defaultFD(): FormData {
-  const now = new Date();
   return {
     title: '', mode: 'repeat', specificDate: '',
     interval: 15,
@@ -92,6 +97,9 @@ function defaultFD(): FormData {
     calDayOfMonth: 1, calMonth: 0,
     perUnit: 'day', perN: 1, perTime: '09:00',
     perStart: todayStr(),
+    perDaysOfWeek: [false, true, false, false, false, false, false],
+    perDayOfMonth: 1,
+    perMonth: 0,
   };
 }
 
@@ -320,7 +328,7 @@ export class AddReminderModal extends Modal {
     const unit   = this.fd.perUnit;
     const unitIdx = ['day','week','month','year'].indexOf(unit);
 
-    // N input
+    // Ввод интервала (N)
     const nRow = area.createDiv('sr-interval-row');
     nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.periodicEvery });
     const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
@@ -331,23 +339,56 @@ export class AddReminderModal extends Modal {
     });
     nRow.createEl('span', { cls: 'sr-interval-unit', text: t.periodicUnitLabels[unitIdx] });
 
-    // Start date
+    // Дни недели
+    if (unit === 'week') {
+      const g = area.createDiv('sr-field-group');
+      g.createEl('label', { cls: 'sr-label', text: t.calDayOfWeek });
+      const wrap = g.createDiv('sr-days-wrap');
+      t.daysShort.forEach((name, idx) => {
+        const btn = wrap.createEl('button', {
+          cls: 'sr-day-btn' + (this.fd.perDaysOfWeek[idx] ? ' sr-day-btn--active' : ''),
+          text: name, type: 'button',
+        });
+        btn.addEventListener('click', () => {
+          this.fd.perDaysOfWeek[idx] = !this.fd.perDaysOfWeek[idx];
+          btn.classList.toggle('sr-day-btn--active', this.fd.perDaysOfWeek[idx]);
+        });
+      });
+    }
+
+    // День месяца
+    if (unit === 'month' || unit === 'year') {
+      const g = area.createDiv('sr-field-group');
+      g.createEl('label', { cls: 'sr-label', text: t.calDayOfMonth });
+      const inp = g.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
+      inp.min = '1'; inp.max = '31'; inp.value = String(this.fd.perDayOfMonth);
+      inp.addEventListener('input', e => {
+        const v = parseInt((e.target as HTMLInputElement).value, 10);
+        this.fd.perDayOfMonth = Math.min(31, Math.max(1, isNaN(v) ? 1 : v));
+      });
+    }
+
+    // Месяц (для года)
+    if (unit === 'year') {
+      const g = area.createDiv('sr-field-group');
+      g.createEl('label', { cls: 'sr-label', text: t.calMonthLabel });
+      const sel = g.createEl('select', { cls: 'sr-select' });
+      t.monthsFull.forEach((name, idx) => {
+        const opt = sel.createEl('option', { text: name });
+        opt.value = String(idx);
+        if (idx === this.fd.perMonth) opt.selected = true;
+      });
+      sel.addEventListener('change', e => { this.fd.perMonth = parseInt((e.target as HTMLSelectElement).value, 10); });
+    }
+
+    // Дата начала (теперь просто как якорь)
     const gStart = area.createDiv('sr-field-group');
     gStart.createEl('label', { cls: 'sr-label', text: t.periodicFrom });
-
     const startInp = gStart.createEl('input', { cls: 'sr-input', type: 'date' });
     startInp.value = this.fd.perStart;
+    startInp.addEventListener('change', e => { this.fd.perStart = (e.target as HTMLInputElement).value; });
 
-    // Helper label (week number or month name)
-    const hint = gStart.createEl('div', { cls: 'sr-per-hint' });
-    this.updatePeriodicHint(hint, this.fd.perStart, unit, t);
-
-    startInp.addEventListener('change', e => {
-      this.fd.perStart = (e.target as HTMLInputElement).value;
-      this.updatePeriodicHint(hint, this.fd.perStart, unit, t);
-    });
-
-    // Time
+    // Время
     const gTime = area.createDiv('sr-field-group');
     gTime.createEl('label', { cls: 'sr-label', text: t.periodicTimeLabel });
     const timeInp = gTime.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
@@ -451,7 +492,7 @@ export class AddReminderModal extends Modal {
       calendarUnit: null, calendarTime: null, calendarDayOfWeek: null,
       calendarDayOfMonth: null, calendarMonth: null,
       periodicUnit: null, periodicN: null, periodicTime: null, periodicStart: null,
-      nextTrigger: null,
+      nextTrigger: null, periodicDayOfWeek: null, periodicDayOfMonth: null, periodicMonth: null
     };
 
     r.title = d.title.trim();
@@ -490,11 +531,22 @@ export class AddReminderModal extends Modal {
       if (!d.perStart)                    { new Notice(t.errNoPeriodStart);  return; }
       const startTs = new Date(d.perStart + 'T00:00:00').getTime();
       if (isNaN(startTs))                 { new Notice(t.errBadDate);        return; }
+
+      if (d.perUnit === 'week') {
+        const days = d.perDaysOfWeek.map((v, i) => v ? i : -1).filter(i => i >= 0);
+        if (days.length === 0)            { new Notice(t.errNoCalDay); return; }
+        r.periodicDayOfWeek = days;
+      }
+      if ((d.perUnit === 'month' || d.perUnit === 'year') && d.perDayOfMonth < 1) {
+        new Notice(t.errNoCalDayNum); return; }
+
       r.type = 'periodic';
       r.periodicUnit = d.perUnit; r.periodicN = d.perN;
       r.periodicTime = d.perTime; r.periodicStart = startTs;
+      r.periodicDayOfWeek = d.perUnit === 'week' ? d.perDaysOfWeek.map((v, i) => v ? i : -1).filter(i => i >= 0) : null;
+      r.periodicDayOfMonth = (d.perUnit === 'month' || d.perUnit === 'year') ? d.perDayOfMonth : null;
+      r.periodicMonth = d.perUnit === 'year' ? d.perMonth : null;
       r.nextTrigger  = calcNextPeriodicTrigger(r, now);
-
     } else {
       // repeat / flexible
       if (d.interval < 1)                 { new Notice(t.errBadInterval); return; }

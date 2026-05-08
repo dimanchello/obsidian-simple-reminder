@@ -158,11 +158,15 @@ export class ReminderView extends ItemView {
     const n     = r.periodicN    ?? 1;
     const time  = r.periodicTime ?? '—';
     const start = r.periodicStart != null ? new Date(r.periodicStart) : new Date();
+
     switch (r.periodicUnit) {
       case 'day':   return t.sumPeriodicDay(n, fmtDateShort(r.periodicStart), time);
-      case 'week':  return t.sumPeriodicWeek(n, isoWeekNumber(start), start.getFullYear(), time);
-      case 'month': return t.sumPeriodicMonth(n, t.monthsShort[start.getMonth()], start.getFullYear(), time);
-      case 'year':  return t.sumPeriodicYear(n, start.getFullYear(), time);
+      case 'week': {
+        const daysStr = (r.periodicDayOfWeek ?? [start.getDay()]).map(d => t.daysShort[d]).join(' ');
+        return t.sumPeriodicWeek(n, daysStr, start.getFullYear(), time);
+      }
+      case 'month': return t.sumPeriodicMonth(n, r.periodicDayOfMonth ?? start.getDate(), start.getFullYear(), time);
+      case 'year':  return t.sumPeriodicYear(n, t.monthsShort[r.periodicMonth ?? start.getMonth()], r.periodicDayOfMonth ?? start.getDate(), time);
       default:      return `${n} × ${r.periodicUnit ?? '?'}`;
     }
   }

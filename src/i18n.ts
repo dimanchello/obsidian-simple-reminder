@@ -26,9 +26,9 @@ export interface Strings {
   calSummaryYear(dayNum: number, month: string, time: string): string;
   // periodic summaries
   sumPeriodicDay(n: number, date: string, time: string): string;
-  sumPeriodicWeek(n: number, week: number, year: number, time: string): string;
-  sumPeriodicMonth(n: number, month: string, year: number, time: string): string;
-  sumPeriodicYear(n: number, year: number, time: string): string;
+  sumPeriodicWeek(n: number, days: string, year: number, time: string): string;
+  sumPeriodicMonth(n: number, dayNum: number, year: number, time: string): string;
+  sumPeriodicYear(n: number, month: string, dayNum: number, time: string): string;
   // ── modal ─────────────────────────────────────────────────────────
   modalTitle:           string;
   modalEditTitle:       string;
@@ -158,9 +158,9 @@ const en: Strings = {
   calSummaryMonth: (d, t)          => `Every month on the ${d}th at ${t}`,
   calSummaryYear:  (d, m, t)       => `Every year on ${m} ${d} at ${t}`,
   sumPeriodicDay:   (n, d, t)      => `Every ${n} day${n>1?'s':''} from ${d} at ${t}`,
-  sumPeriodicWeek:  (n, w, y, t)   => `Every ${n} week${n>1?'s':''} from week ${w}, ${y} at ${t}`,
-  sumPeriodicMonth: (n, m, y, t)   => `Every ${n} month${n>1?'s':''} from ${m} ${y} at ${t}`,
-  sumPeriodicYear:  (n, y, t)      => `Every ${n} year${n>1?'s':''} from ${y} at ${t}`,
+  sumPeriodicWeek:  (n, d, y, t)   => `Every ${n} week${n>1?'s':''} on ${d} from ${y} at ${t}`,
+  sumPeriodicMonth: (n, d, y, t)   => `Every ${n} month${n>1?'s':''} on the ${d}th from ${y} at ${t}`,
+  sumPeriodicYear:  (n, m, d, t)   => `Every ${n} year${n>1?'s':''} on ${m} ${d} at ${t}`,
 
   modalTitle:           'New Reminder',
   modalEditTitle:       'Edit Reminder',
@@ -291,9 +291,9 @@ const ru: Strings = {
   calSummaryMonth: (d, t)          => `Каждый месяц, ${d}-го в ${t}`,
   calSummaryYear:  (d, m, t)       => `Каждый год, ${d} ${m} в ${t}`,
   sumPeriodicDay:   (n, d, t)      => `Каждые ${n} дн. с ${d} в ${t}`,
-  sumPeriodicWeek:  (n, w, y, t)   => `Каждые ${n} нед. с нед. ${w}, ${y} в ${t}`,
-  sumPeriodicMonth: (n, m, y, t)   => `Каждые ${n} мес. с ${m} ${y} в ${t}`,
-  sumPeriodicYear:  (n, y, t)      => `Каждые ${n} лет с ${y} г. в ${t}`,
+  sumPeriodicWeek:  (n, d, y, t)   => `Каждые ${n} нед. (${d}) с ${y} г. в ${t}`,
+  sumPeriodicMonth: (n, d, y, t)   => `Каждые ${n} мес., ${d}-го числа с ${y} г. в ${t}`,
+  sumPeriodicYear:  (n, m, d, t)   => `Каждые ${n} лет, ${d} ${m} в ${t}`,
 
   modalTitle:           'Новое напоминание',
   modalEditTitle:       'Редактировать напоминание',

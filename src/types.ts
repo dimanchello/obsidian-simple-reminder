@@ -29,9 +29,12 @@ export interface Reminder {
 
   // ── Periodic recurrence ────────────────────────────────────────────────────
   periodicUnit:  PeriodicUnit | null;
-  periodicN:     number | null;   // every N units (>=1)
-  periodicTime:  string | null;   // "HH:MM" — time of day to fire
-  periodicStart: number | null;   // anchor timestamp — defines the phase
+  periodicN:     number | null;
+  periodicTime:  string | null;
+  periodicStart: number | null;
+  periodicDayOfWeek:  number[] | null;
+  periodicDayOfMonth: number | null;
+  periodicMonth:      number | null;
 
   // ── Runtime ────────────────────────────────────────────────────────────────
   nextTrigger: number | null;

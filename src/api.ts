@@ -206,7 +206,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       calendarUnit: null, calendarTime: null,
       calendarDayOfWeek: null, calendarDayOfMonth: null, calendarMonth: null,
       periodicUnit: null, periodicN: null, periodicTime: null, periodicStart: null,
-      nextTrigger: null,
+      nextTrigger: null, periodicDayOfWeek: null, periodicDayOfMonth: null, periodicMonth: null
     };
 
     if (options.type === 'once') {
