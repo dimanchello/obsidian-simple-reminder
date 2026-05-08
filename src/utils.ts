@@ -1,4 +1,4 @@
-import { Reminder } from './types';
+import { CalendarUnit, Reminder } from './types';
 
 // ─── ID & formatting ──────────────────────────────────────────────────────────
 
@@ -7,143 +7,209 @@ export function generateId(): string {
 }
 
 export function fmtDate(ts: number | null | undefined): string {
-  if (ts === null || ts === undefined) return '—';
+  if (ts == null) return '—';
   return new Date(ts).toLocaleString(undefined, {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 }
 
-export function fmtTime(hhmm: string | null | undefined): string {
-  return hhmm ?? '—';
-}
-
 export function fmtDateShort(ts: number | null | undefined): string {
-  if (ts === null || ts === undefined) return '—';
+  if (ts == null) return '—';
   return new Date(ts).toLocaleString(undefined, {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
 }
 
-// ─── Slot validation ──────────────────────────────────────────────────────────
+// ─── Week helpers ─────────────────────────────────────────────────────────────
+
+/** ISO 8601 week number (1-53). Monday is first day of week. */
+export function isoWeekNumber(d: Date): number {
+  const tmp = new Date(d);
+  tmp.setHours(0, 0, 0, 0);
+  tmp.setDate(tmp.getDate() + 3 - (tmp.getDay() + 6) % 7);
+  const w1  = new Date(tmp.getFullYear(), 0, 4);
+  return 1 + Math.round(((tmp.getTime() - w1.getTime()) / 86_400_000 - 3 + (w1.getDay() + 6) % 7) / 7);
+}
+
+/** Returns a new Date set to Monday 00:00:00 of the week containing `d`. */
+export function mondayOf(d: Date): Date {
+  const r    = new Date(d);
+  const diff = (r.getDay() === 0) ? -6 : 1 - r.getDay();
+  r.setDate(r.getDate() + diff);
+  r.setHours(0, 0, 0, 0);
+  return r;
+}
+
+// ─── Time parsing ─────────────────────────────────────────────────────────────
+
+function parseTime(hhmm: string): [number, number] {
+  const p = hhmm.split(':').map(Number);
+  return [isNaN(p[0]) ? 9 : p[0], isNaN(p[1]) ? 0 : p[1]];
+}
+
+// ─── Calendar trigger ─────────────────────────────────────────────────────────
+
+function matchesCalendar(d: Date, unit: CalendarUnit, r: Reminder): boolean {
+  switch (unit) {
+    case 'day':   return true;
+    case 'week': {
+      const days = r.calendarDayOfWeek;
+      if (!days || days.length === 0) return false;
+      return days.includes(d.getDay());
+    }
+    case 'month': return d.getDate()  === r.calendarDayOfMonth;
+    case 'year':  return d.getMonth() === r.calendarMonth &&
+                         d.getDate()  === r.calendarDayOfMonth;
+  }
+}
+
+export function calcNextCalendarTrigger(r: Reminder, from: number): number | null {
+  const unit = r.calendarUnit;
+  if (!unit || !r.calendarTime) return null;
+  const [hh, mm] = parseTime(r.calendarTime);
+  const d = new Date(from);
+  d.setHours(hh, mm, 0, 0);
+  if (d.getTime() <= from) d.setDate(d.getDate() + 1);
+  for (let i = 0; i < 1827; i++) {
+    if (matchesCalendar(d, unit, r)) return d.getTime();
+    d.setDate(d.getDate() + 1);
+  }
+  return null;
+}
+
+// ─── Periodic trigger ─────────────────────────────────────────────────────────
 
 /**
- * Returns true if the candidate timestamp satisfies all schedule constraints
- * (days-of-week filter and time-of-day window).
+ * Every N calendar units starting from an anchor date.
+ *
+ * - day:   anchor date at periodicTime, step = N days (exact ms)
+ * - week:  Monday of anchor's week at periodicTime, step = N*7 days
+ * - month: same day-of-month as anchor, step = N months (calendar-aware)
+ * - year:  same month+day as anchor, step = N years (calendar-aware)
  */
-function isValidSlot(ts: number, reminder: Reminder): boolean {
-  const d = new Date(ts);
+export function calcNextPeriodicTrigger(r: Reminder, from: number): number | null {
+  const { periodicUnit, periodicN, periodicTime, periodicStart } = r;
+  if (!periodicUnit || !periodicN || periodicN < 1 || !periodicTime || periodicStart == null)
+    return null;
 
-  // Days of week
-  if (reminder.daysOfWeek && reminder.daysOfWeek.length > 0) {
-    if (!reminder.daysOfWeek.includes(d.getDay())) return false;
+  const [hh, mm] = parseTime(periodicTime);
+
+  if (periodicUnit === 'day') {
+    const anchor = new Date(periodicStart);
+    anchor.setHours(hh, mm, 0, 0);
+    const msStep = periodicN * 86_400_000;
+    if (anchor.getTime() > from) return anchor.getTime();
+    const elapsed  = from - anchor.getTime();
+    const periods  = Math.floor(elapsed / msStep) + 1;
+    return anchor.getTime() + periods * msStep;
   }
 
-  // Time-of-day window
-  if (reminder.timeWindowStart && reminder.timeWindowEnd) {
-    const hh  = d.getHours().toString().padStart(2, '0');
-    const mm  = d.getMinutes().toString().padStart(2, '0');
-    const cur = `${hh}:${mm}`;
+  if (periodicUnit === 'week') {
+    const anchor = mondayOf(new Date(periodicStart));
+    anchor.setHours(hh, mm, 0, 0);
+    const msStep = periodicN * 7 * 86_400_000;
+    if (anchor.getTime() > from) return anchor.getTime();
+    const elapsed  = from - anchor.getTime();
+    const periods  = Math.floor(elapsed / msStep) + 1;
+    return anchor.getTime() + periods * msStep;
+  }
 
-    const start = reminder.timeWindowStart;
-    const end   = reminder.timeWindowEnd;
-
-    if (start <= end) {
-      // Normal window: 09:00 – 18:00
-      if (cur < start || cur > end) return false;
-    } else {
-      // Overnight window: 22:00 – 06:00
-      if (cur < start && cur > end) return false;
+  if (periodicUnit === 'month') {
+    const anchor = new Date(periodicStart);
+    anchor.setHours(hh, mm, 0, 0);
+    // Walk forward by periodicN months until we're past `from`
+    while (anchor.getTime() <= from) {
+      anchor.setMonth(anchor.getMonth() + periodicN);
     }
+    return anchor.getTime();
   }
 
+  if (periodicUnit === 'year') {
+    const anchor = new Date(periodicStart);
+    anchor.setHours(hh, mm, 0, 0);
+    while (anchor.getTime() <= from) {
+      anchor.setFullYear(anchor.getFullYear() + periodicN);
+    }
+    return anchor.getTime();
+  }
+
+  return null;
+}
+
+// ─── Flexible slot validation ─────────────────────────────────────────────────
+
+function isValidFlexSlot(ts: number, r: Reminder): boolean {
+  const d = new Date(ts);
+  if (r.daysOfWeek && r.daysOfWeek.length > 0 && !r.daysOfWeek.includes(d.getDay()))
+    return false;
+  if (r.timeWindowStart && r.timeWindowEnd) {
+    const cur = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const s = r.timeWindowStart, e = r.timeWindowEnd;
+    if (s <= e) { if (cur < s || cur > e) return false; }
+    else        { if (cur < s && cur > e) return false; }
+  }
   return true;
 }
 
-// ─── Next trigger calculation ─────────────────────────────────────────────────
-
-const MAX_SEARCH_ITERATIONS = 20_000;
-
-/**
- * Calculate the very first trigger for a newly created reminder.
- * For interval/flexible: starts from `now + interval`.
- * For scheduled: starts from `startTs` (or `now + interval` if past).
- */
-export function calcNextTrigger(reminder: Reminder, now: number): number | null {
-  if (reminder.type === 'specific') return reminder.specificTs;
-
-  const intervalMs = reminder.interval * 60_000;
-
-  // Starting point
-  let candidate: number;
-  if (reminder.startTs && reminder.startTs > now) {
-    candidate = reminder.startTs;
-  } else {
-    candidate = now + intervalMs;
-  }
-
-  return findNextValidSlot(candidate, reminder, intervalMs);
-}
-
-/**
- * After a reminder fires, advance nextTrigger to the next valid future slot.
- * Returns null when the reminder has no more future triggers.
- */
-export function advanceTrigger(reminder: Reminder, now: number): number | null {
-  if (reminder.type === 'specific') return null; // one-shot
-
-  const intervalMs = reminder.interval * 60_000;
-  const base       = reminder.nextTrigger ?? now;
-
-  // Step forward by one interval from the fired slot
-  let candidate = base + intervalMs;
-  // Skip any further missed intervals
-  while (candidate <= now) candidate += intervalMs;
-
-  return findNextValidSlot(candidate, reminder, intervalMs);
-}
-
-/**
- * Starting from `candidate`, walk forward by `intervalMs` until a slot
- * satisfies all constraints. Respects startTs / endTs bounds.
- */
-function findNextValidSlot(
-  candidate: number,
-  reminder: Reminder,
-  intervalMs: number,
-): number | null {
-  // Respect startTs lower bound
-  if (reminder.startTs && candidate < reminder.startTs) {
-    candidate = reminder.startTs;
-  }
-
-  for (let i = 0; i < MAX_SEARCH_ITERATIONS; i++) {
-    // Respect endTs upper bound
-    if (reminder.endTs && candidate > reminder.endTs) return null;
-
-    if (isValidSlot(candidate, reminder)) return candidate;
-
+function findNextFlexSlot(candidate: number, r: Reminder, intervalMs: number): number | null {
+  if (r.startTs && candidate < r.startTs) candidate = r.startTs;
+  for (let i = 0; i < 20_000; i++) {
+    if (r.endTs && candidate > r.endTs) return null;
+    if (isValidFlexSlot(candidate, r))  return candidate;
     candidate += intervalMs;
   }
-
-  return null; // no valid slot found within search limit
+  return null;
 }
 
-// ─── Misc ─────────────────────────────────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
 
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
+export function calcNextTrigger(r: Reminder, now: number): number | null {
+  if (r.type === 'specific')  return r.specificTs;
+  if (r.type === 'calendar')  return calcNextCalendarTrigger(r, now);
+  if (r.type === 'periodic')  return calcNextPeriodicTrigger(r, now);
+  const intervalMs = r.interval * 60_000;
+  const candidate  = (r.startTs && r.startTs > now) ? r.startTs : now + intervalMs;
+  return findNextFlexSlot(candidate, r, intervalMs);
 }
 
-/** Migrate a legacy reminder to ensure all new flexible fields are present. */
+export function advanceTrigger(r: Reminder, now: number): number | null {
+  if (r.type === 'specific') return null;
+  if (r.type === 'calendar') return calcNextCalendarTrigger(r, now);
+  if (r.type === 'periodic') return calcNextPeriodicTrigger(r, now);
+  const intervalMs = r.interval * 60_000;
+  let next = (r.nextTrigger ?? now) + intervalMs;
+  while (next <= now) next += intervalMs;
+  return findNextFlexSlot(next, r, intervalMs);
+}
+
 export function migrateLegacyReminder(r: Reminder): Reminder {
+  // calendarDayOfWeek: migrate old single number → array
+  let calDow: number[] | null = null;
+  if (Array.isArray(r.calendarDayOfWeek)) {
+    calDow = r.calendarDayOfWeek;
+  } else if (r.calendarDayOfWeek != null) {
+    calDow = [r.calendarDayOfWeek as unknown as number];
+  }
   return {
     ...r,
-    timeWindowStart: r.timeWindowStart ?? null,
-    timeWindowEnd:   r.timeWindowEnd   ?? null,
-    daysOfWeek:      r.daysOfWeek      ?? null,
-    endTs:           r.endTs           ?? null,
-    // Map old 'scheduled' → 'flexible' transparently
+    timeWindowStart:    r.timeWindowStart    ?? null,
+    timeWindowEnd:      r.timeWindowEnd      ?? null,
+    daysOfWeek:         r.daysOfWeek         ?? null,
+    endTs:              r.endTs              ?? null,
+    calendarUnit:       r.calendarUnit       ?? null,
+    calendarTime:       r.calendarTime       ?? null,
+    calendarDayOfWeek:  calDow,
+    calendarDayOfMonth: r.calendarDayOfMonth ?? null,
+    calendarMonth:      r.calendarMonth      ?? null,
+    periodicUnit:       r.periodicUnit       ?? null,
+    periodicN:          r.periodicN          ?? null,
+    periodicTime:       r.periodicTime       ?? null,
+    periodicStart:      r.periodicStart      ?? null,
     type: r.type === 'scheduled' ? 'flexible' : r.type,
   };
+}
+
+export function clamp(v: number, min: number, max: number): number {
+  return Math.min(Math.max(v, min), max);
 }

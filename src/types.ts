@@ -1,7 +1,7 @@
-// ─── Reminder types ───────────────────────────────────────────────────────────
-
-/** Legacy types kept for backward compatibility with existing data.json entries. */
-export type ReminderType = 'interval' | 'specific' | 'scheduled' | 'flexible';
+export type ReminderType  = 'interval' | 'specific' | 'scheduled' | 'flexible' | 'calendar' | 'periodic';
+export type CalendarUnit  = 'day' | 'week' | 'month' | 'year';
+export type PeriodicUnit  = 'day' | 'week' | 'month' | 'year';
+export type Language      = 'auto' | 'en' | 'ru';
 
 export interface Reminder {
   id:      string;
@@ -10,40 +10,32 @@ export interface Reminder {
   type:    ReminderType;
 
   // ── One-shot ───────────────────────────────────────────────────────────────
-  /** For type='specific': the exact fire timestamp. */
   specificTs: number | null;
 
-  // ── Repeat / flexible fields ───────────────────────────────────────────────
-  /** Repeat interval in minutes (used by interval / scheduled / flexible). */
-  interval: number;
-
-  /** Don't fire before this timestamp (also used by legacy 'scheduled'). */
-  startTs: number | null;
-
-  /** Stop firing after this timestamp (null = no end). */
-  endTs: number | null;
-
-  /**
-   * Daily time-of-day window: fire only between these local times.
-   * Format: "HH:MM" (24h). Both must be set or both null.
-   */
-  timeWindowStart: string | null;
+  // ── Flexible / interval ────────────────────────────────────────────────────
+  interval:        number;
+  startTs:         number | null;
+  endTs:           number | null;
+  timeWindowStart: string | null;  // "HH:MM"
   timeWindowEnd:   string | null;
+  daysOfWeek:      number[] | null;
 
-  /**
-   * Restrict to certain weekdays.
-   * 0 = Sunday … 6 = Saturday. null = every day.
-   */
-  daysOfWeek: number[] | null;
+  // ── Calendar recurrence ────────────────────────────────────────────────────
+  calendarUnit:       CalendarUnit | null;
+  calendarTime:       string | null;    // "HH:MM"
+  calendarDayOfWeek:  number[] | null;  // 0-6 each, multi-select (for 'week')
+  calendarDayOfMonth: number | null;    // 1-31 (for 'month' and 'year')
+  calendarMonth:      number | null;    // 0-11 (for 'year')
+
+  // ── Periodic recurrence ────────────────────────────────────────────────────
+  periodicUnit:  PeriodicUnit | null;
+  periodicN:     number | null;   // every N units (>=1)
+  periodicTime:  string | null;   // "HH:MM" — time of day to fire
+  periodicStart: number | null;   // anchor timestamp — defines the phase
 
   // ── Runtime ────────────────────────────────────────────────────────────────
-  /** Next planned fire timestamp. null = no future trigger. */
   nextTrigger: number | null;
 }
-
-// ─── Plugin settings ──────────────────────────────────────────────────────────
-
-export type Language = 'auto' | 'en' | 'ru';
 
 export interface PluginSettings {
   reminders:        Reminder[];
