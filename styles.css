@@ -564,3 +564,71 @@
 
 /* ── Make modal a bit wider for the builder ──────────────────────── */
 .sr-modal { min-width: 360px; max-width: 520px; }
+
+/* ── Calendar card ───────────────────────────────────────────────── */
+.sr-cal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  border-left: 3px solid var(--interactive-accent);
+}
+
+/* ── Unit pill buttons ───────────────────────────────────────────── */
+.sr-cal-unit-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.sr-unit-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1.5px solid var(--background-modifier-border);
+  background: var(--background-primary-alt);
+  color: var(--text-muted);
+  font-size: .8em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .12s, background .12s, color .12s;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sr-unit-btn--active {
+  border-color: var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
+  color: var(--interactive-accent);
+}
+
+/* ── Calendar dynamic area ───────────────────────────────────────── */
+.sr-cal-dynamic {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Calendar tag in item list ───────────────────────────────────── */
+.sr-tag--calendar {
+  background: color-mix(in srgb, #9c27b0 18%, transparent);
+  color: #9c27b0;
+}
+
+/* ── Periodic tag ────────────────────────────────────────────────── */
+.sr-tag--periodic {
+  background: color-mix(in srgb, #ff9800 18%, transparent);
+  color: #ff9800;
+}
+
+/* ── Periodic start date hint ────────────────────────────────────── */
+.sr-per-hint {
+  font-size: .76em;
+  color: var(--interactive-accent);
+  margin-top: 3px;
+  font-weight: 500;
+  min-height: 1em;
+}

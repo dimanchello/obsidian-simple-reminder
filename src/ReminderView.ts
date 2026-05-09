@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { AddReminderModal } from './AddReminderModal';
-import { fmtDate, fmtDateShort } from './utils';
+import { fmtDate, fmtDateShort, isoWeekNumber } from './utils';
 import { Reminder } from './types';
 import { Strings } from './i18n';
 
@@ -21,7 +21,6 @@ export class ReminderView extends ItemView {
 
   async onOpen():  Promise<void> { this.render(); }
   async onClose(): Promise<void> {}
-
   refresh(): void { this.render(); }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -31,7 +30,6 @@ export class ReminderView extends ItemView {
     const root = this.containerEl.children[1] as HTMLElement;
     root.empty();
     root.addClass('sr-root');
-
     this.renderHeader(root, t);
     this.renderStats(root, t);
     this.renderList(root, t);
@@ -42,8 +40,8 @@ export class ReminderView extends ItemView {
     const title  = header.createDiv('sr-header-title');
     title.createSpan({ cls: 'sr-header-icon', text: '⏰' });
     title.createSpan({ cls: 'sr-header-text', text: t.pluginName });
-    const addBtn = header.createEl('button', { cls: 'sr-add-btn', text: t.addBtn });
-    addBtn.addEventListener('click', () => this.openAddModal());
+    header.createEl('button', { cls: 'sr-add-btn', text: t.addBtn })
+          .addEventListener('click', () => this.openAddModal());
   }
 
   private renderStats(root: HTMLElement, t: Strings): void {
@@ -57,7 +55,6 @@ export class ReminderView extends ItemView {
 
   private renderList(root: HTMLElement, t: Strings): void {
     const list = root.createDiv('sr-list');
-
     if (this.plugin.reminders.length === 0) {
       const empty = list.createDiv('sr-empty');
       empty.createDiv({ cls: 'sr-empty-icon', text: '🔔' });
@@ -65,13 +62,10 @@ export class ReminderView extends ItemView {
       empty.createDiv({ cls: 'sr-empty-hint', text: t.noRemindersHint });
       return;
     }
-
     const sorted = [...this.plugin.reminders].sort((a, b) => {
       if (a.checked !== b.checked) return a.checked ? 1 : -1;
-      const nt = (r: Reminder) => r.nextTrigger ?? Infinity;
-      return nt(a) - nt(b);
+      return (a.nextTrigger ?? Infinity) - (b.nextTrigger ?? Infinity);
     });
-
     for (const r of sorted) this.renderItem(list, r, t);
   }
 
@@ -82,9 +76,8 @@ export class ReminderView extends ItemView {
     const item   = container.createDiv('sr-item' + (isDone ? ' sr-item--done' : ''));
 
     // Checkbox
-    const cbWrap = item.createDiv('sr-cb-wrap');
-    const cb     = cbWrap.createEl('input', { type: 'checkbox', cls: 'sr-checkbox' });
-    cb.checked   = r.checked;
+    const cb = item.createDiv('sr-cb-wrap').createEl('input', { type: 'checkbox', cls: 'sr-checkbox' });
+    cb.checked = r.checked;
     cb.addEventListener('change', async () => {
       r.checked = cb.checked;
       await this.plugin.saveSettings();
@@ -92,26 +85,23 @@ export class ReminderView extends ItemView {
     });
 
     // Body
-    const body = item.createDiv('sr-body');
+    const body  = item.createDiv('sr-body');
     body.createDiv({ cls: 'sr-title', text: r.title });
 
-    // Tags + schedule info
+    // Schedule row
     const sched = body.createDiv('sr-sched');
     this.renderSchedule(sched, r, t);
 
-    // Meta row: next trigger + constraints summary
+    // Next trigger / meta
     if (!isDone) this.renderMeta(body, r, t);
 
-    // Action buttons
-    const acts   = item.createDiv('sr-actions');
+    // Actions
+    const acts = item.createDiv('sr-actions');
+
     const editBtn = acts.createEl('button', { cls: 'sr-edit-btn', text: '✏️' });
     editBtn.setAttribute('aria-label', t.editAriaLabel);
-    editBtn.addEventListener('click', () => {
-      new AddReminderModal(this.app, this.plugin, () => {
-        this.refresh();
-        this.plugin.checkReminders();
-      }, r).open();
-    });
+    editBtn.addEventListener('click', () =>
+      new AddReminderModal(this.app, this.plugin, () => { this.refresh(); this.plugin.checkReminders(); }, r).open());
 
     const delBtn = acts.createEl('button', { cls: 'sr-del-btn', text: '✕' });
     delBtn.setAttribute('aria-label', t.deleteAriaLabel);
@@ -122,31 +112,62 @@ export class ReminderView extends ItemView {
     });
   }
 
-  // ── Schedule tags ──────────────────────────────────────────────────────────
+  // ── Schedule description ───────────────────────────────────────────────────
 
-  private renderSchedule(sched: HTMLElement, r: Reminder, t: Strings): void {
+  private renderSchedule(el: HTMLElement, r: Reminder, t: Strings): void {
     if (r.type === 'specific') {
-      sched.createSpan({ cls: 'sr-tag sr-tag--once', text: t.tagOnce });
-      sched.createSpan({ cls: 'sr-sched-text', text: fmtDate(r.specificTs) });
+      el.createSpan({ cls: 'sr-tag sr-tag--once',     text: t.tagOnce });
+      el.createSpan({ cls: 'sr-sched-text', text: fmtDate(r.specificTs) });
       return;
     }
-
-    // Repeat types
-    sched.createSpan({ cls: 'sr-tag sr-tag--repeat', text: t.tagRepeat });
-    sched.createSpan({ cls: 'sr-sched-text', text: `${r.interval} ${t.fieldIntervalUnit}` });
-
-    // Constraint badges
-    if (r.timeWindowStart && r.timeWindowEnd) {
-      sched.createSpan({ cls: 'sr-badge sr-badge--time', text: `${r.timeWindowStart}–${r.timeWindowEnd}` });
+    if (r.type === 'calendar') {
+      el.createSpan({ cls: 'sr-tag sr-tag--calendar', text: t.tagCalendar });
+      el.createSpan({ cls: 'sr-sched-text', text: this.calendarSummary(r, t) });
+      return;
     }
-
-    if (r.daysOfWeek && r.daysOfWeek.length > 0) {
-      const dayStr = r.daysOfWeek.map(d => t.daysShort[d]).join(' ');
-      sched.createSpan({ cls: 'sr-badge sr-badge--days', text: dayStr });
+    if (r.type === 'periodic') {
+      el.createSpan({ cls: 'sr-tag sr-tag--periodic', text: t.tagPeriodic });
+      el.createSpan({ cls: 'sr-sched-text', text: this.periodicSummary(r, t) });
+      return;
     }
+    // flexible / interval
+    el.createSpan({ cls: 'sr-tag sr-tag--repeat', text: t.tagRepeat });
+    el.createSpan({ cls: 'sr-sched-text', text: `${r.interval} ${t.fieldIntervalUnit}` });
+    if (r.timeWindowStart && r.timeWindowEnd)
+      el.createSpan({ cls: 'sr-badge sr-badge--time', text: `${r.timeWindowStart}–${r.timeWindowEnd}` });
+    if (r.daysOfWeek && r.daysOfWeek.length > 0)
+      el.createSpan({ cls: 'sr-badge sr-badge--days', text: r.daysOfWeek.map(d => t.daysShort[d]).join(' ') });
+    if (r.endTs)
+      el.createSpan({ cls: 'sr-badge sr-badge--end', text: `${t.endsLabel} ${fmtDateShort(r.endTs)}` });
+  }
 
-    if (r.endTs) {
-      sched.createSpan({ cls: 'sr-badge sr-badge--end', text: `${t.endsLabel} ${fmtDateShort(r.endTs)}` });
+  private calendarSummary(r: Reminder, t: Strings): string {
+    const time = r.calendarTime ?? '—';
+    switch (r.calendarUnit) {
+      case 'day':   return t.calSummaryDay(time);
+      case 'week':  return t.calSummaryWeek(
+        (r.calendarDayOfWeek ?? []).map(d => t.daysShort[d]).join(' '), time);
+      case 'month': return t.calSummaryMonth(r.calendarDayOfMonth ?? 1, time);
+      case 'year':  return t.calSummaryYear(
+        r.calendarDayOfMonth ?? 1, t.monthsShort[r.calendarMonth ?? 0], time);
+      default: return time;
+    }
+  }
+
+  private periodicSummary(r: Reminder, t: Strings): string {
+    const n     = r.periodicN    ?? 1;
+    const time  = r.periodicTime ?? '—';
+    const start = r.periodicStart != null ? new Date(r.periodicStart) : new Date();
+
+    switch (r.periodicUnit) {
+      case 'day':   return t.sumPeriodicDay(n, fmtDateShort(r.periodicStart), time);
+      case 'week': {
+        const daysStr = (r.periodicDayOfWeek ?? [start.getDay()]).map(d => t.daysShort[d]).join(' ');
+        return t.sumPeriodicWeek(n, daysStr, start.getFullYear(), time);
+      }
+      case 'month': return t.sumPeriodicMonth(n, r.periodicDayOfMonth ?? start.getDate(), start.getFullYear(), time);
+      case 'year':  return t.sumPeriodicYear(n, t.monthsShort[r.periodicMonth ?? start.getMonth()], r.periodicDayOfMonth ?? start.getDate(), time);
+      default:      return `${n} × ${r.periodicUnit ?? '?'}`;
     }
   }
 
@@ -154,25 +175,17 @@ export class ReminderView extends ItemView {
 
   private renderMeta(body: HTMLElement, r: Reminder, t: Strings): void {
     const meta = body.createDiv('sr-next');
-
-    if (r.nextTrigger !== null && r.nextTrigger !== undefined) {
+    if (r.nextTrigger != null) {
       meta.createSpan({ cls: 'sr-next-label', text: t.nextLabel });
       meta.createSpan({ cls: 'sr-next-val',   text: fmtDate(r.nextTrigger) });
-    } else if (r.type === 'specific') {
-      meta.createSpan({ cls: 'sr-next-fired', text: t.alreadyFired });
     } else {
       meta.createSpan({ cls: 'sr-next-fired', text: t.alreadyFired });
     }
-
-    if (r.startTs && r.startTs > Date.now()) {
+    if (r.startTs && r.startTs > Date.now())
       meta.createSpan({ cls: 'sr-next-start', text: `▶ ${fmtDate(r.startTs)}` });
-    }
   }
 
   private openAddModal(): void {
-    new AddReminderModal(this.app, this.plugin, () => {
-      this.refresh();
-      this.plugin.checkReminders();
-    }).open();
+    new AddReminderModal(this.app, this.plugin, () => { this.refresh(); this.plugin.checkReminders(); }).open();
   }
 }
