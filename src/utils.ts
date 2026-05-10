@@ -88,6 +88,96 @@ export function calcNextCalendarTrigger(r: Reminder, from: number): number | nul
  * - month: same day-of-month as anchor, step = N months (calendar-aware)
  * - year:  same month+day as anchor, step = N years (calendar-aware)
  */
+function calcNextPeriodicDay(from: number, anchor: Date, periodicN: number): number {
+  const msStep = periodicN * 86_400_000;
+  let nextTs = anchor.getTime();
+  if (nextTs <= from) {
+    const periods = Math.floor((from - nextTs) / msStep) + 1;
+    nextTs += periods * msStep;
+  }
+  return nextTs;
+}
+
+function calcNextPeriodicWeek(r: Reminder, from: number, anchor: Date, periodicN: number, hh: number, mm: number): number | null {
+  const days = r.periodicDayOfWeek && r.periodicDayOfWeek.length > 0 ? r.periodicDayOfWeek : [anchor.getDay()];
+  const mAnchor = mondayOf(anchor);
+  mAnchor.setHours(hh, mm, 0, 0);
+
+  let currentWeekMon = new Date(mAnchor);
+  // Проматываем вперед до текущей недели (кратной периодичности)
+  if (from > currentWeekMon.getTime()) {
+    const weeksDiff = Math.floor((from - currentWeekMon.getTime()) / (7 * 86_400_000));
+    const periodsToSkip = Math.floor(weeksDiff / periodicN);
+    currentWeekMon.setDate(currentWeekMon.getDate() + periodsToSkip * periodicN * 7);
+  }
+
+  // Ищем подходящий день (лимит 1000 циклов)
+  for (let p = 0; p < 1000; p++) {
+    let validTimes: number[] = [];
+    for (const d of days) {
+      const cand = new Date(currentWeekMon);
+      const diff = d === 0 ? 6 : d - 1; // Сдвиг от понедельника
+      cand.setDate(cand.getDate() + diff);
+      if (cand.getTime() >= anchor.getTime() && cand.getTime() > from) {
+        validTimes.push(cand.getTime());
+      }
+    }
+    if (validTimes.length > 0) {
+      validTimes.sort((a, b) => a - b);
+      return validTimes[0]; // Самый ближний день на этой неделе
+    }
+    currentWeekMon.setDate(currentWeekMon.getDate() + periodicN * 7);
+  }
+  return null;
+}
+
+function calcNextPeriodicMonth(r: Reminder, from: number, anchor: Date, periodicN: number, hh: number, mm: number): number | null {
+  const targetDay = r.periodicDayOfMonth || anchor.getDate();
+  let cand = new Date(anchor);
+  cand.setDate(1);
+
+  // Проматываем месяцы
+  let mDiff = (new Date(from).getFullYear() - cand.getFullYear()) * 12 + (new Date(from).getMonth() - cand.getMonth());
+  if (mDiff > 0) {
+    const periods = Math.floor(mDiff / periodicN);
+    cand.setMonth(cand.getMonth() + periods * periodicN);
+  }
+
+  for (let p = 0; p < 1000; p++) {
+    const test = new Date(cand);
+    test.setDate(targetDay);
+    test.setHours(hh, mm, 0, 0);
+    // test.getMonth() === cand.getMonth() защищает от переполнения (напр. 31 февраля -> март)
+    if (test.getMonth() === cand.getMonth() && test.getTime() >= anchor.getTime() && test.getTime() > from) {
+      return test.getTime();
+    }
+    cand.setMonth(cand.getMonth() + periodicN);
+  }
+  return null;
+}
+
+function calcNextPeriodicYear(r: Reminder, from: number, anchor: Date, periodicN: number): number | null {
+  const targetMonth = r.periodicMonth != null ? r.periodicMonth : anchor.getMonth();
+  const targetDay = r.periodicDayOfMonth || anchor.getDate();
+  let cand = new Date(anchor);
+  cand.setMonth(targetMonth, targetDay);
+
+  const yDiff = new Date(from).getFullYear() - cand.getFullYear();
+  if (yDiff > 0) {
+    const periods = Math.floor(yDiff / periodicN);
+    cand.setFullYear(cand.getFullYear() + periods * periodicN);
+  }
+
+  for (let p = 0; p < 1000; p++) {
+    if (cand.getMonth() === targetMonth && cand.getTime() >= anchor.getTime() && cand.getTime() > from) {
+      return cand.getTime();
+    }
+    cand.setFullYear(cand.getFullYear() + periodicN);
+    cand.setMonth(targetMonth, targetDay);
+  }
+  return null;
+}
+
 export function calcNextPeriodicTrigger(r: Reminder, from: number): number | null {
   const { periodicUnit, periodicN, periodicTime, periodicStart } = r;
   if (!periodicUnit || !periodicN || periodicN < 1 || !periodicTime || periodicStart == null) return null;
@@ -96,97 +186,18 @@ export function calcNextPeriodicTrigger(r: Reminder, from: number): number | nul
   const anchor = new Date(periodicStart);
   anchor.setHours(hh, mm, 0, 0);
 
-  if (periodicUnit === 'day') {
-    const msStep = periodicN * 86_400_000;
-    let nextTs = anchor.getTime();
-    if (nextTs <= from) {
-      const periods = Math.floor((from - nextTs) / msStep) + 1;
-      nextTs += periods * msStep;
-    }
-    return nextTs;
+  switch (periodicUnit) {
+    case 'day':
+      return calcNextPeriodicDay(from, anchor, periodicN);
+    case 'week':
+      return calcNextPeriodicWeek(r, from, anchor, periodicN, hh, mm);
+    case 'month':
+      return calcNextPeriodicMonth(r, from, anchor, periodicN, hh, mm);
+    case 'year':
+      return calcNextPeriodicYear(r, from, anchor, periodicN);
+    default:
+      return null;
   }
-
-  if (periodicUnit === 'week') {
-    const days = r.periodicDayOfWeek && r.periodicDayOfWeek.length > 0 ? r.periodicDayOfWeek : [anchor.getDay()];
-    const mAnchor = mondayOf(anchor);
-    mAnchor.setHours(hh, mm, 0, 0);
-
-    let currentWeekMon = new Date(mAnchor);
-    // Проматываем вперед до текущей недели (кратной периодичности)
-    if (from > currentWeekMon.getTime()) {
-      const weeksDiff = Math.floor((from - currentWeekMon.getTime()) / (7 * 86_400_000));
-      const periodsToSkip = Math.floor(weeksDiff / periodicN);
-      currentWeekMon.setDate(currentWeekMon.getDate() + periodsToSkip * periodicN * 7);
-    }
-
-    // Ищем подходящий день (лимит 1000 циклов)
-    for (let p = 0; p < 1000; p++) {
-      let validTimes: number[] = [];
-      for (const d of days) {
-        const cand = new Date(currentWeekMon);
-        const diff = d === 0 ? 6 : d - 1; // Сдвиг от понедельника
-        cand.setDate(cand.getDate() + diff);
-        if (cand.getTime() >= anchor.getTime() && cand.getTime() > from) {
-          validTimes.push(cand.getTime());
-        }
-      }
-      if (validTimes.length > 0) {
-        validTimes.sort((a, b) => a - b);
-        return validTimes[0]; // Самый ближний день на этой неделе
-      }
-      currentWeekMon.setDate(currentWeekMon.getDate() + periodicN * 7);
-    }
-    return null;
-  }
-
-  if (periodicUnit === 'month') {
-    const targetDay = r.periodicDayOfMonth || anchor.getDate();
-    let cand = new Date(anchor);
-    cand.setDate(1);
-
-    // Проматываем месяцы
-    let mDiff = (new Date(from).getFullYear() - cand.getFullYear()) * 12 + (new Date(from).getMonth() - cand.getMonth());
-    if (mDiff > 0) {
-      const periods = Math.floor(mDiff / periodicN);
-      cand.setMonth(cand.getMonth() + periods * periodicN);
-    }
-
-    for (let p = 0; p < 1000; p++) {
-      const test = new Date(cand);
-      test.setDate(targetDay);
-      test.setHours(hh, mm, 0, 0);
-      // test.getMonth() === cand.getMonth() защищает от переполнения (напр. 31 февраля -> март)
-      if (test.getMonth() === cand.getMonth() && test.getTime() >= anchor.getTime() && test.getTime() > from) {
-        return test.getTime();
-      }
-      cand.setMonth(cand.getMonth() + periodicN);
-    }
-    return null;
-  }
-
-  if (periodicUnit === 'year') {
-    const targetMonth = r.periodicMonth != null ? r.periodicMonth : anchor.getMonth();
-    const targetDay = r.periodicDayOfMonth || anchor.getDate();
-    let cand = new Date(anchor);
-    cand.setMonth(targetMonth, targetDay);
-
-    const yDiff = new Date(from).getFullYear() - cand.getFullYear();
-    if (yDiff > 0) {
-      const periods = Math.floor(yDiff / periodicN);
-      cand.setFullYear(cand.getFullYear() + periods * periodicN);
-    }
-
-    for (let p = 0; p < 1000; p++) {
-      if (cand.getMonth() === targetMonth && cand.getTime() >= anchor.getTime() && cand.getTime() > from) {
-        return cand.getTime();
-      }
-      cand.setFullYear(cand.getFullYear() + periodicN);
-      cand.setMonth(targetMonth, targetDay);
-    }
-    return null;
-  }
-
-  return null;
 }
 
 // ─── Flexible slot validation ─────────────────────────────────────────────────
