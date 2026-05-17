@@ -1,7 +1,6 @@
-export type ReminderType  = 'interval' | 'specific' | 'scheduled' | 'flexible' | 'calendar' | 'periodic';
-export type CalendarUnit  = 'day' | 'week' | 'month' | 'year';
-export type PeriodicUnit  = 'day' | 'week' | 'month' | 'year';
-export type Language      = 'auto' | 'en' | 'ru';
+export type ReminderType = 'once' | 'repeat';
+export type RepeatUnit   = 'day' | 'week' | 'month' | 'year';
+export type Language     = 'auto' | 'en' | 'ru';
 
 export interface Reminder {
   id:      string;
@@ -9,34 +8,28 @@ export interface Reminder {
   checked: boolean;
   type:    ReminderType;
 
-  // ── One-shot ───────────────────────────────────────────────────────────────
+  // ── Разовое ─────────────────────────────────────────────────────────────────
   specificTs: number | null;
 
-  // ── Flexible / interval ────────────────────────────────────────────────────
-  interval:        number;
-  startTs:         number | null;
-  endTs:           number | null;
-  timeWindowStart: string | null;  // "HH:MM"
-  timeWindowEnd:   string | null;
-  daysOfWeek:      number[] | null;
+  // ── Меж-дневные правила (Календарь) ─────────────────────────────────────────
+  repUnit:       RepeatUnit | null;
+  repStep:       number | null;     // каждые X (дней/недель...)
+  repDaysOfWeek: number[] | null;   // [0, 1, 2] (Вс, Пн, Вт)
+  repDayOfMonth: number | null;     // 1-31
+  repMonth:      number | null;     // 0-11
 
-  // ── Calendar recurrence ────────────────────────────────────────────────────
-  calendarUnit:       CalendarUnit | null;
-  calendarTime:       string | null;    // "HH:MM"
-  calendarDayOfWeek:  number[] | null;  // 0-6 each, multi-select (for 'week')
-  calendarDayOfMonth: number | null;    // 1-31 (for 'month' and 'year')
-  calendarMonth:      number | null;    // 0-11 (for 'year')
+  // ── Границы (Ограничения по датам) ──────────────────────────────────────────
+  startDate: number | null;
+  endDate:   number | null;
 
-  // ── Periodic recurrence ────────────────────────────────────────────────────
-  periodicUnit:  PeriodicUnit | null;
-  periodicN:     number | null;
-  periodicTime:  string | null;
-  periodicStart: number | null;
-  periodicDayOfWeek:  number[] | null;
-  periodicDayOfMonth: number | null;
-  periodicMonth:      number | null;
+  // ── Внутри-дневные правила (Время) ──────────────────────────────────────────
+  intraDayMode:    'single' | 'interval' | null;
+  intraDayTime:    string | null; // "HH:MM"
+  intraDayStepMin: number | null; // интервал в минутах
+  timeWindowStart: string | null; // "HH:MM"
+  timeWindowEnd:   string | null; // "HH:MM"
 
-  // ── Runtime ────────────────────────────────────────────────────────────────
+  // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;
 }
 
@@ -51,3 +44,24 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   checkIntervalSec: 30,
   language:         'auto',
 };
+
+export interface LegacyReminder {
+  id?: string;
+  title?: string;
+  checked?: boolean;
+  type?: string;
+  specificTs?: number | null;
+  startTs?: number | null;
+  endTs?: number | null;
+  periodicStart?: number | null;
+  periodicUnit?: RepeatUnit;
+  periodicN?: number;
+  periodicDayOfWeek?: number[] | null;
+  periodicDayOfMonth?: number | null;
+  periodicMonth?: number | null;
+  periodicTime?: string;
+  daysOfWeek?: number[] | null;
+  interval?: number;
+  timeWindowStart?: string | null;
+  timeWindowEnd?: string | null;
+}
