@@ -64,12 +64,16 @@ npm run build
 npm test
 ```
 
-After `npm run build`, copy `main.js`, `manifest.json`, and `styles.css` to the plugin folder in your vault.
+After `npm run build`, copy the contents of `dist/` (`main.js`, `manifest.json`, and `styles.css`) to the plugin folder in your vault.
 
 ### Project Structure
 
 ```
 simple-reminder/
+├── dist/                    # Build output (install to Obsidian vault)
+│   ├── main.js
+│   ├── manifest.json
+│   └── styles.css
 ├── src/
 │   ├── main.ts              # Entry point, check loop, notifications
 │   ├── types.ts             # Reminder, PluginSettings, LegacyReminder interfaces
@@ -80,9 +84,10 @@ simple-reminder/
 │   ├── AddReminderModal.ts  # Create/edit reminder modal
 │   └── SettingsTab.ts       # Plugin settings page
 ├── tests/
-│   └── utils.test.ts        # Unit tests for scheduling logic
-├── styles.css
-├── manifest.json
+│   ├── utils.test.ts        # Unit tests for scheduling logic
+│   └── i18n.test.ts         # Unit tests for i18n strings
+├── styles.css               # Source styles (copied to dist/ on build)
+├── manifest.json            # Plugin manifest (copied to dist/ on build)
 ├── package.json
 ├── tsconfig.json
 └── esbuild.config.mjs

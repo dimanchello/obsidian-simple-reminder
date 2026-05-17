@@ -34,6 +34,8 @@ src/
   SettingsTab.ts       — Obsidian PluginSettingTab
 tests/
   utils.test.ts        — Tests for calcNextTrigger, advanceTrigger, migration, helpers
+  i18n.test.ts         — Tests for i18n strings, EN/RU consistency
+dist/                  — Build output (main.js, manifest.json, styles.css)
 ```
 
 ## Conventions
