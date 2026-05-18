@@ -3,14 +3,14 @@ import { PluginSettings, Reminder, DEFAULT_SETTINGS } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderSettingTab } from './SettingsTab';
-import { advanceTrigger, migrateLegacyReminder } from './utils';
+import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted } from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
 
 export default class SimpleReminderPlugin extends Plugin {
-  settings!:  PluginSettings;
+  settings!: PluginSettings;
   reminders!: Reminder[];
-  t!:         Strings;
+  t!: Strings;
 
   /** Public API — accessible to other plugins via app.plugins.plugins['simple-reminder'].api */
   api!: SimpleReminderAPIImpl;
@@ -26,21 +26,24 @@ export default class SimpleReminderPlugin extends Plugin {
     // Expose API before anything else so other plugins loading after us can use it
     this.api = new SimpleReminderAPIImpl(this);
 
-    this.registerView(VIEW_TYPE_REMINDER, leaf => new ReminderView(leaf, this));
+    this.registerView(VIEW_TYPE_REMINDER, (leaf) => new ReminderView(leaf, this));
 
     this.addRibbonIcon('bell', this.t.pluginName, () => this.activateView());
 
     this.addCommand({
-      id: 'open-panel', name: 'Open reminder panel',
+      id: 'open-panel',
+      name: 'Open reminder panel',
       callback: () => this.activateView(),
     });
 
     this.addCommand({
-      id: 'add-reminder', name: 'Add new reminder',
-      callback: () => new AddReminderModal(this.app, this, () => {
-        this.refreshView();
-        this.checkReminders();
-      }).open(),
+      id: 'add-reminder',
+      name: 'Add new reminder',
+      callback: () =>
+        new AddReminderModal(this.app, this, () => {
+          this.refreshView();
+          this.checkReminders();
+        }).open(),
     });
 
     this.addSettingTab(new ReminderSettingTab(this.app, this));
@@ -59,10 +62,10 @@ export default class SimpleReminderPlugin extends Plugin {
   // ── Settings ───────────────────────────────────────────────────────────────
 
   async loadSettings(): Promise<void> {
-    const saved   = (await this.loadData()) ?? {};
+    const saved = (await this.loadData()) ?? {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
-    this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : [])
-      .map(migrateLegacyReminder);
+    this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : []).map(migrateLegacyReminder);
+    this.pruneOldCompleted();
   }
 
   async saveSettings(): Promise<void> {
@@ -72,7 +75,9 @@ export default class SimpleReminderPlugin extends Plugin {
 
   // ── i18n ───────────────────────────────────────────────────────────────────
 
-  refreshStrings(): void { this.t = getStrings(this.settings.language); }
+  refreshStrings(): void {
+    this.t = getStrings(this.settings.language);
+  }
 
   // ── View ───────────────────────────────────────────────────────────────────
 
@@ -111,24 +116,42 @@ export default class SimpleReminderPlugin extends Plugin {
     }
   }
 
-  restartCheckLoop(): void { this.startCheckLoop(); }
+  restartCheckLoop(): void {
+    this.startCheckLoop();
+  }
+
+  pruneOldCompleted(): void {
+    const before = this.reminders.length;
+    this.reminders = pruneOldCompleted(this.reminders);
+    if (this.reminders.length !== before) {
+      this.saveSettings();
+      this.refreshView();
+    }
+  }
 
   // ── Check logic ────────────────────────────────────────────────────────────
 
   checkReminders(): void {
-    const now     = Date.now();
-    let   changed = false;
+    this.pruneOldCompleted();
+
+    const now = Date.now();
+    let changed = false;
 
     for (const r of this.reminders) {
-      if (r.checked)     continue;
+      if (r.checked) continue;
       if (r.nextTrigger == null) continue;
-      if (now < r.nextTrigger)  continue;
+      if (now < r.nextTrigger) continue;
 
       this.fireNotification(r);
-      // Emit API event so external plugins can react
       this.api._emitFired(r);
 
-      r.nextTrigger = advanceTrigger(r, now);
+      if (r.type === 'once') {
+        r.checked = true;
+        r.completedAt = now;
+        r.nextTrigger = null;
+      } else {
+        r.nextTrigger = advanceTrigger(r, now);
+      }
       changed = true;
     }
 
@@ -147,10 +170,11 @@ export default class SimpleReminderPlugin extends Plugin {
       return;
     }
     Notification.requestPermission()
-      .then(perm => {
+      .then((perm) => {
         if (!showNotice) return;
         new Notice(perm === 'granted' ? this.t.okPermGranted : this.t.warnPermDenied, 6000);
-      }).catch(() => {});
+      })
+      .catch(() => {});
   }
 
   fireNotification(r: Reminder): void {
@@ -158,18 +182,23 @@ export default class SimpleReminderPlugin extends Plugin {
       try {
         new Notification(`⏰ ${this.t.pluginName}`, { body: r.title, silent: false });
         return;
-      } catch (_) {}
+      } catch {
+        /* ignore */
+      }
     }
     new Notice(`⏰ ${r.title}`, 8000);
   }
 
   fireTestNotification(): void {
-    if (typeof Notification === 'undefined') { new Notice(this.t.testFallback, 5000); return; }
+    if (typeof Notification === 'undefined') {
+      new Notice(this.t.testFallback, 5000);
+      return;
+    }
     const fire = () => new Notification(`⏰ ${this.t.pluginName}`, { body: this.t.testBody });
     if (Notification.permission === 'granted') {
       fire();
     } else if (Notification.permission === 'default') {
-      Notification.requestPermission().then(p => {
+      Notification.requestPermission().then((p) => {
         if (p === 'granted') fire();
         else new Notice(this.t.warnPermDenied, 5000);
       });

@@ -20,7 +20,7 @@ export class ReminderSettingTab extends PluginSettingTab {
     // ── Mobile warning ──────────────────────────────────────────────────────
     const notice = el.createDiv('sr-settings-notice');
     notice.createEl('h3', { text: t.mobileH3 });
-    notice.createEl('p',  { text: t.mobileBody });
+    notice.createEl('p', { text: t.mobileBody });
 
     // ── Management ──────────────────────────────────────────────────────────
     el.createEl('h3', { text: t.secManagement });
@@ -28,14 +28,18 @@ export class ReminderSettingTab extends PluginSettingTab {
     new Setting(el)
       .setName(t.openPanelName)
       .setDesc(t.openPanelDesc)
-      .addButton(b => b.setButtonText(t.openPanelBtn).setCta()
-        .onClick(() => this.plugin.activateView()));
+      .addButton((b) =>
+        b
+          .setButtonText(t.openPanelBtn)
+          .setCta()
+          .onClick(() => this.plugin.activateView()),
+      );
 
     // Check interval
     new Setting(el)
       .setName(t.checkIntervalName)
       .setDesc(t.checkIntervalDesc)
-      .addText(text => {
+      .addText((text) => {
         text
           .setPlaceholder('30')
           .setValue(String(this.plugin.settings.checkIntervalSec))
@@ -48,7 +52,7 @@ export class ReminderSettingTab extends PluginSettingTab {
             }
           });
         text.inputEl.type = 'number';
-        text.inputEl.min  = '2';
+        text.inputEl.min = '2';
         text.inputEl.style.width = '80px';
       });
 
@@ -56,11 +60,11 @@ export class ReminderSettingTab extends PluginSettingTab {
     new Setting(el)
       .setName(t.languageName)
       .setDesc(t.languageDesc)
-      .addDropdown(drop => {
+      .addDropdown((drop) => {
         drop
           .addOption('auto', t.langAuto)
-          .addOption('en',   t.langEn)
-          .addOption('ru',   t.langRu)
+          .addOption('en', t.langEn)
+          .addOption('ru', t.langRu)
           .setValue(this.plugin.settings.language)
           .onChange(async (val) => {
             this.plugin.settings.language = val as Language;
@@ -75,50 +79,52 @@ export class ReminderSettingTab extends PluginSettingTab {
     new Setting(el)
       .setName(t.testName)
       .setDesc(t.testDesc)
-      .addButton(b => b.setButtonText(t.testBtn)
-        .onClick(() => this.plugin.fireTestNotification()));
+      .addButton((b) => b.setButtonText(t.testBtn).onClick(() => this.plugin.fireTestNotification()));
 
     // Request permission
     new Setting(el)
       .setName(t.reqPermName)
       .setDesc(t.reqPermDesc)
-      .addButton(b => b.setButtonText(t.reqPermBtn)
-        .onClick(() => this.plugin.requestNotificationPermission(true)));
+      .addButton((b) => b.setButtonText(t.reqPermBtn).onClick(() => this.plugin.requestNotificationPermission(true)));
 
     // Delete all
     new Setting(el)
       .setName(t.deleteAllName)
       .setDesc(t.deleteAllDesc)
-      .addButton(b => b.setButtonText(t.deleteAllBtn).setWarning()
-        .onClick(async () => {
-          this.plugin.reminders = [];
-          await this.plugin.saveSettings();
-          new Notice(t.okAllDeleted);
-          this.display();
-        }));
+      .addButton((b) =>
+        b
+          .setButtonText(t.deleteAllBtn)
+          .setWarning()
+          .onClick(async () => {
+            this.plugin.reminders = [];
+            await this.plugin.saveSettings();
+            new Notice(t.okAllDeleted);
+            this.display();
+          }),
+      );
 
     // ── Statistics ──────────────────────────────────────────────────────────
     el.createEl('h3', { text: t.secStats });
 
-    const total  = this.plugin.reminders.length;
-    const active = this.plugin.reminders.filter(r => !r.checked).length;
-    const done   = total - active;
+    const total = this.plugin.reminders.length;
+    const active = this.plugin.reminders.filter((r) => !r.checked).length;
+    const done = total - active;
 
     const stats = el.createDiv('sr-settings-stats');
     for (const [label, val] of [
-      [t.statTotal,  total],
+      [t.statTotal, total],
       [t.statActive, active],
-      [t.statDone,   done],
+      [t.statDone, done],
     ] as [string, number][]) {
       const row = stats.createDiv('sr-stats-row');
       row.createSpan({ cls: 'sr-stats-label', text: label });
-      row.createSpan({ cls: 'sr-stats-val',   text: String(val) });
+      row.createSpan({ cls: 'sr-stats-val', text: String(val) });
     }
 
     // ── About ───────────────────────────────────────────────────────────────
     el.createEl('h3', { text: t.secAbout });
     el.createEl('p', {
-      cls:  'sr-settings-info',
+      cls: 'sr-settings-info',
       text: t.aboutText(this.plugin.settings.checkIntervalSec),
     });
   }

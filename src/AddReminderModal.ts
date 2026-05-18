@@ -8,114 +8,146 @@ type ReminderMode = 'once' | 'repeat';
 type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay';
 
 interface FormData {
-  title:         string;
-  mode:          ReminderMode;
-  specificDate:  string;
+  title: string;
+  mode: ReminderMode;
+  specificDate: string;
 
-  repUnit:       RepeatUnit;
-  repStep:       number;
+  repUnit: RepeatUnit;
+  repStep: number;
   repDaysOfWeek: boolean[];
   repDayOfMonth: number;
-  repMonth:      number;
+  repMonth: number;
 
-  useStart:      boolean; startDate: string;
-  useEnd:        boolean; endDate:   string;
+  useStart: boolean;
+  startDate: string;
+  useEnd: boolean;
+  endDate: string;
 
-  isIntraDay:    boolean;
-  intraTime:     string;
-  intraStepMin:  number;
-  timeFrom:      string;
-  timeTo:        string;
+  isIntraDay: boolean;
+  intraTime: string;
+  intraStepMin: number;
+  timeFrom: string;
+  timeTo: string;
 }
 
 function tsToLocal(ts: number): string {
-  const d = new Date(ts), pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const d = new Date(ts),
+    pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function reminderToFD(r: Reminder): FormData {
   const isRepeat = r.type === 'repeat';
   return {
-    title:         r.title,
-    mode:          isRepeat ? 'repeat' : 'once',
-    specificDate:  r.specificTs ? tsToLocal(r.specificTs) : '',
-    repUnit:       r.repUnit || 'day',
-    repStep:       r.repStep || 1,
-    repDaysOfWeek: Array.from({ length: 7 }, (_, i) => Array.isArray(r.repDaysOfWeek) ? r.repDaysOfWeek.includes(i) : false),
+    title: r.title,
+    mode: isRepeat ? 'repeat' : 'once',
+    specificDate: r.specificTs ? tsToLocal(r.specificTs) : '',
+    repUnit: r.repUnit || 'day',
+    repStep: r.repStep || 1,
+    repDaysOfWeek: Array.from({ length: 7 }, (_, i) =>
+      Array.isArray(r.repDaysOfWeek) ? r.repDaysOfWeek.includes(i) : false,
+    ),
     repDayOfMonth: r.repDayOfMonth || 1,
-    repMonth:      r.repMonth || 0,
-    useStart:      !!r.startDate, startDate: r.startDate ? tsToLocal(r.startDate) : '',
-    useEnd:        !!r.endDate,   endDate:   r.endDate   ? tsToLocal(r.endDate)   : '',
-    isIntraDay:    r.intraDayMode === 'interval',
-    intraTime:     r.intraDayTime || '09:00',
-    intraStepMin:  r.intraDayStepMin || 30,
-    timeFrom:      r.timeWindowStart || '09:00',
-    timeTo:        r.timeWindowEnd || '18:00',
+    repMonth: r.repMonth || 0,
+    useStart: !!r.startDate,
+    startDate: r.startDate ? tsToLocal(r.startDate) : '',
+    useEnd: !!r.endDate,
+    endDate: r.endDate ? tsToLocal(r.endDate) : '',
+    isIntraDay: r.intraDayMode === 'interval',
+    intraTime: r.intraDayTime || '09:00',
+    intraStepMin: r.intraDayStepMin || 30,
+    timeFrom: r.timeWindowStart || '09:00',
+    timeTo: r.timeWindowEnd || '18:00',
   };
 }
 
 function defaultFD(): FormData {
   return {
-    title: '', mode: 'once', specificDate: '',
-    repUnit: 'day', repStep: 1,
-    repDaysOfWeek: [false, true, true, true, true, true, false],
-    repDayOfMonth: 1, repMonth: 0,
-    useStart: false, startDate: '', useEnd: false, endDate: '',
-    isIntraDay: false, intraTime: '09:00', intraStepMin: 30,
-    timeFrom: '09:00', timeTo: '18:00',
+    title: '',
+    mode: 'once',
+    specificDate: '',
+    repUnit: 'day',
+    repStep: 1,
+    repDaysOfWeek: [false, false, false, false, false, false, false],
+    repDayOfMonth: 1,
+    repMonth: 0,
+    useStart: false,
+    startDate: '',
+    useEnd: false,
+    endDate: '',
+    isIntraDay: false,
+    intraTime: '09:00',
+    intraStepMin: 30,
+    timeFrom: '09:00',
+    timeTo: '18:00',
   };
 }
 
 export class AddReminderModal extends Modal {
-  private plugin:   SimpleReminderPlugin;
-  private onSave:   () => void;
+  private plugin: SimpleReminderPlugin;
+  private onSave: () => void;
   private existing: Reminder | null;
-  private fd:       FormData;
-  private bodyEl!:  HTMLElement;
+  private fd: FormData;
+  private bodyEl!: HTMLElement;
 
   constructor(app: App, plugin: SimpleReminderPlugin, onSave: () => void, existing?: Reminder | null) {
     super(app);
-    this.plugin   = plugin;
-    this.onSave   = onSave;
+    this.plugin = plugin;
+    this.onSave = onSave;
     this.existing = existing ?? null;
-    this.fd       = existing ? reminderToFD(existing) : defaultFD();
+    this.fd = existing ? reminderToFD(existing) : defaultFD();
   }
 
   onOpen(): void {
     const { contentEl } = this;
     contentEl.addClass('sr-modal');
-    const t = this.plugin.t, isEdit = this.existing !== null;
+    const t = this.plugin.t,
+      isEdit = this.existing !== null;
     const hdr = contentEl.createDiv('sr-modal-header');
     hdr.createSpan({ cls: 'sr-modal-icon', text: isEdit ? '✏️' : '➕' });
     hdr.createEl('h3', { cls: 'sr-modal-title', text: isEdit ? t.modalEditTitle : t.modalTitle });
     this.buildForm(contentEl.createDiv('sr-modal-form'), t, isEdit);
   }
 
-  onClose(): void { this.contentEl.empty(); }
+  onClose(): void {
+    this.contentEl.empty();
+  }
 
   private buildForm(form: HTMLElement, t: Strings, isEdit: boolean): void {
     const g1 = form.createDiv('sr-field-group');
     g1.createEl('label', { cls: 'sr-label', text: t.fieldName });
     const ti = g1.createEl('input', { cls: 'sr-input', type: 'text', placeholder: t.fieldNamePlaceholder });
     ti.value = this.fd.title;
-    ti.addEventListener('input',   e => { this.fd.title = (e.target as HTMLInputElement).value; });
-    ti.addEventListener('keydown', e => { if (e.key === 'Enter') this.submit(isEdit); });
+    ti.addEventListener('input', (e) => {
+      this.fd.title = (e.target as HTMLInputElement).value;
+    });
+    ti.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.submit(isEdit);
+    });
     setTimeout(() => ti.focus(), 50);
 
     const g2 = form.createDiv('sr-field-group');
     g2.createEl('label', { cls: 'sr-label', text: t.sectionType });
     const typeRow = g2.createDiv('sr-type-row');
-    const modes: [ReminderMode, string][] = [['once', t.typeOnce], ['repeat', t.typeRepeat]];
+    const modes: [ReminderMode, string][] = [
+      ['once', t.typeOnce],
+      ['repeat', t.typeRepeat],
+    ];
 
     modes.forEach(([mode, label], idx) => {
-      const lbl = typeRow.createEl('label', { cls: 'sr-type-btn' + (this.fd.mode === mode ? ' sr-type-btn--active' : '') });
+      const lbl = typeRow.createEl('label', {
+        cls: 'sr-type-btn' + (this.fd.mode === mode ? ' sr-type-btn--active' : ''),
+      });
       const radio = lbl.createEl('input', { type: 'radio' });
-      radio.name = 'sr-mode'; radio.value = mode; radio.checked = this.fd.mode === mode;
+      radio.name = 'sr-mode';
+      radio.value = mode;
+      radio.checked = this.fd.mode === mode;
       lbl.createSpan({ text: label });
       radio.addEventListener('change', () => {
         this.fd.mode = mode;
-        typeRow.querySelectorAll<HTMLElement>('.sr-type-btn').forEach((el, i) =>
-            el.classList.toggle('sr-type-btn--active', i === idx));
+        typeRow
+          .querySelectorAll<HTMLElement>('.sr-type-btn')
+          .forEach((el, i) => el.classList.toggle('sr-type-btn--active', i === idx));
         this.buildBody(t);
       });
     });
@@ -124,16 +156,18 @@ export class AddReminderModal extends Modal {
     this.buildBody(t);
 
     const btnRow = form.createDiv('sr-btn-row');
-    btnRow.createEl('button', { cls: 'sr-save-btn',   text: isEdit ? t.updateBtn : t.saveBtn })
-        .addEventListener('click', () => this.submit(isEdit));
-    btnRow.createEl('button', { cls: 'sr-cancel-btn', text: t.cancelBtn })
-        .addEventListener('click', () => this.close());
+    btnRow
+      .createEl('button', { cls: 'sr-save-btn', text: isEdit ? t.updateBtn : t.saveBtn })
+      .addEventListener('click', () => this.submit(isEdit));
+    btnRow
+      .createEl('button', { cls: 'sr-cancel-btn', text: t.cancelBtn })
+      .addEventListener('click', () => this.close());
   }
 
   private buildBody(t: Strings): void {
     this.bodyEl.empty();
     if (this.fd.mode === 'once') this.buildOnceBody(this.bodyEl, t);
-    else                         this.buildRepeatBody(this.bodyEl, t);
+    else this.buildRepeatBody(this.bodyEl, t);
   }
 
   private buildOnceBody(body: HTMLElement, t: Strings): void {
@@ -141,7 +175,9 @@ export class AddReminderModal extends Modal {
     g.createEl('label', { cls: 'sr-label', text: t.fieldDateTime });
     const inp = g.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
     if (this.fd.specificDate) inp.value = this.fd.specificDate;
-    inp.addEventListener('change', e => { this.fd.specificDate = (e.target as HTMLInputElement).value; });
+    inp.addEventListener('change', (e) => {
+      this.fd.specificDate = (e.target as HTMLInputElement).value;
+    });
   }
 
   private buildRepeatBody(body: HTMLElement, t: Strings): void {
@@ -156,13 +192,15 @@ export class AddReminderModal extends Modal {
     const units: RepeatUnit[] = ['day', 'week', 'month', 'year'];
     units.forEach((unit, idx) => {
       const btn = unitRow.createEl('button', {
-        cls:  'sr-unit-btn' + (this.fd.repUnit === unit ? ' sr-unit-btn--active' : ''),
-        text: t.periodicUnitShort[idx], type: 'button',
+        cls: 'sr-unit-btn' + (this.fd.repUnit === unit ? ' sr-unit-btn--active' : ''),
+        text: t.periodicUnitShort[idx],
+        type: 'button',
       });
       btn.addEventListener('click', () => {
         this.fd.repUnit = unit;
-        unitRow.querySelectorAll<HTMLElement>('.sr-unit-btn').forEach((el, i) =>
-            el.classList.toggle('sr-unit-btn--active', i === idx));
+        unitRow
+          .querySelectorAll<HTMLElement>('.sr-unit-btn')
+          .forEach((el, i) => el.classList.toggle('sr-unit-btn--active', i === idx));
         this.buildRepeatDynamic(dynArea, t);
       });
     });
@@ -171,7 +209,7 @@ export class AddReminderModal extends Modal {
 
     // Дополнительные настройки (Спойлер)
     const advWrap = body.createDiv('sr-adv-wrap');
-    this.addAdvToggle(advWrap, t.advSettings, 'isOpen', content => {
+    this.addAdvToggle(advWrap, t.advSettings, 'isOpen', (content) => {
       this.buildAdvSettings(content, t);
     });
   }
@@ -179,13 +217,14 @@ export class AddReminderModal extends Modal {
   private buildRepeatDynamic(area: HTMLElement, t: Strings): void {
     area.empty();
     const unit = this.fd.repUnit;
-    const unitIdx = ['day','week','month','year'].indexOf(unit);
+    const unitIdx = ['day', 'week', 'month', 'year'].indexOf(unit);
 
     const nRow = area.createDiv('sr-interval-row');
     nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.periodicEvery });
     const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
-    nInp.min = '1'; nInp.value = String(this.fd.repStep);
-    nInp.addEventListener('input', e => {
+    nInp.min = '1';
+    nInp.value = String(this.fd.repStep);
+    nInp.addEventListener('input', (e) => {
       const v = parseInt((e.target as HTMLInputElement).value, 10);
       this.fd.repStep = Math.max(1, isNaN(v) ? 1 : v);
     });
@@ -198,7 +237,8 @@ export class AddReminderModal extends Modal {
       t.daysShort.forEach((name, idx) => {
         const btn = wrap.createEl('button', {
           cls: 'sr-day-btn' + (this.fd.repDaysOfWeek[idx] ? ' sr-day-btn--active' : ''),
-          text: name, type: 'button',
+          text: name,
+          type: 'button',
         });
         btn.addEventListener('click', () => {
           this.fd.repDaysOfWeek[idx] = !this.fd.repDaysOfWeek[idx];
@@ -211,8 +251,10 @@ export class AddReminderModal extends Modal {
       const g = area.createDiv('sr-field-group');
       g.createEl('label', { cls: 'sr-label', text: t.calDayOfMonth });
       const inp = g.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
-      inp.min = '1'; inp.max = '31'; inp.value = String(this.fd.repDayOfMonth);
-      inp.addEventListener('input', e => {
+      inp.min = '1';
+      inp.max = '31';
+      inp.value = String(this.fd.repDayOfMonth);
+      inp.addEventListener('input', (e) => {
         const v = parseInt((e.target as HTMLInputElement).value, 10);
         this.fd.repDayOfMonth = Math.min(31, Math.max(1, isNaN(v) ? 1 : v));
       });
@@ -227,7 +269,9 @@ export class AddReminderModal extends Modal {
         opt.value = String(idx);
         if (idx === this.fd.repMonth) opt.selected = true;
       });
-      sel.addEventListener('change', e => { this.fd.repMonth = parseInt((e.target as HTMLSelectElement).value, 10); });
+      sel.addEventListener('change', (e) => {
+        this.fd.repMonth = parseInt((e.target as HTMLSelectElement).value, 10);
+      });
     }
   }
 
@@ -235,22 +279,29 @@ export class AddReminderModal extends Modal {
     container.empty();
 
     // Старт / Стоп даты
-    this.addToggle(container, t.toggleStartDate, 'useStart', c => {
+    this.addToggle(container, t.toggleStartDate, 'useStart', (c) => {
       const inp = c.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
       if (this.fd.startDate) inp.value = this.fd.startDate;
-      inp.addEventListener('change', e => { this.fd.startDate = (e.target as HTMLInputElement).value; });
+      inp.addEventListener('change', (e) => {
+        this.fd.startDate = (e.target as HTMLInputElement).value;
+      });
     });
 
-    this.addToggle(container, t.toggleEndDate, 'useEnd', c => {
+    this.addToggle(container, t.toggleEndDate, 'useEnd', (c) => {
       const inp = c.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
       if (this.fd.endDate) inp.value = this.fd.endDate;
-      inp.addEventListener('change', e => { this.fd.endDate = (e.target as HTMLInputElement).value; });
+      inp.addEventListener('change', (e) => {
+        this.fd.endDate = (e.target as HTMLInputElement).value;
+      });
     });
 
     // Внутри-дневные настройки
-    this.addToggle(container, t.toggleIntraDay, 'isIntraDay',
-        c => this.buildIntraInterval(c, t),
-        c => this.buildIntraSingle(c, t)
+    this.addToggle(
+      container,
+      t.toggleIntraDay,
+      'isIntraDay',
+      (c) => this.buildIntraInterval(c, t),
+      (c) => this.buildIntraSingle(c, t),
     );
   }
 
@@ -259,15 +310,18 @@ export class AddReminderModal extends Modal {
     gTime.createEl('label', { cls: 'sr-label', text: t.periodicTimeLabel });
     const timeInp = gTime.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
     timeInp.value = this.fd.intraTime;
-    timeInp.addEventListener('change', e => { this.fd.intraTime = (e.target as HTMLInputElement).value; });
+    timeInp.addEventListener('change', (e) => {
+      this.fd.intraTime = (e.target as HTMLInputElement).value;
+    });
   }
 
   private buildIntraInterval(c: HTMLElement, t: Strings): void {
     const nRow = c.createDiv('sr-interval-row');
     nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.periodicEvery });
     const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
-    nInp.min = '1'; nInp.value = String(this.fd.intraStepMin);
-    nInp.addEventListener('input', e => {
+    nInp.min = '1';
+    nInp.value = String(this.fd.intraStepMin);
+    nInp.addEventListener('input', (e) => {
       const v = parseInt((e.target as HTMLInputElement).value, 10);
       this.fd.intraStepMin = Math.max(1, isNaN(v) ? 1 : v);
     });
@@ -278,13 +332,17 @@ export class AddReminderModal extends Modal {
     gF.createEl('label', { cls: 'sr-label', text: t.fieldTimeFrom });
     const from = gF.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
     from.value = this.fd.timeFrom;
-    from.addEventListener('change', e => { this.fd.timeFrom = (e.target as HTMLInputElement).value; });
+    from.addEventListener('change', (e) => {
+      this.fd.timeFrom = (e.target as HTMLInputElement).value;
+    });
 
     const gT = tw.createDiv('sr-field-group');
     gT.createEl('label', { cls: 'sr-label', text: t.fieldTimeTo });
     const to = gT.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
     to.value = this.fd.timeTo;
-    to.addEventListener('change', e => { this.fd.timeTo = (e.target as HTMLInputElement).value; });
+    to.addEventListener('change', (e) => {
+      this.fd.timeTo = (e.target as HTMLInputElement).value;
+    });
   }
 
   private addAdvToggle(parent: HTMLElement, label: string, dummy: string, buildContent: (c: HTMLElement) => void) {
@@ -304,11 +362,17 @@ export class AddReminderModal extends Modal {
     });
   }
 
-  private addToggle(parent: HTMLElement, label: string, fdKey: BoolFormDataKey, buildOn: (c: HTMLElement) => void, buildOff?: (c: HTMLElement) => void) {
+  private addToggle(
+    parent: HTMLElement,
+    label: string,
+    fdKey: BoolFormDataKey,
+    buildOn: (c: HTMLElement) => void,
+    buildOff?: (c: HTMLElement) => void,
+  ) {
     const isActive = this.fd[fdKey];
-    const block    = parent.createDiv('sr-toggle-block' + (isActive ? ' sr-toggle-block--open' : ''));
-    const header   = block.createDiv('sr-toggle-header');
-    const cb       = header.createEl('input', { type: 'checkbox', cls: 'sr-toggle-check' });
+    const block = parent.createDiv('sr-toggle-block' + (isActive ? ' sr-toggle-block--open' : ''));
+    const header = block.createDiv('sr-toggle-header');
+    const cb = header.createEl('input', { type: 'checkbox', cls: 'sr-toggle-check' });
     cb.checked = isActive;
     header.createSpan({ cls: 'sr-toggle-label', text: label });
     const content = block.createDiv('sr-toggle-content');
@@ -326,67 +390,128 @@ export class AddReminderModal extends Modal {
   }
 
   private submit(isEdit: boolean): void {
-    const d = this.fd, t = this.plugin.t, now = Date.now();
-    if (!d.title.trim()) { new Notice(t.errNoTitle); return; }
+    const d = this.fd,
+      t = this.plugin.t,
+      now = Date.now();
+    if (!d.title.trim()) {
+      new Notice(t.errNoTitle);
+      return;
+    }
 
-    const r: Reminder = isEdit && this.existing ? this.existing : {
-      id: generateId(), title: '', type: 'once', checked: false, specificTs: null,
-      repUnit: null, repStep: null, repDaysOfWeek: null, repDayOfMonth: null, repMonth: null,
-      startDate: null, endDate: null, intraDayMode: null, intraDayTime: null, intraDayStepMin: null,
-      timeWindowStart: null, timeWindowEnd: null, nextTrigger: null
-    };
+    const r: Reminder =
+      isEdit && this.existing
+        ? this.existing
+        : {
+            id: generateId(),
+            title: '',
+            type: 'once',
+            checked: false,
+            specificTs: null,
+            repUnit: null,
+            repStep: null,
+            repDaysOfWeek: null,
+            repDayOfMonth: null,
+            repMonth: null,
+            startDate: null,
+            endDate: null,
+            intraDayMode: null,
+            intraDayTime: null,
+            intraDayStepMin: null,
+            timeWindowStart: null,
+            timeWindowEnd: null,
+            nextTrigger: null,
+            completedAt: null,
+          };
 
     r.title = d.title.trim();
-    r.specificTs = null; r.repUnit = null; r.repStep = null; r.repDaysOfWeek = null;
-    r.repDayOfMonth = null; r.repMonth = null; r.startDate = null; r.endDate = null;
-    r.intraDayMode = null; r.intraDayTime = null; r.intraDayStepMin = null;
-    r.timeWindowStart = null; r.timeWindowEnd = null;
+    r.specificTs = null;
+    r.repUnit = null;
+    r.repStep = null;
+    r.repDaysOfWeek = null;
+    r.repDayOfMonth = null;
+    r.repMonth = null;
+    r.startDate = null;
+    r.endDate = null;
+    r.intraDayMode = null;
+    r.intraDayTime = null;
+    r.intraDayStepMin = null;
+    r.timeWindowStart = null;
+    r.timeWindowEnd = null;
 
     if (d.mode === 'once') {
-      if (!d.specificDate) { new Notice(t.errNoDate); return; }
+      if (!d.specificDate) {
+        new Notice(t.errNoDate);
+        return;
+      }
       const ts = new Date(d.specificDate).getTime();
-      if (isNaN(ts))       { new Notice(t.errBadDate); return; }
-      r.type = 'once'; r.specificTs = ts;
-
+      if (isNaN(ts)) {
+        new Notice(t.errBadDate);
+        return;
+      }
+      r.type = 'once';
+      r.specificTs = ts;
     } else {
-      if (d.repStep < 1)   { new Notice(t.errPeriodNMin); return; }
+      if (d.repStep < 1) {
+        new Notice(t.errPeriodNMin);
+        return;
+      }
       if (d.repUnit === 'week') {
-        const days = d.repDaysOfWeek.map((v, i) => v ? i : -1).filter(i => i >= 0);
-        if (days.length === 0) { new Notice(t.errNoDays); return; }
+        const days = d.repDaysOfWeek.map((v, i) => (v ? i : -1)).filter((i) => i >= 0);
+        if (days.length === 0) {
+          new Notice(t.errNoDays);
+          return;
+        }
         r.repDaysOfWeek = days;
       }
 
       r.type = 'repeat';
       r.repUnit = d.repUnit;
       r.repStep = d.repStep;
-      r.repDayOfMonth = (d.repUnit === 'month' || d.repUnit === 'year') ? d.repDayOfMonth : null;
+      r.repDayOfMonth = d.repUnit === 'month' || d.repUnit === 'year' ? d.repDayOfMonth : null;
       r.repMonth = d.repUnit === 'year' ? d.repMonth : null;
 
       if (d.useStart && d.startDate) {
         const ts = new Date(d.startDate).getTime();
-        if (isNaN(ts)) { new Notice(t.errBadDate); return; }
+        if (isNaN(ts)) {
+          new Notice(t.errBadDate);
+          return;
+        }
         r.startDate = ts;
       }
       if (d.useEnd && d.endDate) {
         const ts = new Date(d.endDate).getTime();
-        if (isNaN(ts)) { new Notice(t.errBadDate); return; }
+        if (isNaN(ts)) {
+          new Notice(t.errBadDate);
+          return;
+        }
         r.endDate = ts;
       }
 
       if (d.isIntraDay) {
-        if (d.intraStepMin < 1) { new Notice(t.errBadInterval); return; }
+        if (d.intraStepMin < 1) {
+          new Notice(t.errBadInterval);
+          return;
+        }
         r.intraDayMode = 'interval';
         r.intraDayStepMin = d.intraStepMin;
         r.timeWindowStart = d.timeFrom || '00:00';
         r.timeWindowEnd = d.timeTo || '23:59';
       } else {
-        if (!d.intraTime) { new Notice(t.errNoTime); return; }
+        if (!d.intraTime) {
+          new Notice(t.errNoTime);
+          return;
+        }
         r.intraDayMode = 'single';
         r.intraDayTime = d.intraTime;
       }
     }
 
     r.nextTrigger = calcNextTrigger(r, now);
+
+    if (isEdit && r.nextTrigger != null && r.nextTrigger > now) {
+      r.checked = false;
+      r.completedAt = null;
+    }
 
     if (!isEdit) this.plugin.reminders.push(r);
     this.plugin.saveSettings();

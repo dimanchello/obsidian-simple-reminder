@@ -7,21 +7,26 @@ export function generateId(): string {
 export function fmtDate(ts: number | null | undefined): string {
   if (ts == null) return '—';
   return new Date(ts).toLocaleString(undefined, {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
 export function fmtDateShort(ts: number | null | undefined): string {
   if (ts == null) return '—';
   return new Date(ts).toLocaleString(undefined, {
-    day: '2-digit', month: '2-digit', year: 'numeric',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   });
 }
 
 export function mondayOf(d: Date): Date {
   const r = new Date(d);
-  const diff = (r.getDay() === 0) ? -6 : 1 - r.getDay();
+  const diff = r.getDay() === 0 ? -6 : 1 - r.getDay();
   r.setDate(r.getDate() + diff);
   r.setHours(0, 0, 0, 0);
   return r;
@@ -44,7 +49,7 @@ function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
   }
   if (r.repUnit === 'week') {
     const anchorMon = mondayOf(anchor);
-    const candMon   = mondayOf(cand);
+    const candMon = mondayOf(cand);
     const diffWeeks = Math.round((candMon.getTime() - anchorMon.getTime()) / (7 * dayMs));
     if (diffWeeks % step !== 0) return false;
 
@@ -76,7 +81,9 @@ function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
 }
 
 function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: number): number | null {
-  const y = candDay.getFullYear(), m = candDay.getMonth(), d = candDay.getDate();
+  const y = candDay.getFullYear(),
+    m = candDay.getMonth(),
+    d = candDay.getDate();
 
   if (r.intraDayMode === 'single') {
     const [hh, mm] = parseTime(r.intraDayTime || '09:00');
@@ -87,10 +94,10 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
 
   if (r.intraDayMode === 'interval') {
     const [sH, sM] = parseTime(r.timeWindowStart || '00:00');
-    const [eH, eM] = parseTime(r.timeWindowEnd   || '23:59');
+    const [eH, eM] = parseTime(r.timeWindowEnd || '23:59');
 
     let winStart = new Date(y, m, d, sH, sM).getTime();
-    let winEnd   = new Date(y, m, d, eH, eM).getTime();
+    let winEnd = new Date(y, m, d, eH, eM).getTime();
     if (winEnd < winStart) winEnd += 86400_000; // Обработка ночных окон (например с 23:00 до 06:00)
 
     const stepMs = (r.intraDayStepMin || 15) * 60_000;
@@ -108,7 +115,7 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
 }
 
 export function calcNextTrigger(r: Reminder, now: number): number | null {
-  if (r.type === 'once') return (r.specificTs && r.specificTs > now) ? r.specificTs : null;
+  if (r.type === 'once') return r.specificTs && r.specificTs > now ? r.specificTs : null;
   if (r.type !== 'repeat') return null;
 
   const anchor = new Date(r.startDate ?? Date.now());
@@ -141,12 +148,25 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
   if (r.type === 'once' || r.type === 'repeat') return r as Reminder; // Уже мигрировано
 
   const migrated: Reminder = {
-    id: r.id ?? '', title: r.title ?? '', checked: r.checked ?? false, type: 'once',
+    id: r.id ?? '',
+    title: r.title ?? '',
+    checked: r.checked ?? false,
+    type: 'once',
     specificTs: r.specificTs ?? null,
-    repUnit: null, repStep: null, repDaysOfWeek: null, repDayOfMonth: null, repMonth: null,
-    startDate: r.startTs ?? r.periodicStart ?? null, endDate: r.endTs ?? null,
-    intraDayMode: null, intraDayTime: null, intraDayStepMin: null,
-    timeWindowStart: null, timeWindowEnd: null, nextTrigger: null
+    repUnit: null,
+    repStep: null,
+    repDaysOfWeek: null,
+    repDayOfMonth: null,
+    repMonth: null,
+    startDate: r.startTs ?? r.periodicStart ?? null,
+    endDate: r.endTs ?? null,
+    intraDayMode: null,
+    intraDayTime: null,
+    intraDayStepMin: null,
+    timeWindowStart: null,
+    timeWindowEnd: null,
+    nextTrigger: null,
+    completedAt: null,
   };
 
   if (r.type === 'specific') {
@@ -172,4 +192,14 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
   }
   migrated.nextTrigger = calcNextTrigger(migrated, Date.now());
   return migrated;
+}
+
+export function pruneOldCompleted(reminders: Reminder[], now: number = Date.now()): Reminder[] {
+  const threeDaysMs = 3 * 86400_000;
+  return reminders.filter((r) => {
+    if (r.checked && r.completedAt != null && now - r.completedAt > threeDaysMs) {
+      return false;
+    }
+    return true;
+  });
 }

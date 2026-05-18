@@ -28,23 +28,19 @@ export interface RepeatOptions {
 export type AddReminderOptions = { title: string } & (OnceOptions | RepeatOptions);
 
 export interface ReminderInfo {
-  readonly id:          string;
-  readonly title:       string;
-  readonly checked:     boolean;
-  readonly type:        string;
+  readonly id: string;
+  readonly title: string;
+  readonly checked: boolean;
+  readonly type: string;
   readonly nextTrigger: number | null;
-  readonly raw:         Readonly<Reminder>;
+  readonly raw: Readonly<Reminder>;
 }
 
-export type ReminderEvent =
-    | 'reminder-fired'
-    | 'reminder-added'
-    | 'reminder-removed'
-    | 'reminder-updated';
+export type ReminderEvent = 'reminder-fired' | 'reminder-added' | 'reminder-removed' | 'reminder-updated';
 
-type EventCallback<E extends ReminderEvent> =
-    E extends 'reminder-removed' ? (id: string)        => void
-        : (info: ReminderInfo) => void;
+type EventCallback<E extends ReminderEvent> = E extends 'reminder-removed'
+  ? (id: string) => void
+  : (info: ReminderInfo) => void;
 
 export interface SimpleReminderAPI {
   readonly version: string;
@@ -77,14 +73,26 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     this.plugin = plugin;
   }
 
-  _emitFired(r: Reminder): void    { this._emit('reminder-fired',   toInfo(r)); }
-  _emitAdded(r: Reminder): void    { this._emit('reminder-added',   toInfo(r)); }
-  _emitRemoved(id: string): void   { this._emit('reminder-removed', id); }
-  _emitUpdated(r: Reminder): void  { this._emit('reminder-updated', toInfo(r)); }
+  _emitFired(r: Reminder): void {
+    this._emit('reminder-fired', toInfo(r));
+  }
+  _emitAdded(r: Reminder): void {
+    this._emit('reminder-added', toInfo(r));
+  }
+  _emitRemoved(id: string): void {
+    this._emit('reminder-removed', id);
+  }
+  _emitUpdated(r: Reminder): void {
+    this._emit('reminder-updated', toInfo(r));
+  }
 
   private _emit(event: ReminderEvent, payload: unknown): void {
-    this.listeners.get(event)?.forEach(cb => {
-      try { cb(payload); } catch (e) { console.error('[SimpleReminder API] error:', e); }
+    this.listeners.get(event)?.forEach((cb) => {
+      try {
+        cb(payload);
+      } catch (e) {
+        console.error('[SimpleReminder API] error:', e);
+      }
     });
   }
 
@@ -98,21 +106,39 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
   addReminder(options: AddReminderOptions): string {
     const now = Date.now();
     const r: Reminder = {
-      id: generateId(), title: options.title.trim(), checked: false,
-      type: 'once', specificTs: null,
-      repUnit: null, repStep: null, repDaysOfWeek: null, repDayOfMonth: null, repMonth: null,
-      startDate: null, endDate: null,
-      intraDayMode: null, intraDayTime: null, intraDayStepMin: null,
-      timeWindowStart: null, timeWindowEnd: null, nextTrigger: null
+      id: generateId(),
+      title: options.title.trim(),
+      checked: false,
+      type: 'once',
+      specificTs: null,
+      repUnit: null,
+      repStep: null,
+      repDaysOfWeek: null,
+      repDayOfMonth: null,
+      repMonth: null,
+      startDate: null,
+      endDate: null,
+      intraDayMode: null,
+      intraDayTime: null,
+      intraDayStepMin: null,
+      timeWindowStart: null,
+      timeWindowEnd: null,
+      nextTrigger: null,
+      completedAt: null,
     };
 
     if (options.type === 'once') {
-      r.type = 'once'; r.specificTs = toTs(options.date);
+      r.type = 'once';
+      r.specificTs = toTs(options.date);
     } else {
       r.type = 'repeat';
-      r.repUnit = options.unit; r.repStep = options.step;
-      r.repDaysOfWeek = options.daysOfWeek ?? null; r.repDayOfMonth = options.dayOfMonth ?? null; r.repMonth = options.month ?? null;
-      r.startDate = toTs(options.startDate); r.endDate = toTs(options.endDate);
+      r.repUnit = options.unit;
+      r.repStep = options.step;
+      r.repDaysOfWeek = options.daysOfWeek ?? null;
+      r.repDayOfMonth = options.dayOfMonth ?? null;
+      r.repMonth = options.month ?? null;
+      r.startDate = toTs(options.startDate);
+      r.endDate = toTs(options.endDate);
       r.intraDayMode = options.intraDayMode;
       r.intraDayTime = options.intraDayTime ?? null;
       r.intraDayStepMin = options.intraDayStepMin ?? null;
@@ -129,7 +155,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
   }
 
   removeReminder(id: string): boolean {
-    const idx = this.plugin.reminders.findIndex(r => r.id === id);
+    const idx = this.plugin.reminders.findIndex((r) => r.id === id);
     if (idx === -1) return false;
     this.plugin.reminders.splice(idx, 1);
     this.plugin.saveSettings();
@@ -139,7 +165,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
   }
 
   setChecked(id: string, checked: boolean): boolean {
-    const r = this.plugin.reminders.find(x => x.id === id);
+    const r = this.plugin.reminders.find((x) => x.id === id);
     if (!r) return false;
     r.checked = checked;
     this.plugin.saveSettings();
@@ -148,9 +174,11 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     return true;
   }
 
-  getReminders(): ReminderInfo[] { return this.plugin.reminders.map(toInfo); }
+  getReminders(): ReminderInfo[] {
+    return this.plugin.reminders.map(toInfo);
+  }
   getReminder(id: string): ReminderInfo | null {
-    const r = this.plugin.reminders.find(x => x.id === id);
+    const r = this.plugin.reminders.find((x) => x.id === id);
     return r ? toInfo(r) : null;
   }
 }
