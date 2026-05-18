@@ -1,88 +1,108 @@
-# Simple Reminder
+# Obsidian Simple Reminder
 
-Obsidian plugin — reminder list with system notifications. Create tasks, set schedules, and get notified on time.
-
----
-
-## Features
-
-- **Two reminder types:**
-  - **Once** — single notification at a specific date and time
-  - **Repeat** — recurring reminders (daily, weekly, monthly, yearly) with intra-day modes
-- **Intra-day modes for repeat reminders:**
-  - **Single** — fires at a specific HH:MM each valid day
-  - **Interval** — fires every N minutes within a time window
-- **System notifications** via Web Notification API (desktop); automatic fallback to Obsidian Notice on mobile or when permissions are denied
-- **Configurable check interval** — any value >= 2 seconds
-- **Task checkbox** — disables notifications without deleting the reminder
-- **Edit any reminder** — name, type, dates, and intervals
-- **Public API** for other plugins — add/remove/get reminders, subscribe to events
-- **Two languages:** English and Russian (auto-detect from system locale, or manual selection)
-- Full compatibility with **any Obsidian theme** — all styles via CSS variables
+Плагин для Obsidian — список напоминаний с системными уведомлениями. Создавайте задачи, задавайте расписание и получайте уведомления вовремя.
 
 ---
 
-## Mobile Support
+## Возможности
 
-> On **iOS and Android**, notifications work **only while Obsidian is open and active on screen**. If the app is minimized or the screen is locked, notifications will not arrive. This is an OS limitation, not a plugin issue.
-
----
-
-## Installation
-
-### Via Community Plugins *(coming soon)*
-
-1. Open **Settings → Community plugins → Browse**
-2. Search for **Simple Reminder**
-3. Click **Install**, then **Enable**
-
-### Manual Installation
-
-1. Download the latest release from [Releases](../../releases)
-2. Extract the archive — it should contain `main.js`, `manifest.json`, and `styles.css`
-3. Copy the folder to `<vault-path>/.obsidian/plugins/simple-reminder/`
-4. In Obsidian: **Settings → Community plugins** → enable **Simple Reminder**
+- **Два типа напоминаний:**
+  - **Разовое** — однократное уведомление в конкретную дату и время
+  - **Повторяющееся** — регулярные напоминания (ежедневно, еженедельно, ежемесячно, ежегодно) с внутридневными режимами
+- **Внутридневные режимы для повторяющихся:**
+  - **Одиночный** — срабатывает в определённое время (ЧЧ:ММ) каждый подходящий день
+  - **Интервальный** — срабатывает каждые N минут в заданном временном окне
+- **Системные уведомления** через Web Notification API (десктоп); автоматический fallback на Obsidian Notice на мобильных или при отклонённых разрешениях
+- **Настраиваемый интервал проверки** — любое значение >= 2 секунд
+- **Автоматическое удаление выполненных** — разовые напоминания удаляются через 3 дня после выполнения
+- **Переоткрытие напоминаний** — выполненные напоминания можно переоткрыть до их удаления
+- **Чекбокс задачи** — отключает уведомления без удаления напоминания
+- **Редактирование любого напоминания** — название, тип, даты, интервалы
+- **Публичный API** для других плагинов — добавление/удаление/получение напоминаний, подписка на события
+- **Два языка:** английский и русский (автоопределение по локали системы или ручной выбор)
+- Полная совместимость с **любой темой Obsidian** — все стили через CSS-переменные
 
 ---
 
-## Building from Source
+## Мобильные устройства
 
-**Requirements:** Node.js >= 18, npm >= 9
+> На **iOS и Android** уведомления работают **только пока Obsidian открыт и активен на экране**. Если приложение свёрнуто или экран заблокирован, уведомления не придут. Это ограничение ОС, а не плагина.
+
+---
+
+## Установка
+
+### Через Community Plugins *(скоро)*
+
+1. Откройте **Settings → Community plugins → Browse**
+2. Найдите **Obsidian Simple Reminder**
+3. Нажмите **Install**, затем **Enable**
+
+### Ручная установка
+
+1. Скачайте последний релиз из [Releases](../../releases)
+2. Распакуйте архив — он должен содержать `main.js`, `manifest.json` и `styles.css`
+3. Скопируйте папку в `<vault-path>/.obsidian/plugins/simple-reminder/`
+4. В Obsidian: **Settings → Community plugins** → включите **Obsidian Simple Reminder**
+
+### Через BRAT (Beta Reviewer Auto-update Tool)
+
+1. Установите плагин [BRAT](https://github.com/TfTHacker/obsidian42-brat) из Community Plugins
+2. Включите BRAT в настройках
+3. Откройте команду **BRAT: Add a beta plugin for testing**
+4. Вставьте URL репозитория: `https://github.com/dimanchello/obsidian-simple-reminder`
+5. Нажмите **Add Plugin**
+6. Перезагрузите Obsidian и включите **Obsidian Simple Reminder** в настройках
+
+---
+
+## Сборка из исходников
+
+**Требования:** Node.js >= 18, npm >= 9
 
 ```bash
 git clone https://github.com/dimanchello/obsidian-simple-reminder.git
 cd simple-reminder
 npm install
 
-# Development mode (watch + source maps)
+# Режим разработки (watch + source maps)
 npm run dev
 
-# Production build (minified, no source maps)
+# Продакшен-сборка (минифицированная, без source maps)
 npm run build
 
-# Run tests
+# Запуск тестов
 npm test
+
+# Проверка качества кода
+npm run lint
+npm run format
 ```
 
-After `npm run build`, copy `main.js`, `manifest.json`, and `styles.css` to the plugin folder in your vault.
+После `npm run build` скопируйте содержимое `dist/` (`main.js`, `manifest.json` и `styles.css`) в папку плагина в вашем хранилище.
 
-### Project Structure
+### Структура проекта
 
 ```
 simple-reminder/
+├── dist/                    # Результат сборки (установить в хранилище Obsidian)
+│   ├── main.js
+│   ├── manifest.json
+│   └── styles.css
 ├── src/
-│   ├── main.ts              # Entry point, check loop, notifications
-│   ├── types.ts             # Reminder, PluginSettings, LegacyReminder interfaces
-│   ├── utils.ts             # Pure functions: calcNextTrigger, advanceTrigger, migrateLegacyReminder
-│   ├── api.ts               # Public API for other plugins
-│   ├── i18n.ts              # EN/RU translations + language resolution
-│   ├── ReminderView.ts      # Sidebar panel (ItemView)
-│   ├── AddReminderModal.ts  # Create/edit reminder modal
-│   └── SettingsTab.ts       # Plugin settings page
+│   ├── main.ts              # Точка входа, цикл проверки, уведомления
+│   ├── types.ts             # Интерфейсы Reminder, PluginSettings, LegacyReminder
+│   ├── utils.ts             # Чистые функции: calcNextTrigger, advanceTrigger, pruneOldCompleted
+│   ├── api.ts               # Публичный API для других плагинов
+│   ├── i18n.ts              # Переводы EN/RU + определение языка
+│   ├── ReminderView.ts      # Боковая панель (ItemView)
+│   ├── AddReminderModal.ts  # Модальное окно создания/редактирования
+│   └── SettingsTab.ts       # Страница настроек плагина
 ├── tests/
-│   └── utils.test.ts        # Unit tests for scheduling logic
-├── styles.css
-├── manifest.json
+│   ├── utils.test.ts        # Юнит-тесты логики расписаний
+│   └── i18n.test.ts         # Юнит-тесты строк i18n
+├── styles.css               # Исходные стили (копируются в dist/ при сборке)
+├── manifest.json            # Манифест плагина (копируется в dist/ при сборке)
 ├── package.json
 ├── tsconfig.json
 └── esbuild.config.mjs
@@ -90,88 +110,89 @@ simple-reminder/
 
 ---
 
-## Usage
+## Использование
 
-### Open the Panel
+### Открыть панель
 
-Click the **bell icon** on the ribbon sidebar, or run the command **Simple Reminder: Open reminder panel**.
+Нажмите на **значок колокольчика** на боковой панели или выполните команду **Obsidian Simple Reminder: Open reminder panel**.
 
-### Add a Reminder
+### Добавить напоминание
 
-Click **+ Add** in the panel header and fill in the form:
+Нажмите **+ Добавить** в заголовке панели и заполните форму:
 
-| Field | Description |
+| Поле | Описание |
 |---|---|
-| Task name | Text that appears in the notification |
-| Type | Once or Repeat |
-| Repeat unit | Day, Week, Month, Year |
-| Interval | Repeat every N units |
-| Time | For single mode — specific HH:MM; for interval mode — step and time window |
+| Название задачи | Текст, который появится в уведомлении |
+| Тип | Разовое или Повтор |
+| Единица повтора | День, Неделя, Месяц, Год |
+| Интервал | Повторять каждые N единиц |
+| Время | Для одиночного режима — конкретное ЧЧ:ММ; для интервального — шаг и временное окно |
 
-### Edit a Reminder
+### Редактировать напоминание
 
-Click the **pencil icon** on any reminder — the form opens with pre-filled data.
+Нажмите на **значок карандаша** у любого напоминания — форма откроется с предзаполненными данными. Через редактирование можно переоткрыть выполненное напоминание, сняв галочку «Выполнено».
 
-### Mark as Done
+### Выполнить напоминание
 
-Check the **checkbox** next to a task. The entry stays in the list but notifications stop. Uncheck to reactivate.
+Разовые напоминания автоматически помечаются как выполненные после срабатывания. Выполненные напоминания удаляются через 3 дня.
 
-### Delete a Reminder
+### Удалить напоминание
 
-Click the **X button** to the right of the reminder.
+Нажмите на **кнопку ✕** справа от напоминания.
 
 ---
 
-## Settings
+## Настройки
 
-| Parameter | Default | Description |
+| Параметр | По умолчанию | Описание |
 |---|---|---|
-| Language | Auto | `Auto` (system locale), `English`, `Russian` |
-| Check interval | 30s | How often the plugin checks for due reminders. Minimum: 2s |
-| Open panel | — | Button to open the sidebar panel |
-| Test notification | — | Sends a test system notification |
-| Request permission | — | Re-request OS permission for notifications |
-| Delete all | — | Permanently removes all reminders |
+| Язык | Авто | `Авто` (системная локаль), `English`, `Русский` |
+| Интервал проверки | 30с | Как часто плагин проверяет наступившие напоминания. Минимум: 2с |
+| Открыть панель | — | Кнопка для открытия боковой панели |
+| Тестовое уведомление | — | Отправляет тестовое системное уведомление |
+| Запросить разрешение | — | Повторный запрос разрешения ОС на уведомления |
+| Удалить все | — | Безвозвратно удаляет все напоминания |
 
 ---
 
-## How Notifications Work
+## Как работают уведомления
 
-1. The plugin runs a timer (configurable interval, default 30s) that iterates through all active reminders
-2. If `now >= nextTrigger` — the notification fires
-3. `nextTrigger` advances by one period, skipping past intervals — long Obsidian downtime does not cause a notification flood
-4. Once reminders (`once`) clear `nextTrigger` after firing and do not repeat
-5. All state is saved to Obsidian's plugin storage (`data.json`)
+1. Плагин запускает таймер (настраиваемый интервал, по умолчанию 30с), который проходит по всем активным напоминаниям
+2. Если `now >= nextTrigger` — срабатывает уведомление
+3. `nextTrigger` сдвигается на один период, пропуская прошедшие интервалы — длительный простой Obsidian не вызывает спам уведомлениями
+4. Разовые напоминания (`once`) после срабатывания помечаются как выполненные (`checked = true`, `completedAt = now`) и `nextTrigger` становится null
+5. Выполненные напоминания автоматически удаляются через 3 дня
+6. Всё состояние сохраняется в хранилище плагина Obsidian (`data.json`)
 
 ---
 
-## Public API
+## Публичный API
 
-Other plugins can interact with Simple Reminder via:
+Другие плагины могут взаимодействовать с Simple Reminder через:
 
 ```typescript
 const api = app.plugins.plugins['simple-reminder'].api;
 
-// Add a reminder
+// Добавить напоминание
 const id = api.addReminder({
-  title: 'Meeting',
+  title: 'Встреча',
   type: 'once',
   date: new Date('2025-12-01T10:00:00'),
 });
 
-// Get all reminders
+// Получить все напоминания
 const reminders = api.getReminders();
 
-// Listen for events
+// Подписаться на события
 api.on('reminder-fired', (info) => {
-  console.log('Fired:', info.title);
+  console.log('Сработало:', info.title);
 });
 ```
 
-See [API.md](./API.md) for full documentation.
+Полная документация в [API.md](./API.md).
 
 ---
 
-## License
+## Лицензия
 
 MIT © 2026 Dimon

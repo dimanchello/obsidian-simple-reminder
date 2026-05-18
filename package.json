@@ -1,13 +1,17 @@
 {
   "name": "simple-reminder",
   "version": "1.0.0",
+  "type": "module",
   "description": "Simple Reminder plugin for Obsidian — system notifications with interval, one-shot and scheduled types.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit --skipLibCheck && node esbuild.config.mjs production",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\""
   },
   "keywords": [
     "obsidian",
@@ -16,9 +20,15 @@
   ],
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.21.5",
+    "eslint": "^10.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "obsidian": "latest",
+    "prettier": "^3.8.3",
     "typescript": "^5.4.5",
     "vitest": "^4.1.6"
   }

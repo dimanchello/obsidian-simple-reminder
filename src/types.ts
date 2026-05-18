@@ -1,48 +1,49 @@
 export type ReminderType = 'once' | 'repeat';
-export type RepeatUnit   = 'day' | 'week' | 'month' | 'year';
-export type Language     = 'auto' | 'en' | 'ru';
+export type RepeatUnit = 'day' | 'week' | 'month' | 'year';
+export type Language = 'auto' | 'en' | 'ru';
 
 export interface Reminder {
-  id:      string;
-  title:   string;
+  id: string;
+  title: string;
   checked: boolean;
-  type:    ReminderType;
+  type: ReminderType;
 
   // ── Разовое ─────────────────────────────────────────────────────────────────
   specificTs: number | null;
 
   // ── Меж-дневные правила (Календарь) ─────────────────────────────────────────
-  repUnit:       RepeatUnit | null;
-  repStep:       number | null;     // каждые X (дней/недель...)
-  repDaysOfWeek: number[] | null;   // [0, 1, 2] (Вс, Пн, Вт)
-  repDayOfMonth: number | null;     // 1-31
-  repMonth:      number | null;     // 0-11
+  repUnit: RepeatUnit | null;
+  repStep: number | null; // каждые X (дней/недель...)
+  repDaysOfWeek: number[] | null; // [0, 1, 2] (Вс, Пн, Вт)
+  repDayOfMonth: number | null; // 1-31
+  repMonth: number | null; // 0-11
 
   // ── Границы (Ограничения по датам) ──────────────────────────────────────────
   startDate: number | null;
-  endDate:   number | null;
+  endDate: number | null;
 
   // ── Внутри-дневные правила (Время) ──────────────────────────────────────────
-  intraDayMode:    'single' | 'interval' | null;
-  intraDayTime:    string | null; // "HH:MM"
+  intraDayMode: 'single' | 'interval' | null;
+  intraDayTime: string | null; // "HH:MM"
   intraDayStepMin: number | null; // интервал в минутах
   timeWindowStart: string | null; // "HH:MM"
-  timeWindowEnd:   string | null; // "HH:MM"
+  timeWindowEnd: string | null; // "HH:MM"
 
   // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;
+  completedAt: number | null;
 }
 
 export interface PluginSettings {
-  reminders:        Reminder[];
+  reminders: Reminder[];
   checkIntervalSec: number;
-  language:         Language;
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: PluginSettings = {
-  reminders:        [],
+  reminders: [],
   checkIntervalSec: 30,
-  language:         'auto',
+  language: 'auto',
 };
 
 export interface LegacyReminder {

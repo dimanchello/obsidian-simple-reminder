@@ -1,15 +1,35 @@
 import { describe, it, expect } from 'vitest';
-import { calcNextTrigger, advanceTrigger, generateId, mondayOf, migrateLegacyReminder } from '../src/utils';
+import {
+  calcNextTrigger,
+  advanceTrigger,
+  generateId,
+  mondayOf,
+  migrateLegacyReminder,
+  pruneOldCompleted,
+} from '../src/utils';
 import { Reminder } from '../src/types';
 
 function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
   return {
-    id: 'test', title: 'Test', checked: false, type: 'once',
+    id: 'test',
+    title: 'Test',
+    checked: false,
+    type: 'once',
     specificTs: null,
-    repUnit: null, repStep: null, repDaysOfWeek: null, repDayOfMonth: null, repMonth: null,
-    startDate: null, endDate: null,
-    intraDayMode: null, intraDayTime: null, intraDayStepMin: null,
-    timeWindowStart: null, timeWindowEnd: null, nextTrigger: null,
+    repUnit: null,
+    repStep: null,
+    repDaysOfWeek: null,
+    repDayOfMonth: null,
+    repMonth: null,
+    startDate: null,
+    endDate: null,
+    intraDayMode: null,
+    intraDayTime: null,
+    intraDayStepMin: null,
+    timeWindowStart: null,
+    timeWindowEnd: null,
+    nextTrigger: null,
+    completedAt: null,
     ...overrides,
   };
 }
@@ -110,8 +130,11 @@ describe('calcNextTrigger — repeat daily', () => {
   it('finds next trigger for daily single time', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '10:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '10:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -127,8 +150,11 @@ describe('calcNextTrigger — repeat daily', () => {
   it('skips to next day when time has passed', () => {
     const now = new Date(2025, 5, 15, 14, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '10:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '10:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -141,8 +167,11 @@ describe('calcNextTrigger — repeat daily', () => {
   it('respects repStep > 1', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 3,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 3,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -154,7 +183,9 @@ describe('calcNextTrigger — repeat daily', () => {
   it('returns null when intraDayMode is null', () => {
     const now = Date.now();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
       intraDayMode: null,
       startDate: now,
     });
@@ -164,8 +195,11 @@ describe('calcNextTrigger — repeat daily', () => {
   it('uses default 09:00 when intraDayTime is malformed', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: 'bad',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: 'bad',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -182,9 +216,12 @@ describe('calcNextTrigger — repeat weekly', () => {
   it('finds next trigger on selected days of week', () => {
     const now = new Date(2025, 5, 16, 8, 0).getTime(); // Mon June 16
     const r = makeReminder({
-      type: 'repeat', repUnit: 'week', repStep: 1,
+      type: 'repeat',
+      repUnit: 'week',
+      repStep: 1,
       repDaysOfWeek: [1, 3], // Mon, Wed
-      intraDayMode: 'single', intraDayTime: '09:00',
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -196,9 +233,12 @@ describe('calcNextTrigger — repeat weekly', () => {
   it('falls back to anchor day when repDaysOfWeek is empty', () => {
     const now = new Date(2025, 5, 16, 8, 0).getTime(); // Monday
     const r = makeReminder({
-      type: 'repeat', repUnit: 'week', repStep: 1,
+      type: 'repeat',
+      repUnit: 'week',
+      repStep: 1,
       repDaysOfWeek: [],
-      intraDayMode: 'single', intraDayTime: '09:00',
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -211,9 +251,12 @@ describe('calcNextTrigger — repeat weekly', () => {
     const startDate = new Date(2025, 5, 9, 9, 0).getTime(); // Mon week 0
     const now = new Date(2025, 5, 9, 10, 0).getTime(); // Mon week 0, past trigger
     const r = makeReminder({
-      type: 'repeat', repUnit: 'week', repStep: 2,
+      type: 'repeat',
+      repUnit: 'week',
+      repStep: 2,
       repDaysOfWeek: [1],
-      intraDayMode: 'single', intraDayTime: '09:00',
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate,
     });
     const next = calcNextTrigger(r, now);
@@ -231,8 +274,11 @@ describe('calcNextTrigger — repeat monthly', () => {
   it('triggers on the same day of month', () => {
     const now = new Date(2025, 0, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'month', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      type: 'repeat',
+      repUnit: 'month',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -246,8 +292,11 @@ describe('calcNextTrigger — repeat monthly', () => {
     const startDate = new Date(2025, 0, 31, 9, 0).getTime();
     const now = new Date(2025, 0, 31, 12, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'month', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      type: 'repeat',
+      repUnit: 'month',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate,
     });
     const next = calcNextTrigger(r, now);
@@ -260,8 +309,11 @@ describe('calcNextTrigger — repeat monthly', () => {
   it('skips months when repStep > 1', () => {
     const now = new Date(2025, 0, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'month', repStep: 3,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      type: 'repeat',
+      repUnit: 'month',
+      repStep: 3,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -277,9 +329,12 @@ describe('calcNextTrigger — repeat yearly', () => {
   it('triggers on the same month and day', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'year', repStep: 1,
+      type: 'repeat',
+      repUnit: 'year',
+      repStep: 1,
       repMonth: 5,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -293,9 +348,12 @@ describe('calcNextTrigger — repeat yearly', () => {
   it('falls back to anchor month when repMonth is null', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'year', repStep: 1,
+      type: 'repeat',
+      repUnit: 'year',
+      repStep: 1,
       repMonth: null,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -311,9 +369,13 @@ describe('calcNextTrigger — intra-day interval', () => {
   it('finds next interval slot', () => {
     const now = new Date(2025, 5, 15, 9, 5).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'interval', intraDayStepMin: 30,
-      timeWindowStart: '09:00', timeWindowEnd: '17:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'interval',
+      intraDayStepMin: 30,
+      timeWindowStart: '09:00',
+      timeWindowEnd: '17:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -326,9 +388,13 @@ describe('calcNextTrigger — intra-day interval', () => {
   it('returns null when outside time window', () => {
     const now = new Date(2025, 5, 15, 18, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'interval', intraDayStepMin: 30,
-      timeWindowStart: '09:00', timeWindowEnd: '17:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'interval',
+      intraDayStepMin: 30,
+      timeWindowStart: '09:00',
+      timeWindowEnd: '17:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -341,9 +407,13 @@ describe('calcNextTrigger — intra-day interval', () => {
   it('handles overnight windows', () => {
     const now = new Date(2025, 5, 15, 20, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'interval', intraDayStepMin: 60,
-      timeWindowStart: '23:00', timeWindowEnd: '06:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'interval',
+      intraDayStepMin: 60,
+      timeWindowStart: '23:00',
+      timeWindowEnd: '06:00',
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -356,9 +426,13 @@ describe('calcNextTrigger — intra-day interval', () => {
   it('uses default values when time window fields are missing', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'interval', intraDayStepMin: 15,
-      timeWindowStart: null, timeWindowEnd: null,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'interval',
+      intraDayStepMin: 15,
+      timeWindowStart: null,
+      timeWindowEnd: null,
       startDate: now,
     });
     const next = calcNextTrigger(r, now);
@@ -375,9 +449,13 @@ describe('calcNextTrigger — end date', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const end = new Date(2025, 5, 15, 7, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '09:00',
-      startDate: now, endDate: end,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
+      startDate: now,
+      endDate: end,
     });
     expect(calcNextTrigger(r, now)).toBeNull();
   });
@@ -386,9 +464,13 @@ describe('calcNextTrigger — end date', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const end = new Date(2025, 5, 20, 23, 59).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '09:00',
-      startDate: now, endDate: end,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
+      startDate: now,
+      endDate: end,
     });
     const next = calcNextTrigger(r, now);
     expect(next).not.toBeNull();
@@ -408,8 +490,10 @@ describe('calcNextTrigger — edge cases', () => {
   it('returns null when repUnit is null for repeat type', () => {
     const now = Date.now();
     const r = makeReminder({
-      type: 'repeat', repUnit: null,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      type: 'repeat',
+      repUnit: null,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: now,
     });
     expect(calcNextTrigger(r, now)).toBeNull();
@@ -418,8 +502,11 @@ describe('calcNextTrigger — edge cases', () => {
   it('uses current time as fallback when startDate is null', () => {
     const now = new Date(2025, 5, 15, 8, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '09:00',
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
       startDate: null,
     });
     const next = calcNextTrigger(r, now);
@@ -438,9 +525,13 @@ describe('advanceTrigger', () => {
   it('finds next trigger after current one fires', () => {
     const now = new Date(2025, 5, 15, 10, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '10:00',
-      startDate: now, nextTrigger: now,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '10:00',
+      startDate: now,
+      nextTrigger: now,
     });
     const next = advanceTrigger(r, now);
     expect(next).not.toBeNull();
@@ -451,9 +542,13 @@ describe('advanceTrigger', () => {
   it('handles null nextTrigger gracefully', () => {
     const now = Date.now();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '09:00',
-      startDate: now, nextTrigger: null,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
+      startDate: now,
+      nextTrigger: null,
     });
     const next = advanceTrigger(r, now);
     expect(next).not.toBeNull();
@@ -462,9 +557,14 @@ describe('advanceTrigger', () => {
   it('returns null when all future triggers are past endDate', () => {
     const now = new Date(2025, 5, 15, 10, 0).getTime();
     const r = makeReminder({
-      type: 'repeat', repUnit: 'day', repStep: 1,
-      intraDayMode: 'single', intraDayTime: '10:00',
-      startDate: now, endDate: now, nextTrigger: now,
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '10:00',
+      startDate: now,
+      endDate: now,
+      nextTrigger: now,
     });
     const next = advanceTrigger(r, now);
     expect(next).toBeNull();
@@ -489,8 +589,14 @@ describe('migrateLegacyReminder', () => {
 
   it('migrates "flexible" type to "repeat" with interval mode', () => {
     const legacy = {
-      id: '2', title: 'Flex', checked: false, type: 'flexible',
-      startTs: 100, interval: 30, timeWindowStart: '09:00', timeWindowEnd: '18:00',
+      id: '2',
+      title: 'Flex',
+      checked: false,
+      type: 'flexible',
+      startTs: 100,
+      interval: 30,
+      timeWindowStart: '09:00',
+      timeWindowEnd: '18:00',
     };
     const result = migrateLegacyReminder(legacy);
     expect(result.type).toBe('repeat');
@@ -501,8 +607,14 @@ describe('migrateLegacyReminder', () => {
 
   it('migrates "scheduled" type to "repeat" with interval mode', () => {
     const legacy = {
-      id: '3', title: 'Scheduled', checked: false, type: 'scheduled',
-      startTs: 200, interval: 60, timeWindowStart: '08:00', timeWindowEnd: '20:00',
+      id: '3',
+      title: 'Scheduled',
+      checked: false,
+      type: 'scheduled',
+      startTs: 200,
+      interval: 60,
+      timeWindowStart: '08:00',
+      timeWindowEnd: '20:00',
     };
     const result = migrateLegacyReminder(legacy);
     expect(result.type).toBe('repeat');
@@ -512,8 +624,13 @@ describe('migrateLegacyReminder', () => {
 
   it('migrates "periodic" type to "repeat" with single mode', () => {
     const legacy = {
-      id: '4', title: 'Periodic', checked: false, type: 'periodic',
-      periodicUnit: 'week' as const, periodicN: 2, periodicTime: '14:00',
+      id: '4',
+      title: 'Periodic',
+      checked: false,
+      type: 'periodic',
+      periodicUnit: 'week' as const,
+      periodicN: 2,
+      periodicTime: '14:00',
     };
     const result = migrateLegacyReminder(legacy);
     expect(result.type).toBe('repeat');
@@ -552,5 +669,51 @@ describe('migrateLegacyReminder', () => {
     expect(result.title).toBe('');
     expect(result.checked).toBe(false);
     expect(result.type).toBe('once');
+  });
+});
+
+describe('pruneOldCompleted', () => {
+  const threeDaysMs = 3 * 86400_000;
+  const now = Date.now();
+
+  it('removes completed reminders older than 3 days', () => {
+    const reminders: Reminder[] = [
+      makeReminder({ id: '1', checked: true, completedAt: now - threeDaysMs - 1000 }),
+      makeReminder({ id: '2', checked: false }),
+    ];
+    const result = pruneOldCompleted(reminders, now);
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe('2');
+  });
+
+  it('keeps completed reminders younger than 3 days', () => {
+    const reminders: Reminder[] = [
+      makeReminder({ id: '1', checked: true, completedAt: now - threeDaysMs + 1000 }),
+      makeReminder({ id: '2', checked: false }),
+    ];
+    const result = pruneOldCompleted(reminders, now);
+    expect(result.length).toBe(2);
+  });
+
+  it('keeps active reminders regardless of completedAt', () => {
+    const reminders: Reminder[] = [makeReminder({ id: '1', checked: false, completedAt: now - threeDaysMs * 2 })];
+    const result = pruneOldCompleted(reminders, now);
+    expect(result.length).toBe(1);
+  });
+
+  it('keeps completed reminders with null completedAt', () => {
+    const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: null })];
+    const result = pruneOldCompleted(reminders, now);
+    expect(result.length).toBe(1);
+  });
+
+  it('returns empty array for empty input', () => {
+    expect(pruneOldCompleted([], now)).toEqual([]);
+  });
+
+  it('handles exactly 3 days boundary', () => {
+    const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: now - threeDaysMs })];
+    const result = pruneOldCompleted(reminders, now);
+    expect(result.length).toBe(1);
   });
 });
