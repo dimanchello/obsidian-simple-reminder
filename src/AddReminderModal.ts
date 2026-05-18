@@ -68,7 +68,7 @@ function defaultFD(): FormData {
     specificDate: '',
     repUnit: 'day',
     repStep: 1,
-    repDaysOfWeek: [false, true, true, true, true, true, false],
+    repDaysOfWeek: [false, false, false, false, false, false, false],
     repDayOfMonth: 1,
     repMonth: 0,
     useStart: false,

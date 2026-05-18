@@ -1,8 +1,18 @@
 import esbuild from 'esbuild';
 import process from 'process';
+import fs from 'fs';
+import path from 'path';
 import builtins from 'builtin-modules';
 
 const prod = process.argv[2] === 'production';
+const distDir = 'dist';
+
+if (!fs.existsSync(distDir)) {
+  fs.mkdirSync(distDir, { recursive: true });
+}
+
+fs.copyFileSync('manifest.json', path.join(distDir, 'manifest.json'));
+fs.copyFileSync('styles.css', path.join(distDir, 'styles.css'));
 
 const context = await esbuild.context({
   entryPoints: ['src/main.ts'],
@@ -28,7 +38,7 @@ const context = await esbuild.context({
   logLevel: 'info',
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
-  outfile: 'main.js',
+  outfile: path.join(distDir, 'main.js'),
   minify: prod,
 });
 
