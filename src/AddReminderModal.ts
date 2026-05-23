@@ -1,7 +1,7 @@
 import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
-import { RepeatUnit, Reminder } from './types';
-import { generateId, calcNextTrigger } from './utils';
+import { RepeatUnit, Reminder, RemindBeforeUnit } from './types';
+import { generateId, calcNextTrigger, calcRemindBeforeTrigger } from './utils';
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
@@ -28,6 +28,11 @@ interface FormData {
   intraStepMin: number;
   timeFrom: string;
   timeTo: string;
+
+  emoji: string;
+  remindBeforeEnabled: boolean;
+  remindBeforeValue: number;
+  remindBeforeUnit: RemindBeforeUnit;
 }
 
 function tsToLocal(ts: number): string {
@@ -58,6 +63,10 @@ function reminderToFD(r: Reminder): FormData {
     intraStepMin: r.intraDayStepMin || 30,
     timeFrom: r.timeWindowStart || '09:00',
     timeTo: r.timeWindowEnd || '18:00',
+    emoji: r.emoji || '⏰',
+    remindBeforeEnabled: r.remindBeforeValue != null && r.remindBeforeValue > 0,
+    remindBeforeValue: r.remindBeforeValue || 30,
+    remindBeforeUnit: r.remindBeforeUnit || 'minute',
   };
 }
 
@@ -80,6 +89,10 @@ function defaultFD(): FormData {
     intraStepMin: 30,
     timeFrom: '09:00',
     timeTo: '18:00',
+    emoji: '⏰',
+    remindBeforeEnabled: false,
+    remindBeforeValue: 30,
+    remindBeforeUnit: 'minute',
   };
 }
 
@@ -178,6 +191,8 @@ export class AddReminderModal extends Modal {
     inp.addEventListener('change', (e) => {
       this.fd.specificDate = (e.target as HTMLInputElement).value;
     });
+    this.buildEmojiField(body, t);
+    this.buildRemindBeforeField(body, t);
   }
 
   private buildRepeatBody(body: HTMLElement, t: Strings): void {
@@ -212,6 +227,9 @@ export class AddReminderModal extends Modal {
     this.addAdvToggle(advWrap, t.advSettings, 'isOpen', (content) => {
       this.buildAdvSettings(content, t);
     });
+
+    this.buildEmojiField(body, t);
+    this.buildRemindBeforeField(body, t);
   }
 
   private buildRepeatDynamic(area: HTMLElement, t: Strings): void {
@@ -345,6 +363,105 @@ export class AddReminderModal extends Modal {
     });
   }
 
+  private buildEmojiField(parent: HTMLElement, t: Strings): void {
+    const g = parent.createDiv('sr-field-group');
+    g.createEl('label', { cls: 'sr-label', text: t.fieldEmoji });
+    const wrap = g.createDiv('sr-emoji-grid');
+    const emojis = [
+      '⏰',
+      '🔔',
+      '📌',
+      '📅',
+      '💡',
+      '📝',
+      '💊',
+      '🏋️',
+      '📚',
+      '🎯',
+      '⭐',
+      '❤️',
+      '✅',
+      '🔄',
+      '☕',
+      '🍎',
+      '💧',
+      '🧠',
+      '💪',
+      '🏃',
+      '🧘',
+      '🎵',
+      '🎮',
+      '✍️',
+      '📖',
+      '🛒',
+      '🏠',
+      '🚗',
+      '✈️',
+      '📞',
+      '💼',
+      '🖥️',
+      '🔑',
+      '🎁',
+      '🏆',
+      '🎉',
+      '🔥',
+      '💎',
+      '🌈',
+      '🌙',
+    ];
+    emojis.forEach((e) => {
+      const btn = wrap.createEl('button', {
+        cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
+        text: e,
+        type: 'button',
+      });
+      btn.addEventListener('click', () => {
+        this.fd.emoji = e;
+        wrap.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
+        btn.classList.add('sr-emoji-btn--active');
+      });
+    });
+  }
+
+  private buildRemindBeforeField(parent: HTMLElement, t: Strings): void {
+    const wrap = parent.createDiv('sr-toggle-block' + (this.fd.remindBeforeEnabled ? ' sr-toggle-block--open' : ''));
+    const header = wrap.createDiv('sr-toggle-header');
+    const cb = header.createEl('input', { type: 'checkbox', cls: 'sr-toggle-check' });
+    cb.checked = this.fd.remindBeforeEnabled;
+    header.createSpan({ cls: 'sr-toggle-label', text: t.remindBeforeLabel });
+    const content = wrap.createDiv('sr-toggle-content');
+
+    const buildContent = () => {
+      content.empty();
+      const row = content.createDiv('sr-interval-row');
+      const nInp = row.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
+      nInp.min = '1';
+      nInp.value = String(this.fd.remindBeforeValue);
+      nInp.addEventListener('input', (e) => {
+        const v = parseInt((e.target as HTMLInputElement).value, 10);
+        this.fd.remindBeforeValue = Math.max(1, isNaN(v) ? 1 : v);
+      });
+      const sel = row.createEl('select', { cls: 'sr-select' });
+      t.remindBeforeUnitLabels.forEach((name) => {
+        const opt = sel.createEl('option', { text: name });
+        opt.value = name;
+        if (this.fd.remindBeforeUnit === name) opt.selected = true;
+      });
+      sel.addEventListener('change', (e) => {
+        this.fd.remindBeforeUnit = (e.target as HTMLSelectElement).value as RemindBeforeUnit;
+      });
+    };
+
+    if (this.fd.remindBeforeEnabled) buildContent();
+
+    cb.addEventListener('change', () => {
+      this.fd.remindBeforeEnabled = cb.checked;
+      wrap.classList.toggle('sr-toggle-block--open', cb.checked);
+      if (cb.checked) buildContent();
+      else content.empty();
+    });
+  }
+
   private addAdvToggle(parent: HTMLElement, label: string, dummy: string, buildContent: (c: HTMLElement) => void) {
     let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay || false;
     const block = parent.createDiv('sr-toggle-block sr-toggle-adv' + (isOpen ? ' sr-toggle-block--open' : ''));
@@ -419,7 +536,11 @@ export class AddReminderModal extends Modal {
             intraDayStepMin: null,
             timeWindowStart: null,
             timeWindowEnd: null,
+            remindBeforeValue: null,
+            remindBeforeUnit: null,
+            emoji: '⏰',
             nextTrigger: null,
+            remindBeforeTrigger: null,
             completedAt: null,
           };
 
@@ -437,6 +558,9 @@ export class AddReminderModal extends Modal {
     r.intraDayStepMin = null;
     r.timeWindowStart = null;
     r.timeWindowEnd = null;
+    r.remindBeforeValue = null;
+    r.remindBeforeUnit = null;
+    r.emoji = d.emoji || '⏰';
 
     if (d.mode === 'once') {
       if (!d.specificDate) {
@@ -507,6 +631,16 @@ export class AddReminderModal extends Modal {
     }
 
     r.nextTrigger = calcNextTrigger(r, now);
+
+    if (d.remindBeforeEnabled && d.remindBeforeValue > 0) {
+      r.remindBeforeValue = d.remindBeforeValue;
+      r.remindBeforeUnit = d.remindBeforeUnit;
+      r.remindBeforeTrigger = calcRemindBeforeTrigger(r);
+    } else {
+      r.remindBeforeValue = null;
+      r.remindBeforeUnit = null;
+      r.remindBeforeTrigger = null;
+    }
 
     if (isEdit && r.nextTrigger != null && r.nextTrigger > now) {
       r.checked = false;

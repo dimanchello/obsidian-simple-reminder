@@ -91,12 +91,12 @@ export class ReminderView extends ItemView {
     });
 
     const body = item.createDiv('sr-body');
-    body.createDiv({ cls: 'sr-title', text: r.title });
+    body.createDiv({ cls: 'sr-title', text: `${r.emoji || '⏰'} ${r.title}` });
 
     const sched = body.createDiv('sr-sched');
     this.renderSchedule(sched, r, t);
 
-    if (!isDone) this.renderMeta(body, r, t);
+    if (!isDone && r.type === 'repeat') this.renderMeta(body, r, t);
 
     const acts = item.createDiv('sr-actions');
     const editBtn = acts.createEl('button', { cls: 'sr-edit-btn', text: '✏️' });
@@ -116,6 +116,7 @@ export class ReminderView extends ItemView {
     const delBtn = acts.createEl('button', { cls: 'sr-del-btn', text: '✕' });
     delBtn.setAttribute('aria-label', t.deleteAriaLabel);
     delBtn.addEventListener('click', async () => {
+      if (!confirm(t.deleteConfirm)) return;
       this.plugin.reminders = this.plugin.reminders.filter((x) => x.id !== r.id);
       await this.plugin.saveSettings();
       this.refresh();
@@ -132,7 +133,7 @@ export class ReminderView extends ItemView {
     el.createSpan({ cls: 'sr-tag sr-tag--repeat', text: t.tagRepeat });
 
     // Формируем красивое описание правила
-    let parts = [];
+    const parts = [];
     const n = r.repStep ?? 1;
     const unitIdx = ['day', 'week', 'month', 'year'].indexOf(r.repUnit ?? 'day');
     const unitLabel = n === 1 ? t.periodicUnitSingular[unitIdx] : t.periodicUnitLabels[unitIdx];

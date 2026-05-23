@@ -1,5 +1,6 @@
 export type ReminderType = 'once' | 'repeat';
 export type RepeatUnit = 'day' | 'week' | 'month' | 'year';
+export type RemindBeforeUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
 export type Language = 'auto' | 'en' | 'ru';
 
 export interface Reminder {
@@ -29,8 +30,16 @@ export interface Reminder {
   timeWindowStart: string | null; // "HH:MM"
   timeWindowEnd: string | null; // "HH:MM"
 
+  // ── Напомнить за X до срабатывания ──────────────────────────────────────────
+  remindBeforeValue: number | null;
+  remindBeforeUnit: RemindBeforeUnit | null;
+
+  // ── Эмодзи напоминания ──────────────────────────────────────────────────────
+  emoji: string;
+
   // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;
+  remindBeforeTrigger: number | null;
   completedAt: number | null;
 }
 

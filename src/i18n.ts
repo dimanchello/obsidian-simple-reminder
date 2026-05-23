@@ -47,6 +47,11 @@ export interface Strings {
   fieldTimeFrom: string;
   fieldTimeTo: string;
 
+  fieldEmoji: string;
+  fieldEmojiPlaceholder: string;
+  remindBeforeLabel: string;
+  remindBeforeUnitLabels: string[];
+
   saveBtn: string;
   updateBtn: string;
   cancelBtn: string;
@@ -107,6 +112,8 @@ export interface Strings {
   warnPermDenied: string;
   warnPermBlocked: string;
   okPermAlready: string;
+  remindBeforePrefix: string;
+  deleteConfirm: string;
 }
 
 const en: Strings = {
@@ -169,6 +176,11 @@ const en: Strings = {
   fieldTimeFrom: 'Active from',
   fieldTimeTo: 'to',
 
+  fieldEmoji: 'Icon',
+  fieldEmojiPlaceholder: 'e.g. ⏰ 🔔 📌',
+  remindBeforeLabel: 'Remind before',
+  remindBeforeUnitLabels: ['minutes', 'hours', 'days', 'weeks', 'months', 'years'],
+
   saveBtn: 'Save',
   updateBtn: 'Update',
   cancelBtn: 'Cancel',
@@ -228,6 +240,8 @@ const en: Strings = {
   warnPermDenied: '⚠️ Permission denied. Check system settings.',
   warnPermBlocked: '⚠️ Notifications blocked. Check system / browser settings.',
   okPermAlready: '✅ Notifications already allowed',
+  remindBeforePrefix: '⏰ Reminder soon:',
+  deleteConfirm: 'Delete this reminder?',
 };
 
 const ru: Strings = {
@@ -290,6 +304,11 @@ const ru: Strings = {
   fieldTimeFrom: 'С',
   fieldTimeTo: 'до',
 
+  fieldEmoji: 'Иконка',
+  fieldEmojiPlaceholder: 'например ⏰ 🔔 📌',
+  remindBeforeLabel: 'Напомнить за',
+  remindBeforeUnitLabels: ['минут', 'часов', 'дней', 'недель', 'месяцев', 'лет'],
+
   saveBtn: 'Сохранить',
   updateBtn: 'Обновить',
   cancelBtn: 'Отмена',
@@ -349,6 +368,8 @@ const ru: Strings = {
   warnPermDenied: '⚠️ Разрешение отклонено. Проверьте настройки системы.',
   warnPermBlocked: '⚠️ Уведомления заблокированы. Проверьте настройки.',
   okPermAlready: '✅ Уведомления уже разрешены',
+  remindBeforePrefix: '⏰ Скоро напоминание:',
+  deleteConfirm: 'Удалить это напоминание?',
 };
 
 const STRINGS: Record<'en' | 'ru', Strings> = { en, ru };
