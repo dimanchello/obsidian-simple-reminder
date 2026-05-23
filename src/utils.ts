@@ -1,4 +1,4 @@
-import { Reminder, LegacyReminder } from './types';
+import { Reminder, LegacyReminder, RemindBeforeUnit } from './types';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -96,7 +96,7 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
     const [sH, sM] = parseTime(r.timeWindowStart || '00:00');
     const [eH, eM] = parseTime(r.timeWindowEnd || '23:59');
 
-    let winStart = new Date(y, m, d, sH, sM).getTime();
+    const winStart = new Date(y, m, d, sH, sM).getTime();
     let winEnd = new Date(y, m, d, eH, eM).getTime();
     if (winEnd < winStart) winEnd += 86400_000; // Обработка ночных окон (например с 23:00 до 06:00)
 
@@ -165,7 +165,11 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     intraDayStepMin: null,
     timeWindowStart: null,
     timeWindowEnd: null,
+    remindBeforeValue: null,
+    remindBeforeUnit: null,
+    emoji: '⏰',
     nextTrigger: null,
+    remindBeforeTrigger: null,
     completedAt: null,
   };
 
@@ -202,4 +206,30 @@ export function pruneOldCompleted(reminders: Reminder[], now: number = Date.now(
     }
     return true;
   });
+}
+
+export function remindBeforeToMs(value: number, unit: RemindBeforeUnit): number {
+  const minuteMs = 60_000;
+  switch (unit) {
+    case 'minute':
+      return value * minuteMs;
+    case 'hour':
+      return value * 60 * minuteMs;
+    case 'day':
+      return value * 1440 * minuteMs;
+    case 'week':
+      return value * 10080 * minuteMs;
+    case 'month':
+      return value * 43200 * minuteMs; // 30 days
+    case 'year':
+      return value * 525600 * minuteMs; // 365 days
+  }
+}
+
+export function calcRemindBeforeTrigger(r: Reminder): number | null {
+  const trigger = r.nextTrigger;
+  if (trigger == null || r.remindBeforeValue == null || r.remindBeforeUnit == null) return null;
+  const beforeMs = remindBeforeToMs(r.remindBeforeValue, r.remindBeforeUnit);
+  const result = trigger - beforeMs;
+  return result > Date.now() ? result : null;
 }

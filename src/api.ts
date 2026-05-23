@@ -1,5 +1,5 @@
 import { Reminder, RepeatUnit } from './types';
-import { generateId, calcNextTrigger } from './utils';
+import { generateId, calcNextTrigger, calcRemindBeforeTrigger } from './utils';
 import type SimpleReminderPlugin from './main';
 
 export interface OnceOptions {
@@ -25,11 +25,17 @@ export interface RepeatOptions {
   timeWindowEnd?: string;
 }
 
-export type AddReminderOptions = { title: string } & (OnceOptions | RepeatOptions);
+export type AddReminderOptions = {
+  title: string;
+  emoji?: string;
+  remindBeforeValue?: number;
+  remindBeforeUnit?: 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+} & (OnceOptions | RepeatOptions);
 
 export interface ReminderInfo {
   readonly id: string;
   readonly title: string;
+  readonly emoji: string;
   readonly checked: boolean;
   readonly type: string;
   readonly nextTrigger: number | null;
@@ -61,7 +67,15 @@ function toTs(value: string | number | Date | undefined): number | null {
 }
 
 function toInfo(r: Reminder): ReminderInfo {
-  return { id: r.id, title: r.title, checked: r.checked, type: r.type, nextTrigger: r.nextTrigger, raw: r };
+  return {
+    id: r.id,
+    title: r.title,
+    emoji: r.emoji,
+    checked: r.checked,
+    type: r.type,
+    nextTrigger: r.nextTrigger,
+    raw: r,
+  };
 }
 
 export class SimpleReminderAPIImpl implements SimpleReminderAPI {
@@ -123,7 +137,11 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       intraDayStepMin: null,
       timeWindowStart: null,
       timeWindowEnd: null,
+      remindBeforeValue: null,
+      remindBeforeUnit: null,
+      emoji: '⏰',
       nextTrigger: null,
+      remindBeforeTrigger: null,
       completedAt: null,
     };
 
@@ -146,7 +164,16 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       r.timeWindowEnd = options.timeWindowEnd ?? null;
     }
 
+    if (options.emoji) r.emoji = options.emoji;
+    if (options.remindBeforeValue != null && options.remindBeforeValue > 0) {
+      r.remindBeforeValue = options.remindBeforeValue;
+      r.remindBeforeUnit = options.remindBeforeUnit ?? null;
+    }
+
     r.nextTrigger = calcNextTrigger(r, now);
+    if (r.remindBeforeValue != null) {
+      r.remindBeforeTrigger = calcRemindBeforeTrigger(r);
+    }
     this.plugin.reminders.push(r);
     this.plugin.saveSettings();
     this._emitAdded(r);

@@ -3,7 +3,7 @@ import { PluginSettings, Reminder, DEFAULT_SETTINGS } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderSettingTab } from './SettingsTab';
-import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted } from './utils';
+import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTrigger } from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
 
@@ -138,19 +138,31 @@ export default class SimpleReminderPlugin extends Plugin {
     let changed = false;
 
     for (const r of this.reminders) {
+      // ── remindBefore check ───────────────────────────────────────────────────
+      if (!r.checked && r.remindBeforeTrigger != null && now >= r.remindBeforeTrigger) {
+        this.fireNotification(r, true);
+        r.remindBeforeTrigger = null;
+        changed = true;
+      }
+
+      // ── Main trigger check ───────────────────────────────────────────────────
       if (r.checked) continue;
       if (r.nextTrigger == null) continue;
       if (now < r.nextTrigger) continue;
 
-      this.fireNotification(r);
+      this.fireNotification(r, false);
       this.api._emitFired(r);
 
       if (r.type === 'once') {
         r.checked = true;
         r.completedAt = now;
         r.nextTrigger = null;
+        r.remindBeforeTrigger = null;
       } else {
         r.nextTrigger = advanceTrigger(r, now);
+        if (r.remindBeforeValue != null) {
+          r.remindBeforeTrigger = calcRemindBeforeTrigger(r);
+        }
       }
       changed = true;
     }
@@ -177,16 +189,18 @@ export default class SimpleReminderPlugin extends Plugin {
       .catch(() => {});
   }
 
-  fireNotification(r: Reminder): void {
+  fireNotification(r: Reminder, isPreAlert = false): void {
+    const emoji = r.emoji || '⏰';
+    const prefix = isPreAlert ? `${emoji} ${this.t.remindBeforePrefix}` : `${emoji} ${this.t.pluginName}`;
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try {
-        new Notification(`⏰ ${this.t.pluginName}`, { body: r.title, silent: false });
+        new Notification(prefix, { body: r.title, silent: false });
         return;
       } catch {
         /* ignore */
       }
     }
-    new Notice(`⏰ ${r.title}`, 8000);
+    new Notice(`${emoji} ${r.title}`, 8000);
   }
 
   fireTestNotification(): void {

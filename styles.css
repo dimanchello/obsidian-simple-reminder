@@ -632,3 +632,36 @@
   font-weight: 500;
   min-height: 1em;
 }
+
+/* ── Emoji grid ───────────────────────────────────────────────────── */
+.sr-emoji-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sr-emoji-btn {
+  font-size: 1.3em;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.sr-emoji-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+.sr-emoji-btn--active {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
