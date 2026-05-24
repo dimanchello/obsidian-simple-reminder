@@ -3,7 +3,13 @@ import { PluginSettings, Reminder, DEFAULT_SETTINGS } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderSettingTab } from './SettingsTab';
-import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTrigger } from './utils';
+import {
+  advanceTrigger,
+  migrateLegacyReminder,
+  pruneOldCompleted,
+  calcRemindBeforeTriggers,
+  migrateRemindBefore,
+} from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
 
@@ -64,7 +70,9 @@ export default class SimpleReminderPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const saved = (await this.loadData()) ?? {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
-    this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : []).map(migrateLegacyReminder);
+    this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : [])
+      .map(migrateLegacyReminder)
+      .map(migrateRemindBefore);
     this.pruneOldCompleted();
   }
 
@@ -139,10 +147,14 @@ export default class SimpleReminderPlugin extends Plugin {
 
     for (const r of this.reminders) {
       // ── remindBefore check ───────────────────────────────────────────────────
-      if (!r.checked && r.remindBeforeTrigger != null && now >= r.remindBeforeTrigger) {
-        this.fireNotification(r, true);
-        r.remindBeforeTrigger = null;
-        changed = true;
+      if (!r.checked && r.remindBefore.length > 0) {
+        for (const entry of r.remindBefore) {
+          if (entry.trigger != null && now >= entry.trigger) {
+            this.fireNotification(r, true);
+            entry.trigger = null;
+            changed = true;
+          }
+        }
       }
 
       // ── Main trigger check ───────────────────────────────────────────────────
@@ -157,12 +169,10 @@ export default class SimpleReminderPlugin extends Plugin {
         r.checked = true;
         r.completedAt = now;
         r.nextTrigger = null;
-        r.remindBeforeTrigger = null;
+        r.remindBefore = r.remindBefore.map((e) => ({ ...e, trigger: null }));
       } else {
         r.nextTrigger = advanceTrigger(r, now);
-        if (r.remindBeforeValue != null) {
-          r.remindBeforeTrigger = calcRemindBeforeTrigger(r);
-        }
+        r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
       }
       changed = true;
     }

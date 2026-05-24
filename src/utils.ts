@@ -1,4 +1,4 @@
-import { Reminder, LegacyReminder, RemindBeforeUnit } from './types';
+import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry } from './types';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -145,7 +145,7 @@ export function advanceTrigger(r: Reminder, now: number): number | null {
 }
 
 export function migrateLegacyReminder(r: LegacyReminder): Reminder {
-  if (r.type === 'once' || r.type === 'repeat') return r as Reminder; // Уже мигрировано
+  if (r.type === 'once' || r.type === 'repeat') return migrateRemindBefore(r as Reminder); // Уже мигрировано
 
   const migrated: Reminder = {
     id: r.id ?? '',
@@ -165,11 +165,9 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     intraDayStepMin: null,
     timeWindowStart: null,
     timeWindowEnd: null,
-    remindBeforeValue: null,
-    remindBeforeUnit: null,
+    remindBefore: [],
     emoji: '⏰',
     nextTrigger: null,
-    remindBeforeTrigger: null,
     completedAt: null,
   };
 
@@ -226,10 +224,35 @@ export function remindBeforeToMs(value: number, unit: RemindBeforeUnit): number 
   }
 }
 
-export function calcRemindBeforeTrigger(r: Reminder): number | null {
-  const trigger = r.nextTrigger;
-  if (trigger == null || r.remindBeforeValue == null || r.remindBeforeUnit == null) return null;
-  const beforeMs = remindBeforeToMs(r.remindBeforeValue, r.remindBeforeUnit);
-  const result = trigger - beforeMs;
-  return result > Date.now() ? result : null;
+export function calcRemindBeforeTriggers(
+  nextTrigger: number | null,
+  entries: RemindBeforeEntry[],
+): RemindBeforeEntry[] {
+  return entries.map((e) => {
+    if (nextTrigger == null) return { ...e, trigger: null };
+    const beforeMs = remindBeforeToMs(e.value, e.unit);
+    const result = nextTrigger - beforeMs;
+    return { ...e, trigger: result > Date.now() ? result : null };
+  });
+}
+
+export function migrateRemindBefore(r: Reminder): Reminder {
+  const raw = r as unknown as Record<string, unknown>;
+  if (!Array.isArray(raw.remindBefore)) {
+    if (raw.remindBeforeValue != null && (raw.remindBeforeValue as number) > 0) {
+      r.remindBefore = [
+        {
+          value: raw.remindBeforeValue as number,
+          unit: (raw.remindBeforeUnit as RemindBeforeUnit) || 'minute',
+          trigger: (raw.remindBeforeTrigger as number | null) ?? null,
+        },
+      ];
+    } else {
+      r.remindBefore = [];
+    }
+    delete raw.remindBeforeValue;
+    delete raw.remindBeforeUnit;
+    delete raw.remindBeforeTrigger;
+  }
+  return r;
 }

@@ -51,6 +51,8 @@ export interface Strings {
   fieldEmojiPlaceholder: string;
   remindBeforeLabel: string;
   remindBeforeUnitLabels: string[];
+  remindBeforeAddBtn: string;
+  remindBeforeRemoveBtn: string;
 
   saveBtn: string;
   updateBtn: string;
@@ -180,6 +182,8 @@ const en: Strings = {
   fieldEmojiPlaceholder: 'e.g. ⏰ 🔔 📌',
   remindBeforeLabel: 'Remind before',
   remindBeforeUnitLabels: ['minutes', 'hours', 'days', 'weeks', 'months', 'years'],
+  remindBeforeAddBtn: '+ Add reminder',
+  remindBeforeRemoveBtn: 'Remove',
 
   saveBtn: 'Save',
   updateBtn: 'Update',
@@ -308,6 +312,8 @@ const ru: Strings = {
   fieldEmojiPlaceholder: 'например ⏰ 🔔 📌',
   remindBeforeLabel: 'Напомнить за',
   remindBeforeUnitLabels: ['минут', 'часов', 'дней', 'недель', 'месяцев', 'лет'],
+  remindBeforeAddBtn: '+ Добавить напоминание',
+  remindBeforeRemoveBtn: 'Удалить',
 
   saveBtn: 'Сохранить',
   updateBtn: 'Обновить',

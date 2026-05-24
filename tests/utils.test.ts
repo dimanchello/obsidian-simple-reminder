@@ -7,9 +7,10 @@ import {
   migrateLegacyReminder,
   pruneOldCompleted,
   remindBeforeToMs,
-  calcRemindBeforeTrigger,
+  calcRemindBeforeTriggers,
+  migrateRemindBefore,
 } from '../src/utils';
-import { Reminder } from '../src/types';
+import { Reminder, RemindBeforeEntry } from '../src/types';
 
 function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
   return {
@@ -31,10 +32,8 @@ function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
     timeWindowStart: null,
     timeWindowEnd: null,
     nextTrigger: null,
-    remindBeforeTrigger: null,
     completedAt: null,
-    remindBeforeValue: null,
-    remindBeforeUnit: null,
+    remindBefore: [],
     emoji: '⏰',
     ...overrides,
   };
@@ -724,6 +723,87 @@ describe('pruneOldCompleted', () => {
   });
 });
 
+describe('migrateRemindBefore', () => {
+  it('handles already-migrated reminder (empty array)', () => {
+    const r = makeReminder();
+    const result = migrateRemindBefore(r);
+    expect(result.remindBefore).toEqual([]);
+  });
+
+  it('handles already-migrated reminder (with entries)', () => {
+    const r = makeReminder({ remindBefore: [{ value: 30, unit: 'minute', trigger: null }] });
+    const result = migrateRemindBefore(r);
+    expect(result.remindBefore).toHaveLength(1);
+    expect(result.remindBefore[0].value).toBe(30);
+  });
+
+  it('migrates old single format to array', () => {
+    const old = {
+      id: 'test',
+      title: 'Test',
+      checked: false,
+      type: 'once',
+      specificTs: null,
+      repUnit: null,
+      repStep: null,
+      repDaysOfWeek: null,
+      repDayOfMonth: null,
+      repMonth: null,
+      startDate: null,
+      endDate: null,
+      intraDayMode: null,
+      intraDayTime: null,
+      intraDayStepMin: null,
+      timeWindowStart: null,
+      timeWindowEnd: null,
+      emoji: '⏰',
+      nextTrigger: null,
+      completedAt: null,
+      remindBeforeValue: 30,
+      remindBeforeUnit: 'minute',
+      remindBeforeTrigger: 12345,
+    } as unknown as Reminder;
+    const result = migrateRemindBefore(old);
+    expect(result.remindBefore).toHaveLength(1);
+    expect(result.remindBefore[0].value).toBe(30);
+    expect(result.remindBefore[0].unit).toBe('minute');
+    expect(result.remindBefore[0].trigger).toBe(12345);
+    expect((result as any).remindBeforeValue).toBeUndefined();
+    expect((result as any).remindBeforeUnit).toBeUndefined();
+    expect((result as any).remindBeforeTrigger).toBeUndefined();
+  });
+
+  it('migrates old format with null values to empty array', () => {
+    const old = {
+      id: 'test',
+      title: 'Test',
+      checked: false,
+      type: 'once',
+      specificTs: null,
+      repUnit: null,
+      repStep: null,
+      repDaysOfWeek: null,
+      repDayOfMonth: null,
+      repMonth: null,
+      startDate: null,
+      endDate: null,
+      intraDayMode: null,
+      intraDayTime: null,
+      intraDayStepMin: null,
+      timeWindowStart: null,
+      timeWindowEnd: null,
+      emoji: '⏰',
+      nextTrigger: null,
+      completedAt: null,
+      remindBeforeValue: null,
+      remindBeforeUnit: null,
+      remindBeforeTrigger: null,
+    } as unknown as Reminder;
+    const result = migrateRemindBefore(old);
+    expect(result.remindBefore).toEqual([]);
+  });
+});
+
 describe('remindBeforeToMs', () => {
   it('converts minutes correctly', () => {
     expect(remindBeforeToMs(30, 'minute')).toBe(30 * 60_000);
@@ -754,67 +834,53 @@ describe('remindBeforeToMs', () => {
   });
 });
 
-describe('calcRemindBeforeTrigger', () => {
+describe('calcRemindBeforeTriggers', () => {
   it('returns correct trigger for future reminder', () => {
     const future = Date.now() + 7200_000; // 2 hours from now
-    const r = makeReminder({
-      type: 'once',
-      specificTs: future,
-      nextTrigger: future,
-      remindBeforeValue: 30,
-      remindBeforeUnit: 'minute',
-    });
-    const trigger = calcRemindBeforeTrigger(r);
-    expect(trigger).not.toBeNull();
-    expect(trigger!).toBe(future - 30 * 60_000);
+    const entries: RemindBeforeEntry[] = [{ value: 30, unit: 'minute', trigger: null }];
+    const result = calcRemindBeforeTriggers(future, entries);
+    expect(result).toHaveLength(1);
+    expect(result[0].trigger).not.toBeNull();
+    expect(result[0].trigger!).toBe(future - 30 * 60_000);
   });
 
-  it('returns null when nextTrigger is null', () => {
-    const r = makeReminder({
-      remindBeforeValue: 30,
-      remindBeforeUnit: 'minute',
-      nextTrigger: null,
-    });
-    expect(calcRemindBeforeTrigger(r)).toBeNull();
+  it('returns null triggers when nextTrigger is null', () => {
+    const entries: RemindBeforeEntry[] = [{ value: 30, unit: 'minute', trigger: null }];
+    const result = calcRemindBeforeTriggers(null, entries);
+    expect(result[0].trigger).toBeNull();
   });
 
-  it('returns null when remindBeforeValue is null', () => {
-    const r = makeReminder({
-      remindBeforeValue: null,
-      remindBeforeUnit: null,
-      nextTrigger: Date.now() + 3600_000,
-    });
-    expect(calcRemindBeforeTrigger(r)).toBeNull();
-  });
-
-  it('returns null when remindBeforeUnit is null', () => {
-    const r = makeReminder({
-      remindBeforeValue: 30,
-      remindBeforeUnit: null,
-      nextTrigger: Date.now() + 3600_000,
-    });
-    expect(calcRemindBeforeTrigger(r)).toBeNull();
+  it('returns empty when entries are empty', () => {
+    const result = calcRemindBeforeTriggers(Date.now() + 3600_000, []);
+    expect(result).toHaveLength(0);
   });
 
   it('returns null when remindBefore time is in the past', () => {
-    const r = makeReminder({
-      nextTrigger: Date.now() + 60_000, // 1 min from now
-      remindBeforeValue: 30,
-      remindBeforeUnit: 'minute',
-    });
-    // remindBeforeTrigger would be 30 min before nextTrigger = 29 min in the past
-    expect(calcRemindBeforeTrigger(r)).toBeNull();
+    const future = Date.now() + 60_000; // 1 min from now
+    const entries: RemindBeforeEntry[] = [{ value: 30, unit: 'minute', trigger: null }];
+    // remindBeforeTrigger would be 30 min before nextTrigger = in the past
+    const result = calcRemindBeforeTriggers(future, entries);
+    expect(result[0].trigger).toBeNull();
   });
 
   it('returns trigger for one hour before with hour unit', () => {
     const future = Date.now() + 7200_000; // 2 hours from now
-    const r = makeReminder({
-      nextTrigger: future,
-      remindBeforeValue: 1,
-      remindBeforeUnit: 'hour',
-    });
-    const trigger = calcRemindBeforeTrigger(r);
-    expect(trigger).not.toBeNull();
-    expect(trigger!).toBe(future - 3600_000);
+    const entries: RemindBeforeEntry[] = [{ value: 1, unit: 'hour', trigger: null }];
+    const result = calcRemindBeforeTriggers(future, entries);
+    expect(result[0].trigger).not.toBeNull();
+    expect(result[0].trigger!).toBe(future - 3600_000);
+  });
+
+  it('handles multiple entries independently', () => {
+    const future = Date.now() + 3 * 86400_000; // 3 days from now
+    const entries: RemindBeforeEntry[] = [
+      { value: 30, unit: 'minute', trigger: null },
+      { value: 2, unit: 'hour', trigger: null },
+      { value: 1, unit: 'day', trigger: null },
+    ];
+    const result = calcRemindBeforeTriggers(future, entries);
+    expect(result[0].trigger).toBe(future - 30 * 60_000);
+    expect(result[1].trigger).toBe(future - 2 * 3600_000);
+    expect(result[2].trigger).toBe(future - 1 * 86400_000);
   });
 });
