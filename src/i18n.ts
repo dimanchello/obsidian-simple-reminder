@@ -114,6 +114,12 @@ export interface Strings {
   okPermAlready: string;
   remindBeforePrefix: string;
   deleteConfirm: string;
+
+  // Calendar modal
+  calendarBtn: string;
+  calendarBack: string;
+  calendarRemindersFor: string;
+  calendarNoReminders: string;
 }
 
 const en: Strings = {
@@ -242,6 +248,11 @@ const en: Strings = {
   okPermAlready: '✅ Notifications already allowed',
   remindBeforePrefix: '⏰ Reminder soon:',
   deleteConfirm: 'Delete this reminder?',
+
+  calendarBtn: '📅 Calendar',
+  calendarBack: 'Back',
+  calendarRemindersFor: 'Reminders for',
+  calendarNoReminders: 'No reminders on this day',
 };
 
 const ru: Strings = {
@@ -370,6 +381,11 @@ const ru: Strings = {
   okPermAlready: '✅ Уведомления уже разрешены',
   remindBeforePrefix: '⏰ Скоро напоминание:',
   deleteConfirm: 'Удалить это напоминание?',
+
+  calendarBtn: '📅 Календарь',
+  calendarBack: 'Назад',
+  calendarRemindersFor: 'Напоминания на',
+  calendarNoReminders: 'На этот день нет напоминаний',
 };
 
 const STRINGS: Record<'en' | 'ru', Strings> = { en, ru };

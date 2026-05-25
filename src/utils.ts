@@ -37,7 +37,7 @@ function parseTime(hhmm: string): [number, number] {
   return [isNaN(p[0]) ? 9 : p[0], isNaN(p[1]) ? 0 : p[1]];
 }
 
-function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
+export function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
   const dayMs = 86400_000;
   const diffDays = Math.round((cand.getTime() - anchor.getTime()) / dayMs);
   if (diffDays < 0) return false;
