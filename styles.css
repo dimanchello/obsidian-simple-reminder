@@ -660,6 +660,17 @@
   background: var(--background-modifier-hover);
 }
 
+/* ── 2-column grid ────────────────────────────────────────────────── */
+.sr-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sr-grid-2 .sr-field-group {
+  min-width: 0;
+}
+
 .sr-emoji-btn--active {
   background: var(--interactive-accent);
   border-color: var(--interactive-accent);

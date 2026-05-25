@@ -252,44 +252,58 @@ export class AddReminderModal extends Modal {
       const g = area.createDiv('sr-field-group');
       g.createEl('label', { cls: 'sr-label', text: t.calDayOfWeek });
       const wrap = g.createDiv('sr-days-wrap');
-      t.daysShort.forEach((name, idx) => {
+      // Порядок: Пн, Вт, Ср, Чт, Пт, Сб, Вс
+      const monFirstOrder = [1, 2, 3, 4, 5, 6, 0];
+      monFirstOrder.forEach((jsDay) => {
         const btn = wrap.createEl('button', {
-          cls: 'sr-day-btn' + (this.fd.repDaysOfWeek[idx] ? ' sr-day-btn--active' : ''),
-          text: name,
+          cls: 'sr-day-btn' + (this.fd.repDaysOfWeek[jsDay] ? ' sr-day-btn--active' : ''),
+          text: t.daysShort[jsDay],
           type: 'button',
         });
         btn.addEventListener('click', () => {
-          this.fd.repDaysOfWeek[idx] = !this.fd.repDaysOfWeek[idx];
-          btn.classList.toggle('sr-day-btn--active', this.fd.repDaysOfWeek[idx]);
+          this.fd.repDaysOfWeek[jsDay] = !this.fd.repDaysOfWeek[jsDay];
+          btn.classList.toggle('sr-day-btn--active', this.fd.repDaysOfWeek[jsDay]);
         });
       });
     }
 
     if (unit === 'month' || unit === 'year') {
-      const g = area.createDiv('sr-field-group');
-      g.createEl('label', { cls: 'sr-label', text: t.calDayOfMonth });
-      const inp = g.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
-      inp.min = '1';
-      inp.max = '31';
-      inp.value = String(this.fd.repDayOfMonth);
-      inp.addEventListener('input', (e) => {
-        const v = parseInt((e.target as HTMLInputElement).value, 10);
-        this.fd.repDayOfMonth = Math.min(31, Math.max(1, isNaN(v) ? 1 : v));
-      });
-    }
+      if (unit === 'year') {
+        const row = area.createDiv('sr-grid-2');
+        const dg = row.createDiv('sr-field-group');
+        dg.createEl('label', { cls: 'sr-label', text: t.calDayOfMonth });
+        const inp = dg.createEl('input', { cls: 'sr-input', type: 'number' });
+        inp.min = '1';
+        inp.max = '31';
+        inp.value = String(this.fd.repDayOfMonth);
+        inp.addEventListener('input', (e) => {
+          const v = parseInt((e.target as HTMLInputElement).value, 10);
+          this.fd.repDayOfMonth = Math.min(31, Math.max(1, isNaN(v) ? 1 : v));
+        });
 
-    if (unit === 'year') {
-      const g = area.createDiv('sr-field-group');
-      g.createEl('label', { cls: 'sr-label', text: t.calMonthLabel });
-      const sel = g.createEl('select', { cls: 'sr-select' });
-      t.monthsFull.forEach((name, idx) => {
-        const opt = sel.createEl('option', { text: name });
-        opt.value = String(idx);
-        if (idx === this.fd.repMonth) opt.selected = true;
-      });
-      sel.addEventListener('change', (e) => {
-        this.fd.repMonth = parseInt((e.target as HTMLSelectElement).value, 10);
-      });
+        const mg = row.createDiv('sr-field-group');
+        mg.createEl('label', { cls: 'sr-label', text: t.calMonthLabel });
+        const sel = mg.createEl('select', { cls: 'sr-select' });
+        t.monthsFull.forEach((name, idx) => {
+          const opt = sel.createEl('option', { text: name });
+          opt.value = String(idx);
+          if (idx === this.fd.repMonth) opt.selected = true;
+        });
+        sel.addEventListener('change', (e) => {
+          this.fd.repMonth = parseInt((e.target as HTMLSelectElement).value, 10);
+        });
+      } else {
+        const g = area.createDiv('sr-field-group');
+        g.createEl('label', { cls: 'sr-label', text: t.calDayOfMonth });
+        const inp = g.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
+        inp.min = '1';
+        inp.max = '31';
+        inp.value = String(this.fd.repDayOfMonth);
+        inp.addEventListener('input', (e) => {
+          const v = parseInt((e.target as HTMLInputElement).value, 10);
+          this.fd.repDayOfMonth = Math.min(31, Math.max(1, isNaN(v) ? 1 : v));
+        });
+      }
     }
   }
 
