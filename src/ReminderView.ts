@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { AddReminderModal } from './AddReminderModal';
+import { CalendarModal } from './CalendarModal';
 import { fmtDate, fmtDateShort } from './utils';
 import { Reminder } from './types';
 import { Strings } from './i18n';
@@ -48,9 +49,11 @@ export class ReminderView extends ItemView {
     const title = header.createDiv('sr-header-title');
     title.createSpan({ cls: 'sr-header-icon', text: '⏰' });
     title.createSpan({ cls: 'sr-header-text', text: t.pluginName });
-    header
-      .createEl('button', { cls: 'sr-add-btn', text: t.addBtn })
-      .addEventListener('click', () => this.openAddModal());
+    const btnGroup = header.createDiv('sr-header-btns');
+    const calBtn = btnGroup.createEl('button', { cls: 'sr-cal-btn', text: '📅' });
+    calBtn.addEventListener('click', () => this.openCalendarModal());
+    const addBtn = btnGroup.createEl('button', { cls: 'sr-add-btn', text: '➕' });
+    addBtn.addEventListener('click', () => this.openAddModal());
   }
 
   private renderStats(root: HTMLElement, t: Strings): void {
@@ -169,5 +172,9 @@ export class ReminderView extends ItemView {
       this.refresh();
       this.plugin.checkReminders();
     }).open();
+  }
+
+  private openCalendarModal(): void {
+    new CalendarModal(this.app, this.plugin).open();
   }
 }
