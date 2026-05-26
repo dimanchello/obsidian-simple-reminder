@@ -40,6 +40,9 @@ export interface Strings {
   toggleStartDate: string;
   toggleEndDate: string;
   toggleIntraDay: string;
+  hintStartDate: string;
+  hintEndDate: string;
+  hintIntraDay: string;
   fieldDateTime: string;
   fieldStartDate: string;
   fieldEndDate: string;
@@ -177,6 +180,9 @@ const en: Strings = {
   toggleStartDate: '▶️ Starts on date',
   toggleEndDate: '⏹️ Ends on date',
   toggleIntraDay: '🔄 Multiple times a day',
+  hintStartDate: 'Notifications will start from this date',
+  hintEndDate: 'The last notification will fire on this day (inclusive)',
+  hintIntraDay: 'Set multiple daily notifications within a time range',
   fieldDateTime: 'Date and time',
   fieldStartDate: 'Start date and time',
   fieldEndDate: 'End date and time',
@@ -312,6 +318,9 @@ const ru: Strings = {
   toggleStartDate: '▶️ Начинать с даты',
   toggleEndDate: '⏹️ Заканчивать в дату',
   toggleIntraDay: '🔄 Несколько раз в день',
+  hintStartDate: 'Уведомления начнутся с этой даты',
+  hintEndDate: 'Последнее уведомление придёт в этот день (включительно)',
+  hintIntraDay: 'Несколько уведомлений в день в заданном промежутке',
   fieldDateTime: 'Дата и время',
   fieldStartDate: 'Дата и время начала',
   fieldEndDate: 'Дата и время окончания',

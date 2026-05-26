@@ -726,6 +726,55 @@
   align-items: center;
 }
 
+/* ── Emoji collapsible picker ───────────────────────────────────────── */
+.sr-emoji-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sr-emoji-preview {
+  font-size: 1.4em;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  position: relative;
+}
+
+.sr-emoji-preview::after {
+  content: '▾';
+  font-size: .55em;
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  color: var(--text-muted);
+}
+
+.sr-emoji-preview:hover {
+  background: var(--background-modifier-hover);
+}
+
+.sr-emoji-wrap {
+  margin-top: 6px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .2s ease;
+}
+
+.sr-emoji-wrap--open {
+  max-height: 192px;
+  overflow-y: auto;
+}
+
 /* ── Calendar button in sidebar ───────────────────────────────────── */
 .sr-cal-btn {
   background: transparent;

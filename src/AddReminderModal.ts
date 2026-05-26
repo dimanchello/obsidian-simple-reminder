@@ -45,6 +45,11 @@ function tsToLocal(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function tsToDateLocal(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function reminderToFD(r: Reminder): FormData {
   const isRepeat = r.type === 'repeat';
   const rb = r.remindBefore.filter((e) => e.value > 0);
@@ -60,10 +65,10 @@ function reminderToFD(r: Reminder): FormData {
     repDayOfMonth: r.repDayOfMonth || 1,
     repMonth: r.repMonth || 0,
     useStart: !!r.startDate,
-    startDate: r.startDate ? tsToLocal(r.startDate) : '',
+    startDate: r.startDate ? tsToDateLocal(r.startDate) : '',
     useEnd: !!r.endDate,
-    endDate: r.endDate ? tsToLocal(r.endDate) : '',
-    isIntraDay: r.intraDayMode === 'interval',
+    endDate: r.endDate ? tsToDateLocal(r.endDate) : '',
+    isIntraDay: r.intraDayMode != null,
     intraTime: r.intraDayTime || '09:00',
     intraStepMin: r.intraDayStepMin || 30,
     timeFrom: r.timeWindowStart || '09:00',
@@ -106,6 +111,7 @@ export class AddReminderModal extends Modal {
   private existing: Reminder | null;
   private fd: FormData;
   private bodyEl!: HTMLElement;
+  private _intraInitSingle = false;
 
   constructor(app: App, plugin: SimpleReminderPlugin, onSave: () => void, existing?: Reminder | null) {
     super(app);
@@ -316,7 +322,8 @@ export class AddReminderModal extends Modal {
 
     // Старт / Стоп даты
     this.addToggle(container, t.toggleStartDate, 'useStart', (c) => {
-      const inp = c.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
+      c.createEl('span', { cls: 'sr-hint', text: t.hintStartDate });
+      const inp = c.createEl('input', { cls: 'sr-input', type: 'date' });
       if (this.fd.startDate) inp.value = this.fd.startDate;
       inp.addEventListener('change', (e) => {
         this.fd.startDate = (e.target as HTMLInputElement).value;
@@ -324,7 +331,8 @@ export class AddReminderModal extends Modal {
     });
 
     this.addToggle(container, t.toggleEndDate, 'useEnd', (c) => {
-      const inp = c.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
+      c.createEl('span', { cls: 'sr-hint', text: t.hintEndDate });
+      const inp = c.createEl('input', { cls: 'sr-input', type: 'date' });
       if (this.fd.endDate) inp.value = this.fd.endDate;
       inp.addEventListener('change', (e) => {
         this.fd.endDate = (e.target as HTMLInputElement).value;
@@ -332,12 +340,24 @@ export class AddReminderModal extends Modal {
     });
 
     // Внутри-дневные настройки
+    this._intraInitSingle = this.existing?.intraDayMode === 'single';
     this.addToggle(
       container,
       t.toggleIntraDay,
       'isIntraDay',
-      (c) => this.buildIntraInterval(c, t),
-      (c) => this.buildIntraSingle(c, t),
+      (c) => {
+        c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
+        if (this._intraInitSingle) {
+          this._intraInitSingle = false;
+          this.buildIntraSingle(c, t);
+        } else {
+          this.buildIntraInterval(c, t);
+        }
+      },
+      (c) => {
+        c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
+        this.buildIntraSingle(c, t);
+      },
     );
   }
 
@@ -384,7 +404,14 @@ export class AddReminderModal extends Modal {
   private buildEmojiField(parent: HTMLElement, t: Strings): void {
     const g = parent.createDiv('sr-field-group');
     g.createEl('label', { cls: 'sr-label', text: t.fieldEmoji });
-    const wrap = g.createDiv('sr-emoji-grid');
+    const header = g.createDiv('sr-emoji-header');
+    const preview = header.createEl('button', {
+      cls: 'sr-emoji-preview',
+      text: this.fd.emoji,
+      type: 'button',
+    });
+    const wrap = g.createDiv('sr-emoji-wrap');
+    const grid = wrap.createDiv('sr-emoji-grid');
     const emojis = [
       '⏰',
       '🔔',
@@ -426,19 +453,176 @@ export class AddReminderModal extends Modal {
       '💎',
       '🌈',
       '🌙',
+      '😀',
+      '😂',
+      '😊',
+      '🥰',
+      '😎',
+      '🤔',
+      '😴',
+      '🥳',
+      '😇',
+      '🤩',
+      '🐶',
+      '🐱',
+      '🐼',
+      '🦊',
+      '🐸',
+      '🐝',
+      '🦋',
+      '🐞',
+      '🌸',
+      '🌺',
+      '🌻',
+      '🌷',
+      '🌿',
+      '🍀',
+      '🌵',
+      '🌊',
+      '☀️',
+      '❄️',
+      '🌪️',
+      '🌈',
+      '🍕',
+      '🍔',
+      '🌮',
+      '🥗',
+      '🍣',
+      '🍩',
+      '🍪',
+      '🧁',
+      '🥑',
+      '🥦',
+      '⚽',
+      '🏀',
+      '🎾',
+      '🏈',
+      '🎱',
+      '🚴',
+      '🏄',
+      '🧗',
+      '⛷️',
+      '🥊',
+      '🎸',
+      '🎹',
+      '🎧',
+      '🎤',
+      '🎬',
+      '📸',
+      '🎨',
+      '🖌️',
+      '🎭',
+      '🎪',
+      '💻',
+      '📱',
+      '🖨️',
+      '💾',
+      '📀',
+      '🎥',
+      '📡',
+      '🔋',
+      '💳',
+      '🛠️',
+      '✉️',
+      '📫',
+      '📦',
+      '📎',
+      '📁',
+      '📊',
+      '📈',
+      '🗂️',
+      '🔍',
+      '🔒',
+      '🚀',
+      '🛸',
+      '🌍',
+      '🌕',
+      '☄️',
+      '⭐',
+      '🔭',
+      '🔬',
+      '⚗️',
+      '🧪',
+      '💉',
+      '🩺',
+      '🦷',
+      '🧬',
+      '📋',
+      '📃',
+      '📄',
+      '🗒️',
+      '📕',
+      '📗',
+      '🛌',
+      '🛁',
+      '🚿',
+      '🧹',
+      '🧺',
+      '🔧',
+      '🧰',
+      '🪴',
+      '🖼️',
+      '🕯️',
+      '💰',
+      '💵',
+      '💸',
+      '📉',
+      '📦',
+      '🏷️',
+      '📌',
+      '📍',
+      '🎀',
+      '🧧',
+      '🗓️',
+      '⏳',
+      '⌛',
+      '🔋',
+      '⚡',
+      '🛡️',
+      '🧲',
+      '🎈',
+      '🎊',
+      '🎄',
+      '🕐',
+      '🕑',
+      '🕒',
+      '🕓',
+      '🕔',
+      '🕕',
+      '🕖',
+      '🕗',
+      '🕘',
+      '🕙',
+      '🕚',
+      '🕛',
+      '⏱️',
+      '⏲️',
+      '🛎️',
+      '📯',
+      '📻',
+      '📺',
+      '🔦',
+      '💡',
     ];
     emojis.forEach((e) => {
-      const btn = wrap.createEl('button', {
+      const btn = grid.createEl('button', {
         cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
         text: e,
         type: 'button',
       });
       btn.addEventListener('click', () => {
         this.fd.emoji = e;
-        wrap.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
+        preview.textContent = e;
+        grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
         btn.classList.add('sr-emoji-btn--active');
       });
     });
+    let open = false;
+    const toggle = () => {
+      open = !open;
+      wrap.classList.toggle('sr-emoji-wrap--open', open);
+    };
+    preview.addEventListener('click', toggle);
   }
 
   private buildRemindBeforeField(parent: HTMLElement, t: Strings): void {
@@ -511,7 +695,12 @@ export class AddReminderModal extends Modal {
   }
 
   private addAdvToggle(parent: HTMLElement, label: string, dummy: string, buildContent: (c: HTMLElement) => void) {
-    let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay || false;
+    let isOpen =
+      this.fd.useStart ||
+      this.fd.useEnd ||
+      this.fd.isIntraDay ||
+      (this.existing?.type === 'repeat' && this.existing.intraDayMode === 'single') ||
+      false;
     const block = parent.createDiv('sr-toggle-block sr-toggle-adv' + (isOpen ? ' sr-toggle-block--open' : ''));
     const header = block.createDiv('sr-toggle-header');
     header.createSpan({ cls: 'sr-toggle-label', text: label });
@@ -640,20 +829,20 @@ export class AddReminderModal extends Modal {
       r.repMonth = d.repUnit === 'year' ? d.repMonth : null;
 
       if (d.useStart && d.startDate) {
-        const ts = new Date(d.startDate).getTime();
-        if (isNaN(ts)) {
+        const parts = d.startDate.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) {
           new Notice(t.errBadDate);
           return;
         }
-        r.startDate = ts;
+        r.startDate = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
       }
       if (d.useEnd && d.endDate) {
-        const ts = new Date(d.endDate).getTime();
-        if (isNaN(ts)) {
+        const parts = d.endDate.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) {
           new Notice(t.errBadDate);
           return;
         }
-        r.endDate = ts;
+        r.endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999).getTime();
       }
 
       if (d.isIntraDay) {
