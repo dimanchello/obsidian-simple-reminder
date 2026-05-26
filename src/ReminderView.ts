@@ -52,7 +52,7 @@ export class ReminderView extends ItemView {
     const btnGroup = header.createDiv('sr-header-btns');
     const calBtn = btnGroup.createEl('button', { cls: 'sr-cal-btn', text: '📅' });
     calBtn.addEventListener('click', () => this.openCalendarModal());
-    const addBtn = btnGroup.createEl('button', { cls: 'sr-add-btn', text: '➕' });
+    const addBtn = btnGroup.createEl('button', { cls: 'sr-cal-btn', text: '➕' });
     addBtn.addEventListener('click', () => this.openAddModal());
   }
 
