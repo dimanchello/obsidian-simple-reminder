@@ -88,6 +88,11 @@ export class CalendarModal extends Modal {
       const cell = grid.createDiv('sr-cal-mini-day');
       cell.createDiv({ cls: 'sr-cal-mini-day-num', text: String(day) });
 
+      const today = new Date();
+      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+        cell.addClass('sr-cal-mini-day--today');
+      }
+
       const cnt = this.countForDay(year, month, day);
       if (cnt > 0) {
         const dots = cell.createDiv('sr-cal-mini-dots');
@@ -148,6 +153,11 @@ export class CalendarModal extends Modal {
       const cell = grid.createDiv('sr-cal-month-day');
       if (this.selDay === day) {
         cell.addClass('sr-cal-month-day--selected');
+      }
+
+      const today = new Date();
+      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+        cell.addClass('sr-cal-month-day--today');
       }
 
       cell.createDiv({ cls: 'sr-cal-month-day-num', text: String(day) });

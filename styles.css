@@ -440,6 +440,52 @@
   gap: 5px;
 }
 
+/* ── Remind before list ─────────────────────────────────────────── */
+.sr-rb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sr-rb-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sr-rb-row .sr-input--short {
+  width: 60px;
+  flex-shrink: 0;
+}
+.sr-rb-row .sr-select {
+  flex: 1;
+  min-width: 0;
+}
+.sr-rb-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: .9em;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+.sr-rb-del-btn:hover { color: var(--text-normal); }
+.sr-rb-add-btn {
+  background: transparent;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .8em;
+  padding: 6px 10px;
+  text-align: center;
+  width: 100%;
+  transition: border-color .12s, color .12s;
+}
+.sr-rb-add-btn:hover {
+  border-color: var(--interactive-accent);
+  color: var(--interactive-accent);
+}
+
 /* ── Toggle block ────────────────────────────────────────────────── */
 .sr-toggle-block {
   border: 1px solid var(--background-modifier-border);
@@ -629,12 +675,46 @@
   min-height: 1em;
 }
 
+/* ── Emoji field ──────────────────────────────────────────────────── */
+.sr-emoji-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sr-emoji-preview {
+  font-size: 1.5em;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color .12s;
+}
+.sr-emoji-preview:hover {
+  border-color: var(--interactive-accent);
+}
+
 /* ── Emoji grid ───────────────────────────────────────────────────── */
+.sr-emoji-wrap {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height .25s ease, opacity .2s ease;
+}
+.sr-emoji-wrap--open {
+  max-height: 220px;
+  opacity: 1;
+  overflow-y: auto;
+}
 .sr-emoji-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 4px;
+  padding: 6px 0;
 }
 
 .sr-emoji-btn {
@@ -805,6 +885,10 @@
   min-height: 16px;
 }
 .sr-cal-mini-day:hover { background: var(--background-modifier-hover); }
+.sr-cal-mini-day--today .sr-cal-mini-day-num {
+  color: var(--interactive-accent);
+  font-weight: 700;
+}
 
 .sr-cal-mini-day-num {
   font-size: .58em;
@@ -881,6 +965,10 @@
 .sr-cal-month-day--selected {
   border-color: var(--interactive-accent);
   background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+}
+.sr-cal-month-day--today {
+  border-color: var(--interactive-accent);
+  border-style: dashed;
 }
 
 .sr-cal-month-day-num {

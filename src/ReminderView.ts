@@ -27,11 +27,12 @@ type TabId = 'all' | 'active' | 'done';
 
 export class ReminderView extends ItemView {
   private plugin: SimpleReminderPlugin;
-  private currentTab: TabId = 'all';
+  private currentTab: TabId;
 
   constructor(leaf: WorkspaceLeaf, plugin: SimpleReminderPlugin) {
     super(leaf);
     this.plugin = plugin;
+    this.currentTab = plugin.settings.activeTab || 'all';
   }
 
   getViewType(): string {
@@ -91,9 +92,11 @@ export class ReminderView extends ItemView {
         cls: 'sr-tab' + (this.currentTab === tab.id ? ' sr-tab--active' : ''),
         text: `${tab.label} (${tab.count})`,
       });
-      el.addEventListener('click', () => {
+      el.addEventListener('click', async () => {
         if (this.currentTab !== tab.id) {
           this.currentTab = tab.id;
+          this.plugin.settings.activeTab = tab.id;
+          await this.plugin.saveSettings();
           this.render();
         }
       });

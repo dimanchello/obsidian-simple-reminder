@@ -43,8 +43,11 @@ export interface Strings {
 
   advSettings: string;
   toggleStartDate: string;
+  hintStartDate: string;
   toggleEndDate: string;
+  hintEndDate: string;
   toggleIntraDay: string;
+  hintIntraDay: string;
   fieldDateTime: string;
   fieldStartDate: string;
   fieldEndDate: string;
@@ -56,6 +59,7 @@ export interface Strings {
   fieldEmojiPlaceholder: string;
   remindBeforeLabel: string;
   remindBeforeUnitLabels: string[];
+  remindBeforeAddBtn: string;
 
   saveBtn: string;
   updateBtn: string;
@@ -185,8 +189,11 @@ const en: Strings = {
 
   advSettings: '⚙️ Advanced settings',
   toggleStartDate: '▶️ Starts on date',
+  hintStartDate: 'First day this reminder is active',
   toggleEndDate: '⏹️ Ends on date',
+  hintEndDate: 'Last day this reminder is active',
   toggleIntraDay: '🔄 Multiple times a day',
+  hintIntraDay: 'Fire repeatedly within a time window',
   fieldDateTime: 'Date and time',
   fieldStartDate: 'Start date and time',
   fieldEndDate: 'End date and time',
@@ -198,6 +205,7 @@ const en: Strings = {
   fieldEmojiPlaceholder: 'e.g. ⏰ 🔔 📌',
   remindBeforeLabel: 'Remind before',
   remindBeforeUnitLabels: ['minutes', 'hours', 'days', 'weeks', 'months', 'years'],
+  remindBeforeAddBtn: '+ Add pre-alert',
 
   saveBtn: 'Save',
   updateBtn: 'Update',
@@ -325,8 +333,11 @@ const ru: Strings = {
 
   advSettings: '⚙️ Дополнительные настройки',
   toggleStartDate: '▶️ Начинать с даты',
+  hintStartDate: 'Первый день активности напоминания',
   toggleEndDate: '⏹️ Заканчивать в дату',
+  hintEndDate: 'Последний день активности напоминания',
   toggleIntraDay: '🔄 Несколько раз в день',
+  hintIntraDay: 'Срабатывать повторно в течение окна',
   fieldDateTime: 'Дата и время',
   fieldStartDate: 'Дата и время начала',
   fieldEndDate: 'Дата и время окончания',
@@ -338,6 +349,7 @@ const ru: Strings = {
   fieldEmojiPlaceholder: 'например ⏰ 🔔 📌',
   remindBeforeLabel: 'Напомнить за',
   remindBeforeUnitLabels: ['минут', 'часов', 'дней', 'недель', 'месяцев', 'лет'],
+  remindBeforeAddBtn: '+ Добавить пред-уведомление',
 
   saveBtn: 'Сохранить',
   updateBtn: 'Обновить',
