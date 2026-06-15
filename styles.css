@@ -885,9 +885,10 @@
   min-height: 16px;
 }
 .sr-cal-mini-day:hover { background: var(--background-modifier-hover); }
-.sr-cal-mini-day--today .sr-cal-mini-day-num {
-  color: var(--interactive-accent);
-  font-weight: 700;
+.sr-cal-mini-day--today {
+  outline: 1.5px solid var(--text-muted);
+  outline-offset: -1px;
+  border-radius: 3px;
 }
 
 .sr-cal-mini-day-num {
@@ -967,8 +968,9 @@
   background: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
 }
 .sr-cal-month-day--today {
-  border-color: var(--interactive-accent);
-  border-style: dashed;
+  outline: 2px solid var(--text-muted);
+  outline-offset: -2px;
+  border-radius: 5px;
 }
 
 .sr-cal-month-day-num {
