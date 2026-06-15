@@ -1,15 +1,9 @@
 import { Notice, Plugin } from 'obsidian';
-import { PluginSettings, Reminder, DEFAULT_SETTINGS } from './types';
+import { PluginSettings, Reminder, DEFAULT_SETTINGS, DEFAULT_EMOJI } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderSettingTab } from './SettingsTab';
-import {
-  advanceTrigger,
-  migrateLegacyReminder,
-  pruneOldCompleted,
-  calcRemindBeforeTriggers,
-  migrateRemindBefore,
-} from './utils';
+import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTriggers } from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
 
@@ -70,9 +64,7 @@ export default class SimpleReminderPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const saved = (await this.loadData()) ?? {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
-    this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : [])
-      .map(migrateLegacyReminder)
-      .map(migrateRemindBefore);
+    this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : []).map(migrateLegacyReminder);
     this.pruneOldCompleted();
   }
 
@@ -139,7 +131,7 @@ export default class SimpleReminderPlugin extends Plugin {
 
   // ── Check logic ────────────────────────────────────────────────────────────
 
-  checkReminders(): void {
+  async checkReminders(): Promise<void> {
     this.pruneOldCompleted();
 
     const now = Date.now();
@@ -147,7 +139,7 @@ export default class SimpleReminderPlugin extends Plugin {
 
     for (const r of this.reminders) {
       // ── remindBefore check ───────────────────────────────────────────────────
-      if (!r.checked && r.remindBefore.length > 0) {
+      if (!r.checked && Array.isArray(r.remindBefore)) {
         for (const entry of r.remindBefore) {
           if (entry.trigger != null && now >= entry.trigger) {
             this.fireNotification(r, true);
@@ -169,16 +161,20 @@ export default class SimpleReminderPlugin extends Plugin {
         r.checked = true;
         r.completedAt = now;
         r.nextTrigger = null;
-        r.remindBefore = r.remindBefore.map((e) => ({ ...e, trigger: null }));
+        r.remindBefore.forEach((e) => {
+          e.trigger = null;
+        });
       } else {
         r.nextTrigger = advanceTrigger(r, now);
-        r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+        if (r.remindBefore.length > 0) {
+          r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+        }
       }
       changed = true;
     }
 
     if (changed) {
-      this.saveSettings();
+      await this.saveSettings();
       this.refreshView();
     }
   }
@@ -200,7 +196,7 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   fireNotification(r: Reminder, isPreAlert = false): void {
-    const emoji = r.emoji || '⏰';
+    const emoji = r.emoji || DEFAULT_EMOJI;
     const prefix = isPreAlert ? `${emoji} ${this.t.remindBeforePrefix}` : `${emoji} ${this.t.pluginName}`;
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try {

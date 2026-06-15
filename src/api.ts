@@ -1,4 +1,4 @@
-import { Reminder, RepeatUnit, RemindBeforeUnit } from './types';
+import { Reminder, RepeatUnit, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
 import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
 import type SimpleReminderPlugin from './main';
 
@@ -139,7 +139,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       timeWindowStart: null,
       timeWindowEnd: null,
       remindBefore: [],
-      emoji: '⏰',
+      emoji: DEFAULT_EMOJI,
       nextTrigger: null,
       completedAt: null,
     };
@@ -170,7 +170,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       (options.remindBeforeValue != null && options.remindBeforeValue > 0
         ? [{ value: options.remindBeforeValue, unit: options.remindBeforeUnit ?? 'minute' }]
         : []);
-    const entries = rawEntries.filter((e) => e.value > 0);
+    const entries = rawEntries.filter((e) => e.value > 0).map((e) => ({ ...e, trigger: null }));
 
     r.nextTrigger = calcNextTrigger(r, now);
     r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, entries);
@@ -195,6 +195,8 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     const r = this.plugin.reminders.find((x) => x.id === id);
     if (!r) return false;
     r.checked = checked;
+    if (checked) r.completedAt = Date.now();
+    else r.completedAt = null;
     this.plugin.saveSettings();
     this._emitUpdated(r);
     this.plugin.refreshView();

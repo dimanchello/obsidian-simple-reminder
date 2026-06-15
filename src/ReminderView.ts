@@ -1,19 +1,38 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, Modal, WorkspaceLeaf } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { AddReminderModal } from './AddReminderModal';
 import { CalendarModal } from './CalendarModal';
 import { fmtDate, fmtDateShort } from './utils';
-import { Reminder } from './types';
+import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
 
 export const VIEW_TYPE_REMINDER = 'simple-reminder-view';
 
+function confirmModal(app: import('obsidian').App, message: string, t: Strings, onConfirm: () => void): void {
+  const modal = new Modal(app);
+  modal.contentEl.addClass('sr-confirm-modal');
+  modal.contentEl.createEl('p', { text: message });
+  const btnRow = modal.contentEl.createDiv('sr-btn-row');
+  btnRow.createEl('button', { cls: 'sr-confirm-yes', text: t.confirmYes }).addEventListener('click', () => {
+    onConfirm();
+    modal.close();
+  });
+  btnRow.createEl('button', { cls: 'sr-confirm-no', text: t.confirmNo }).addEventListener('click', () => {
+    modal.close();
+  });
+  modal.open();
+}
+
+type TabId = 'all' | 'active' | 'done';
+
 export class ReminderView extends ItemView {
   private plugin: SimpleReminderPlugin;
+  private currentTab: TabId;
 
   constructor(leaf: WorkspaceLeaf, plugin: SimpleReminderPlugin) {
     super(leaf);
     this.plugin = plugin;
+    this.currentTab = plugin.settings.activeTab || 'all';
   }
 
   getViewType(): string {
@@ -40,41 +59,65 @@ export class ReminderView extends ItemView {
     root.empty();
     root.addClass('sr-root');
     this.renderHeader(root, t);
-    this.renderStats(root, t);
+    this.renderTabs(root, t);
     this.renderList(root, t);
   }
 
   private renderHeader(root: HTMLElement, t: Strings): void {
     const header = root.createDiv('sr-header');
     const title = header.createDiv('sr-header-title');
-    title.createSpan({ cls: 'sr-header-icon', text: '⏰' });
+    title.createSpan({ cls: 'sr-header-icon', text: DEFAULT_EMOJI });
     title.createSpan({ cls: 'sr-header-text', text: t.pluginName });
     const btnGroup = header.createDiv('sr-header-btns');
     const calBtn = btnGroup.createEl('button', { cls: 'sr-cal-btn', text: '📅' });
+    calBtn.setAttribute('aria-label', t.calendarBtn);
     calBtn.addEventListener('click', () => this.openCalendarModal());
     const addBtn = btnGroup.createEl('button', { cls: 'sr-cal-btn', text: '➕' });
+    addBtn.setAttribute('aria-label', t.addBtn);
     addBtn.addEventListener('click', () => this.openAddModal());
   }
 
-  private renderStats(root: HTMLElement, t: Strings): void {
+  private renderTabs(root: HTMLElement, t: Strings): void {
+    const all = this.plugin.reminders.length;
     const active = this.plugin.reminders.filter((r) => !r.checked).length;
-    const done = this.plugin.reminders.length - active;
-    const bar = root.createDiv('sr-stats');
-    bar.createSpan({ cls: 'sr-stat sr-stat--active', text: `${t.statActiveLabel}: ${active}` });
-    bar.createSpan({ cls: 'sr-stat-sep', text: '·' });
-    bar.createSpan({ cls: 'sr-stat sr-stat--done', text: `${t.statDoneLabel}: ${done}` });
+    const done = all - active;
+    const tabs: { id: TabId; label: string; count: number }[] = [
+      { id: 'all', label: t.tabAll, count: all },
+      { id: 'active', label: t.tabActive, count: active },
+      { id: 'done', label: t.tabDone, count: done },
+    ];
+    const bar = root.createDiv('sr-tabs');
+    for (const tab of tabs) {
+      const el = bar.createSpan({
+        cls: 'sr-tab' + (this.currentTab === tab.id ? ' sr-tab--active' : ''),
+        text: `${tab.label} (${tab.count})`,
+      });
+      el.addEventListener('click', async () => {
+        if (this.currentTab !== tab.id) {
+          this.currentTab = tab.id;
+          this.plugin.settings.activeTab = tab.id;
+          await this.plugin.saveSettings();
+          this.render();
+        }
+      });
+    }
   }
 
   private renderList(root: HTMLElement, t: Strings): void {
     const list = root.createDiv('sr-list');
-    if (this.plugin.reminders.length === 0) {
+    const items = this.plugin.reminders.filter((r) => {
+      if (this.currentTab === 'active') return !r.checked;
+      if (this.currentTab === 'done') return r.checked;
+      return true;
+    });
+    if (items.length === 0) {
       const empty = list.createDiv('sr-empty');
       empty.createDiv({ cls: 'sr-empty-icon', text: '🔔' });
       empty.createDiv({ cls: 'sr-empty-text', text: t.noReminders });
       empty.createDiv({ cls: 'sr-empty-hint', text: t.noRemindersHint });
       return;
     }
-    const sorted = [...this.plugin.reminders].sort((a, b) => {
+    const sorted = [...items].sort((a, b) => {
       if (a.checked !== b.checked) return a.checked ? 1 : -1;
       return (a.nextTrigger ?? Infinity) - (b.nextTrigger ?? Infinity);
     });
@@ -89,12 +132,14 @@ export class ReminderView extends ItemView {
     cb.checked = r.checked;
     cb.addEventListener('change', async () => {
       r.checked = cb.checked;
+      if (cb.checked) r.completedAt = Date.now();
+      else r.completedAt = null;
       await this.plugin.saveSettings();
       this.refresh();
     });
 
     const body = item.createDiv('sr-body');
-    body.createDiv({ cls: 'sr-title', text: `${r.emoji || '⏰'} ${r.title}` });
+    body.createDiv({ cls: 'sr-title', text: `${r.emoji || DEFAULT_EMOJI} ${r.title}` });
 
     const sched = body.createDiv('sr-sched');
     this.renderSchedule(sched, r, t);
@@ -119,10 +164,11 @@ export class ReminderView extends ItemView {
     const delBtn = acts.createEl('button', { cls: 'sr-del-btn', text: '✕' });
     delBtn.setAttribute('aria-label', t.deleteAriaLabel);
     delBtn.addEventListener('click', async () => {
-      if (!confirm(t.deleteConfirm)) return;
-      this.plugin.reminders = this.plugin.reminders.filter((x) => x.id !== r.id);
-      await this.plugin.saveSettings();
-      this.refresh();
+      confirmModal(this.app, t.deleteConfirm, t, async () => {
+        this.plugin.reminders = this.plugin.reminders.filter((x) => x.id !== r.id);
+        await this.plugin.saveSettings();
+        this.refresh();
+      });
     });
   }
 
@@ -139,8 +185,16 @@ export class ReminderView extends ItemView {
     const parts = [];
     const n = r.repStep ?? 1;
     const unitIdx = ['day', 'week', 'month', 'year'].indexOf(r.repUnit ?? 'day');
-    const unitLabel = n === 1 ? t.periodicUnitSingular[unitIdx] : t.periodicUnitLabels[unitIdx];
-    parts.push(`${t.periodicEvery} ${n} ${unitLabel}`);
+    const prefix = n === 1 ? t.periodicEverySingular : t.periodicEvery;
+    let unitLabel: string;
+    if (n === 1) {
+      unitLabel = t.periodicUnitSingular[unitIdx];
+    } else if (n >= 2 && n <= 4) {
+      unitLabel = t.periodicUnitFew[unitIdx];
+    } else {
+      unitLabel = t.periodicUnitLabels[unitIdx];
+    }
+    parts.push(`${prefix} ${n} ${unitLabel}`);
 
     if (r.repUnit === 'week' && r.repDaysOfWeek) {
       parts.push(`(${r.repDaysOfWeek.map((d) => t.daysShort[d]).join(', ')})`);

@@ -3,6 +3,9 @@ import { Language } from './types';
 export interface Strings {
   pluginName: string;
   addBtn: string;
+  tabAll: string;
+  tabActive: string;
+  tabDone: string;
   statActiveLabel: string;
   statDoneLabel: string;
   noReminders: string;
@@ -31,6 +34,8 @@ export interface Strings {
   monthsFull: string[];
 
   periodicEvery: string;
+  periodicEverySingular: string;
+  periodicUnitFew: string[];
   periodicUnitLabels: string[];
   periodicUnitSingular: string[];
   periodicUnitShort: string[];
@@ -38,10 +43,10 @@ export interface Strings {
 
   advSettings: string;
   toggleStartDate: string;
-  toggleEndDate: string;
-  toggleIntraDay: string;
   hintStartDate: string;
+  toggleEndDate: string;
   hintEndDate: string;
+  toggleIntraDay: string;
   hintIntraDay: string;
   fieldDateTime: string;
   fieldStartDate: string;
@@ -55,7 +60,6 @@ export interface Strings {
   remindBeforeLabel: string;
   remindBeforeUnitLabels: string[];
   remindBeforeAddBtn: string;
-  remindBeforeRemoveBtn: string;
 
   saveBtn: string;
   updateBtn: string;
@@ -119,6 +123,8 @@ export interface Strings {
   okPermAlready: string;
   remindBeforePrefix: string;
   deleteConfirm: string;
+  confirmYes: string;
+  confirmNo: string;
 
   // Calendar modal
   calendarBtn: string;
@@ -130,6 +136,9 @@ export interface Strings {
 const en: Strings = {
   pluginName: 'Simple Reminder',
   addBtn: '+ Add',
+  tabAll: 'All',
+  tabActive: 'Active',
+  tabDone: 'Done',
   statActiveLabel: 'Active',
   statDoneLabel: 'Done',
   noReminders: 'No reminders',
@@ -171,6 +180,8 @@ const en: Strings = {
   ],
 
   periodicEvery: 'Every',
+  periodicEverySingular: 'Every',
+  periodicUnitFew: ['days', 'weeks', 'months', 'years'],
   periodicUnitLabels: ['days', 'weeks', 'months', 'years'],
   periodicUnitSingular: ['day', 'week', 'month', 'year'],
   periodicUnitShort: ['Day', 'Week', 'Month', 'Year'],
@@ -178,11 +189,11 @@ const en: Strings = {
 
   advSettings: '⚙️ Advanced settings',
   toggleStartDate: '▶️ Starts on date',
+  hintStartDate: 'First day this reminder is active',
   toggleEndDate: '⏹️ Ends on date',
+  hintEndDate: 'Last day this reminder is active',
   toggleIntraDay: '🔄 Multiple times a day',
-  hintStartDate: 'Notifications will start from this date',
-  hintEndDate: 'The last notification will fire on this day (inclusive)',
-  hintIntraDay: 'Set multiple daily notifications within a time range',
+  hintIntraDay: 'Fire repeatedly within a time window',
   fieldDateTime: 'Date and time',
   fieldStartDate: 'Start date and time',
   fieldEndDate: 'End date and time',
@@ -194,8 +205,7 @@ const en: Strings = {
   fieldEmojiPlaceholder: 'e.g. ⏰ 🔔 📌',
   remindBeforeLabel: 'Remind before',
   remindBeforeUnitLabels: ['minutes', 'hours', 'days', 'weeks', 'months', 'years'],
-  remindBeforeAddBtn: '+ Add reminder',
-  remindBeforeRemoveBtn: 'Remove',
+  remindBeforeAddBtn: '+ Add pre-alert',
 
   saveBtn: 'Save',
   updateBtn: 'Update',
@@ -258,6 +268,8 @@ const en: Strings = {
   okPermAlready: '✅ Notifications already allowed',
   remindBeforePrefix: '⏰ Reminder soon:',
   deleteConfirm: 'Delete this reminder?',
+  confirmYes: 'Yes',
+  confirmNo: 'No',
 
   calendarBtn: '📅 Calendar',
   calendarBack: 'Back',
@@ -268,6 +280,9 @@ const en: Strings = {
 const ru: Strings = {
   pluginName: 'Simple Reminder',
   addBtn: '+ Добавить',
+  tabAll: 'Все',
+  tabActive: 'Активные',
+  tabDone: 'Выполнены',
   statActiveLabel: 'Активных',
   statDoneLabel: 'Выполнено',
   noReminders: 'Нет напоминаний',
@@ -309,6 +324,8 @@ const ru: Strings = {
   ],
 
   periodicEvery: 'Каждые',
+  periodicEverySingular: 'Каждый',
+  periodicUnitFew: ['дня', 'недели', 'месяца', 'года'],
   periodicUnitLabels: ['дней', 'недель', 'месяцев', 'лет'],
   periodicUnitSingular: ['день', 'неделю', 'месяц', 'год'],
   periodicUnitShort: ['День', 'Неделю', 'Месяц', 'Год'],
@@ -316,11 +333,11 @@ const ru: Strings = {
 
   advSettings: '⚙️ Дополнительные настройки',
   toggleStartDate: '▶️ Начинать с даты',
+  hintStartDate: 'Первый день активности напоминания',
   toggleEndDate: '⏹️ Заканчивать в дату',
+  hintEndDate: 'Последний день активности напоминания',
   toggleIntraDay: '🔄 Несколько раз в день',
-  hintStartDate: 'Уведомления начнутся с этой даты',
-  hintEndDate: 'Последнее уведомление придёт в этот день (включительно)',
-  hintIntraDay: 'Несколько уведомлений в день в заданном промежутке',
+  hintIntraDay: 'Срабатывать повторно в течение окна',
   fieldDateTime: 'Дата и время',
   fieldStartDate: 'Дата и время начала',
   fieldEndDate: 'Дата и время окончания',
@@ -332,8 +349,7 @@ const ru: Strings = {
   fieldEmojiPlaceholder: 'например ⏰ 🔔 📌',
   remindBeforeLabel: 'Напомнить за',
   remindBeforeUnitLabels: ['минут', 'часов', 'дней', 'недель', 'месяцев', 'лет'],
-  remindBeforeAddBtn: '+ Добавить напоминание',
-  remindBeforeRemoveBtn: 'Удалить',
+  remindBeforeAddBtn: '+ Добавить пред-уведомление',
 
   saveBtn: 'Сохранить',
   updateBtn: 'Обновить',
@@ -353,7 +369,7 @@ const ru: Strings = {
   okAdded: '✅ Напоминание добавлено',
   okUpdated: '✅ Напоминание обновлено',
 
-  ruleEvery: (n, unit) => `Каждые ${n} ${unit}`,
+  ruleEvery: (n, unit) => `${n === 1 ? 'Каждый' : 'Каждые'} ${n} ${unit}`,
   ruleAt: (time) => `в ${time}`,
   ruleInterval: (mins, f, t) => `каждые ${mins} мин (${f}-${t})`,
 
@@ -396,6 +412,8 @@ const ru: Strings = {
   okPermAlready: '✅ Уведомления уже разрешены',
   remindBeforePrefix: '⏰ Скоро напоминание:',
   deleteConfirm: 'Удалить это напоминание?',
+  confirmYes: 'Да',
+  confirmNo: 'Нет',
 
   calendarBtn: '📅 Календарь',
   calendarBack: 'Назад',

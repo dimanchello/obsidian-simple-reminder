@@ -1,6 +1,6 @@
 import { App, Modal } from 'obsidian';
 import type SimpleReminderPlugin from './main';
-import { Reminder } from './types';
+import { Reminder, DEFAULT_EMOJI } from './types';
 import { isValidDay } from './utils';
 
 const MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
@@ -88,6 +88,11 @@ export class CalendarModal extends Modal {
       const cell = grid.createDiv('sr-cal-mini-day');
       cell.createDiv({ cls: 'sr-cal-mini-day-num', text: String(day) });
 
+      const today = new Date();
+      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+        cell.addClass('sr-cal-mini-day--today');
+      }
+
       const cnt = this.countForDay(year, month, day);
       if (cnt > 0) {
         const dots = cell.createDiv('sr-cal-mini-dots');
@@ -150,6 +155,11 @@ export class CalendarModal extends Modal {
         cell.addClass('sr-cal-month-day--selected');
       }
 
+      const today = new Date();
+      if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+        cell.addClass('sr-cal-month-day--today');
+      }
+
       cell.createDiv({ cls: 'sr-cal-month-day-num', text: String(day) });
 
       const cnt = this.countForDay(year, month, day);
@@ -185,7 +195,7 @@ export class CalendarModal extends Modal {
     const list = container.createDiv('sr-cal-day-list');
     for (const r of reminders) {
       const item = list.createDiv('sr-cal-day-item');
-      item.createSpan({ cls: 'sr-cal-day-item-emoji', text: r.emoji || '⏰' });
+      item.createSpan({ cls: 'sr-cal-day-item-emoji', text: r.emoji || DEFAULT_EMOJI });
       const body = item.createDiv('sr-cal-day-item-body');
       body.createDiv({ cls: 'sr-cal-day-item-title', text: r.title });
       if (r.type === 'once' && r.specificTs) {

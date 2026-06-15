@@ -1,6 +1,7 @@
 import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
-import { RepeatUnit, Reminder, RemindBeforeUnit } from './types';
+import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
+import { EMOJIS } from './emojis';
 import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
 import { Strings } from './i18n';
 
@@ -68,12 +69,12 @@ function reminderToFD(r: Reminder): FormData {
     startDate: r.startDate ? tsToDateLocal(r.startDate) : '',
     useEnd: !!r.endDate,
     endDate: r.endDate ? tsToDateLocal(r.endDate) : '',
-    isIntraDay: r.intraDayMode != null,
+    isIntraDay: r.intraDayMode === 'interval',
     intraTime: r.intraDayTime || '09:00',
     intraStepMin: r.intraDayStepMin || 30,
     timeFrom: r.timeWindowStart || '09:00',
     timeTo: r.timeWindowEnd || '18:00',
-    emoji: r.emoji || '⏰',
+    emoji: r.emoji || DEFAULT_EMOJI,
     remindBeforeEnabled: rb.length > 0,
     remindBeforeList:
       rb.length > 0 ? rb.map((e) => ({ value: e.value, unit: e.unit })) : [{ value: 30, unit: 'minute' }],
@@ -99,7 +100,7 @@ function defaultFD(): FormData {
     intraStepMin: 30,
     timeFrom: '09:00',
     timeTo: '18:00',
-    emoji: '⏰',
+    emoji: DEFAULT_EMOJI,
     remindBeforeEnabled: false,
     remindBeforeList: [{ value: 30, unit: 'minute' }],
   };
@@ -111,7 +112,6 @@ export class AddReminderModal extends Modal {
   private existing: Reminder | null;
   private fd: FormData;
   private bodyEl!: HTMLElement;
-  private _intraInitSingle = false;
 
   constructor(app: App, plugin: SimpleReminderPlugin, onSave: () => void, existing?: Reminder | null) {
     super(app);
@@ -232,6 +232,15 @@ export class AddReminderModal extends Modal {
 
     this.buildRepeatDynamic(dynArea, t);
 
+    // Время срабатывания (всегда видно)
+    const timeG = card.createDiv('sr-field-group');
+    timeG.createEl('label', { cls: 'sr-label', text: t.periodicTimeLabel });
+    const timeInp = timeG.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
+    timeInp.value = this.fd.intraTime;
+    timeInp.addEventListener('change', (e) => {
+      this.fd.intraTime = (e.target as HTMLInputElement).value;
+    });
+
     // Дополнительные настройки (Спойлер)
     const advWrap = body.createDiv('sr-adv-wrap');
     this.addAdvToggle(advWrap, t.advSettings, 'isOpen', (content) => {
@@ -339,26 +348,11 @@ export class AddReminderModal extends Modal {
       });
     });
 
-    // Внутри-дневные настройки
-    this._intraInitSingle = this.existing?.intraDayMode === 'single';
-    this.addToggle(
-      container,
-      t.toggleIntraDay,
-      'isIntraDay',
-      (c) => {
-        c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
-        if (this._intraInitSingle) {
-          this._intraInitSingle = false;
-          this.buildIntraSingle(c, t);
-        } else {
-          this.buildIntraInterval(c, t);
-        }
-      },
-      (c) => {
-        c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
-        this.buildIntraSingle(c, t);
-      },
-    );
+    // Внутри-дневные настройки (интервальный режим)
+    this.addToggle(container, t.toggleIntraDay, 'isIntraDay', (c) => {
+      c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
+      this.buildIntraInterval(c, t);
+    });
   }
 
   private buildIntraSingle(c: HTMLElement, t: Strings): void {
@@ -412,204 +406,13 @@ export class AddReminderModal extends Modal {
     });
     const wrap = g.createDiv('sr-emoji-wrap');
     const grid = wrap.createDiv('sr-emoji-grid');
-    const emojis = [
-      '⏰',
-      '🔔',
-      '📌',
-      '📅',
-      '💡',
-      '📝',
-      '💊',
-      '🏋️',
-      '📚',
-      '🎯',
-      '⭐',
-      '❤️',
-      '✅',
-      '🔄',
-      '☕',
-      '🍎',
-      '💧',
-      '🧠',
-      '💪',
-      '🏃',
-      '🧘',
-      '🎵',
-      '🎮',
-      '✍️',
-      '📖',
-      '🛒',
-      '🏠',
-      '🚗',
-      '✈️',
-      '📞',
-      '💼',
-      '🖥️',
-      '🔑',
-      '🎁',
-      '🏆',
-      '🎉',
-      '🔥',
-      '💎',
-      '🌈',
-      '🌙',
-      '😀',
-      '😂',
-      '😊',
-      '🥰',
-      '😎',
-      '🤔',
-      '😴',
-      '🥳',
-      '😇',
-      '🤩',
-      '🐶',
-      '🐱',
-      '🐼',
-      '🦊',
-      '🐸',
-      '🐝',
-      '🦋',
-      '🐞',
-      '🌸',
-      '🌺',
-      '🌻',
-      '🌷',
-      '🌿',
-      '🍀',
-      '🌵',
-      '🌊',
-      '☀️',
-      '❄️',
-      '🌪️',
-      '🌈',
-      '🍕',
-      '🍔',
-      '🌮',
-      '🥗',
-      '🍣',
-      '🍩',
-      '🍪',
-      '🧁',
-      '🥑',
-      '🥦',
-      '⚽',
-      '🏀',
-      '🎾',
-      '🏈',
-      '🎱',
-      '🚴',
-      '🏄',
-      '🧗',
-      '⛷️',
-      '🥊',
-      '🎸',
-      '🎹',
-      '🎧',
-      '🎤',
-      '🎬',
-      '📸',
-      '🎨',
-      '🖌️',
-      '🎭',
-      '🎪',
-      '💻',
-      '📱',
-      '🖨️',
-      '💾',
-      '📀',
-      '🎥',
-      '📡',
-      '🔋',
-      '💳',
-      '🛠️',
-      '✉️',
-      '📫',
-      '📦',
-      '📎',
-      '📁',
-      '📊',
-      '📈',
-      '🗂️',
-      '🔍',
-      '🔒',
-      '🚀',
-      '🛸',
-      '🌍',
-      '🌕',
-      '☄️',
-      '⭐',
-      '🔭',
-      '🔬',
-      '⚗️',
-      '🧪',
-      '💉',
-      '🩺',
-      '🦷',
-      '🧬',
-      '📋',
-      '📃',
-      '📄',
-      '🗒️',
-      '📕',
-      '📗',
-      '🛌',
-      '🛁',
-      '🚿',
-      '🧹',
-      '🧺',
-      '🔧',
-      '🧰',
-      '🪴',
-      '🖼️',
-      '🕯️',
-      '💰',
-      '💵',
-      '💸',
-      '📉',
-      '📦',
-      '🏷️',
-      '📌',
-      '📍',
-      '🎀',
-      '🧧',
-      '🗓️',
-      '⏳',
-      '⌛',
-      '🔋',
-      '⚡',
-      '🛡️',
-      '🧲',
-      '🎈',
-      '🎊',
-      '🎄',
-      '🕐',
-      '🕑',
-      '🕒',
-      '🕓',
-      '🕔',
-      '🕕',
-      '🕖',
-      '🕗',
-      '🕘',
-      '🕙',
-      '🕚',
-      '🕛',
-      '⏱️',
-      '⏲️',
-      '🛎️',
-      '📯',
-      '📻',
-      '📺',
-      '🔦',
-      '💡',
-    ];
-    emojis.forEach((e) => {
+    EMOJIS.forEach((e) => {
       const btn = grid.createEl('button', {
         cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
         text: e,
         type: 'button',
       });
+      btn.setAttribute('aria-label', `${t.fieldEmoji}: ${e}`);
       btn.addEventListener('click', () => {
         this.fd.emoji = e;
         preview.textContent = e;
@@ -695,12 +498,7 @@ export class AddReminderModal extends Modal {
   }
 
   private addAdvToggle(parent: HTMLElement, label: string, dummy: string, buildContent: (c: HTMLElement) => void) {
-    let isOpen =
-      this.fd.useStart ||
-      this.fd.useEnd ||
-      this.fd.isIntraDay ||
-      (this.existing?.type === 'repeat' && this.existing.intraDayMode === 'single') ||
-      false;
+    let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay;
     const block = parent.createDiv('sr-toggle-block sr-toggle-adv' + (isOpen ? ' sr-toggle-block--open' : ''));
     const header = block.createDiv('sr-toggle-header');
     header.createSpan({ cls: 'sr-toggle-label', text: label });
@@ -774,7 +572,7 @@ export class AddReminderModal extends Modal {
             timeWindowStart: null,
             timeWindowEnd: null,
             remindBefore: [],
-            emoji: '⏰',
+            emoji: DEFAULT_EMOJI,
             nextTrigger: null,
             completedAt: null,
           };
@@ -794,7 +592,7 @@ export class AddReminderModal extends Modal {
     r.timeWindowStart = null;
     r.timeWindowEnd = null;
     r.remindBefore = [];
-    r.emoji = d.emoji || '⏰';
+    r.emoji = d.emoji || DEFAULT_EMOJI;
 
     if (d.mode === 'once') {
       if (!d.specificDate) {
@@ -869,7 +667,7 @@ export class AddReminderModal extends Modal {
     if (d.remindBeforeEnabled && d.remindBeforeList.some((e) => e.value > 0)) {
       r.remindBefore = calcRemindBeforeTriggers(
         r.nextTrigger,
-        d.remindBeforeList.filter((e) => e.value > 0),
+        d.remindBeforeList.filter((e) => e.value > 0).map((e) => ({ ...e, trigger: null })),
       );
     } else {
       r.remindBefore = [];

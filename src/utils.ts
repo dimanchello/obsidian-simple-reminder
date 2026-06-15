@@ -1,4 +1,4 @@
-import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry } from './types';
+import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry, DEFAULT_EMOJI } from './types';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -114,6 +114,8 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
   return null;
 }
 
+const MAX_SEARCH_DAYS = 36500; // ~100 years
+
 export function calcNextTrigger(r: Reminder, now: number): number | null {
   if (r.type === 'once') return r.specificTs && r.specificTs > now ? r.specificTs : null;
   if (r.type !== 'repeat') return null;
@@ -124,7 +126,7 @@ export function calcNextTrigger(r: Reminder, now: number): number | null {
   const cand = new Date(Math.max(now, r.startDate ?? 0));
   cand.setHours(0, 0, 0, 0);
 
-  for (let i = 0; i < 2000; i++) {
+  for (let i = 0; i < MAX_SEARCH_DAYS; i++) {
     if (isValidDay(cand, anchor, r)) {
       const nextTime = findNextTimeOnDay(cand, r, now, r.startDate ?? 0);
       if (nextTime !== null) {
@@ -166,7 +168,7 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     timeWindowStart: null,
     timeWindowEnd: null,
     remindBefore: [],
-    emoji: '⏰',
+    emoji: DEFAULT_EMOJI,
     nextTrigger: null,
     completedAt: null,
   };
@@ -196,10 +198,11 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
   return migrated;
 }
 
+const PRUNE_AFTER_MS = 3 * 86400_000;
+
 export function pruneOldCompleted(reminders: Reminder[], now: number = Date.now()): Reminder[] {
-  const threeDaysMs = 3 * 86400_000;
   return reminders.filter((r) => {
-    if (r.checked && r.completedAt != null && now - r.completedAt > threeDaysMs) {
+    if (r.checked && r.completedAt != null && now - r.completedAt > PRUNE_AFTER_MS) {
       return false;
     }
     return true;

@@ -6,7 +6,7 @@ export type Language = 'auto' | 'en' | 'ru';
 export interface RemindBeforeEntry {
   value: number;
   unit: RemindBeforeUnit;
-  trigger?: number | null;
+  trigger: number | null;
 }
 
 export interface Reminder {
@@ -51,14 +51,19 @@ export interface PluginSettings {
   reminders: Reminder[];
   checkIntervalSec: number;
   language: Language;
+  activeTab: 'all' | 'active' | 'done';
 }
+
+export const DEFAULT_EMOJI = '⏰';
 
 export const DEFAULT_SETTINGS: PluginSettings = {
   reminders: [],
   checkIntervalSec: 30,
   language: 'auto',
+  activeTab: 'all',
 };
 
+/** Legacy format for backward compatibility (pre-v1.0.0). Migrated via migrateLegacyReminder(). */
 export interface LegacyReminder {
   id?: string;
   title?: string;
