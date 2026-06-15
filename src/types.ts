@@ -3,6 +3,12 @@ export type RepeatUnit = 'day' | 'week' | 'month' | 'year';
 export type RemindBeforeUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
 export type Language = 'auto' | 'en' | 'ru';
 
+export interface RemindBeforeEntry {
+  value: number;
+  unit: RemindBeforeUnit;
+  trigger: number | null;
+}
+
 export interface Reminder {
   id: string;
   title: string;
@@ -31,15 +37,13 @@ export interface Reminder {
   timeWindowEnd: string | null; // "HH:MM"
 
   // ── Напомнить за X до срабатывания ──────────────────────────────────────────
-  remindBeforeValue: number | null;
-  remindBeforeUnit: RemindBeforeUnit | null;
+  remindBefore: RemindBeforeEntry[];
 
   // ── Эмодзи напоминания ──────────────────────────────────────────────────────
   emoji: string;
 
   // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;
-  remindBeforeTrigger: number | null;
   completedAt: number | null;
 }
 
@@ -49,12 +53,15 @@ export interface PluginSettings {
   language: Language;
 }
 
+export const DEFAULT_EMOJI = '⏰';
+
 export const DEFAULT_SETTINGS: PluginSettings = {
   reminders: [],
   checkIntervalSec: 30,
   language: 'auto',
 };
 
+/** Legacy format for backward compatibility (pre-v1.0.0). Migrated via migrateLegacyReminder(). */
 export interface LegacyReminder {
   id?: string;
   title?: string;

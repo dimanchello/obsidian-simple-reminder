@@ -1,11 +1,17 @@
 import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
-import { RepeatUnit, Reminder, RemindBeforeUnit } from './types';
-import { generateId, calcNextTrigger, calcRemindBeforeTrigger } from './utils';
+import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
+import { EMOJIS } from './emojis';
+import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
 type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay';
+
+interface RemindBeforeFormItem {
+  value: number;
+  unit: RemindBeforeUnit;
+}
 
 interface FormData {
   title: string;
@@ -31,8 +37,7 @@ interface FormData {
 
   emoji: string;
   remindBeforeEnabled: boolean;
-  remindBeforeValue: number;
-  remindBeforeUnit: RemindBeforeUnit;
+  remindBeforeList: RemindBeforeFormItem[];
 }
 
 function tsToLocal(ts: number): string {
@@ -41,8 +46,14 @@ function tsToLocal(ts: number): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function tsToDateLocal(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function reminderToFD(r: Reminder): FormData {
   const isRepeat = r.type === 'repeat';
+  const rb = r.remindBefore.filter((e) => e.value > 0);
   return {
     title: r.title,
     mode: isRepeat ? 'repeat' : 'once',
@@ -55,18 +66,18 @@ function reminderToFD(r: Reminder): FormData {
     repDayOfMonth: r.repDayOfMonth || 1,
     repMonth: r.repMonth || 0,
     useStart: !!r.startDate,
-    startDate: r.startDate ? tsToLocal(r.startDate) : '',
+    startDate: r.startDate ? tsToDateLocal(r.startDate) : '',
     useEnd: !!r.endDate,
-    endDate: r.endDate ? tsToLocal(r.endDate) : '',
+    endDate: r.endDate ? tsToDateLocal(r.endDate) : '',
     isIntraDay: r.intraDayMode === 'interval',
     intraTime: r.intraDayTime || '09:00',
     intraStepMin: r.intraDayStepMin || 30,
     timeFrom: r.timeWindowStart || '09:00',
     timeTo: r.timeWindowEnd || '18:00',
-    emoji: r.emoji || '⏰',
-    remindBeforeEnabled: r.remindBeforeValue != null && r.remindBeforeValue > 0,
-    remindBeforeValue: r.remindBeforeValue || 30,
-    remindBeforeUnit: r.remindBeforeUnit || 'minute',
+    emoji: r.emoji || DEFAULT_EMOJI,
+    remindBeforeEnabled: rb.length > 0,
+    remindBeforeList:
+      rb.length > 0 ? rb.map((e) => ({ value: e.value, unit: e.unit })) : [{ value: 30, unit: 'minute' }],
   };
 }
 
@@ -89,10 +100,9 @@ function defaultFD(): FormData {
     intraStepMin: 30,
     timeFrom: '09:00',
     timeTo: '18:00',
-    emoji: '⏰',
+    emoji: DEFAULT_EMOJI,
     remindBeforeEnabled: false,
-    remindBeforeValue: 30,
-    remindBeforeUnit: 'minute',
+    remindBeforeList: [{ value: 30, unit: 'minute' }],
   };
 }
 
@@ -222,6 +232,15 @@ export class AddReminderModal extends Modal {
 
     this.buildRepeatDynamic(dynArea, t);
 
+    // Время срабатывания (всегда видно)
+    const timeG = card.createDiv('sr-field-group');
+    timeG.createEl('label', { cls: 'sr-label', text: t.periodicTimeLabel });
+    const timeInp = timeG.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
+    timeInp.value = this.fd.intraTime;
+    timeInp.addEventListener('change', (e) => {
+      this.fd.intraTime = (e.target as HTMLInputElement).value;
+    });
+
     // Дополнительные настройки (Спойлер)
     const advWrap = body.createDiv('sr-adv-wrap');
     this.addAdvToggle(advWrap, t.advSettings, 'isOpen', (content) => {
@@ -312,7 +331,8 @@ export class AddReminderModal extends Modal {
 
     // Старт / Стоп даты
     this.addToggle(container, t.toggleStartDate, 'useStart', (c) => {
-      const inp = c.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
+      c.createEl('span', { cls: 'sr-hint', text: t.hintStartDate });
+      const inp = c.createEl('input', { cls: 'sr-input', type: 'date' });
       if (this.fd.startDate) inp.value = this.fd.startDate;
       inp.addEventListener('change', (e) => {
         this.fd.startDate = (e.target as HTMLInputElement).value;
@@ -320,21 +340,19 @@ export class AddReminderModal extends Modal {
     });
 
     this.addToggle(container, t.toggleEndDate, 'useEnd', (c) => {
-      const inp = c.createEl('input', { cls: 'sr-input', type: 'datetime-local' });
+      c.createEl('span', { cls: 'sr-hint', text: t.hintEndDate });
+      const inp = c.createEl('input', { cls: 'sr-input', type: 'date' });
       if (this.fd.endDate) inp.value = this.fd.endDate;
       inp.addEventListener('change', (e) => {
         this.fd.endDate = (e.target as HTMLInputElement).value;
       });
     });
 
-    // Внутри-дневные настройки
-    this.addToggle(
-      container,
-      t.toggleIntraDay,
-      'isIntraDay',
-      (c) => this.buildIntraInterval(c, t),
-      (c) => this.buildIntraSingle(c, t),
-    );
+    // Внутри-дневные настройки (интервальный режим)
+    this.addToggle(container, t.toggleIntraDay, 'isIntraDay', (c) => {
+      c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
+      this.buildIntraInterval(c, t);
+    });
   }
 
   private buildIntraSingle(c: HTMLElement, t: Strings): void {
@@ -380,61 +398,34 @@ export class AddReminderModal extends Modal {
   private buildEmojiField(parent: HTMLElement, t: Strings): void {
     const g = parent.createDiv('sr-field-group');
     g.createEl('label', { cls: 'sr-label', text: t.fieldEmoji });
-    const wrap = g.createDiv('sr-emoji-grid');
-    const emojis = [
-      '⏰',
-      '🔔',
-      '📌',
-      '📅',
-      '💡',
-      '📝',
-      '💊',
-      '🏋️',
-      '📚',
-      '🎯',
-      '⭐',
-      '❤️',
-      '✅',
-      '🔄',
-      '☕',
-      '🍎',
-      '💧',
-      '🧠',
-      '💪',
-      '🏃',
-      '🧘',
-      '🎵',
-      '🎮',
-      '✍️',
-      '📖',
-      '🛒',
-      '🏠',
-      '🚗',
-      '✈️',
-      '📞',
-      '💼',
-      '🖥️',
-      '🔑',
-      '🎁',
-      '🏆',
-      '🎉',
-      '🔥',
-      '💎',
-      '🌈',
-      '🌙',
-    ];
-    emojis.forEach((e) => {
-      const btn = wrap.createEl('button', {
+    const header = g.createDiv('sr-emoji-header');
+    const preview = header.createEl('button', {
+      cls: 'sr-emoji-preview',
+      text: this.fd.emoji,
+      type: 'button',
+    });
+    const wrap = g.createDiv('sr-emoji-wrap');
+    const grid = wrap.createDiv('sr-emoji-grid');
+    EMOJIS.forEach((e) => {
+      const btn = grid.createEl('button', {
         cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
         text: e,
         type: 'button',
       });
+      btn.setAttribute('aria-label', `${t.fieldEmoji}: ${e}`);
       btn.addEventListener('click', () => {
         this.fd.emoji = e;
-        wrap.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
+        preview.textContent = e;
+        grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
         btn.classList.add('sr-emoji-btn--active');
       });
     });
+    let open = false;
+    const toggle = () => {
+      open = !open;
+      wrap.classList.toggle('sr-emoji-wrap--open', open);
+    };
+    preview.addEventListener('click', toggle);
   }
 
   private buildRemindBeforeField(parent: HTMLElement, t: Strings): void {
@@ -445,39 +436,69 @@ export class AddReminderModal extends Modal {
     header.createSpan({ cls: 'sr-toggle-label', text: t.remindBeforeLabel });
     const content = wrap.createDiv('sr-toggle-content');
 
-    const buildContent = () => {
+    const renderList = () => {
       content.empty();
-      const row = content.createDiv('sr-interval-row');
-      const nInp = row.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
-      nInp.min = '1';
-      nInp.value = String(this.fd.remindBeforeValue);
-      nInp.addEventListener('input', (e) => {
-        const v = parseInt((e.target as HTMLInputElement).value, 10);
-        this.fd.remindBeforeValue = Math.max(1, isNaN(v) ? 1 : v);
-      });
-      const sel = row.createEl('select', { cls: 'sr-select' });
-      t.remindBeforeUnitLabels.forEach((name) => {
-        const opt = sel.createEl('option', { text: name });
-        opt.value = name;
-        if (this.fd.remindBeforeUnit === name) opt.selected = true;
-      });
-      sel.addEventListener('change', (e) => {
-        this.fd.remindBeforeUnit = (e.target as HTMLSelectElement).value as RemindBeforeUnit;
+      const list = content.createDiv('sr-rb-list');
+
+      const renderEntry = (idx: number) => {
+        const entry = this.fd.remindBeforeList[idx];
+        const row = list.createDiv('sr-rb-row');
+        row.dataset.idx = String(idx);
+
+        const nInp = row.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
+        nInp.min = '1';
+        nInp.value = String(entry.value);
+        nInp.addEventListener('input', (e) => {
+          const v = parseInt((e.target as HTMLInputElement).value, 10);
+          this.fd.remindBeforeList[idx].value = Math.max(1, isNaN(v) ? 1 : v);
+        });
+
+        const sel = row.createEl('select', { cls: 'sr-select' });
+        t.remindBeforeUnitLabels.forEach((name) => {
+          const opt = sel.createEl('option', { text: name });
+          opt.value = name;
+          if (entry.unit === name) opt.selected = true;
+        });
+        sel.addEventListener('change', (e) => {
+          this.fd.remindBeforeList[idx].unit = (e.target as HTMLSelectElement).value as RemindBeforeUnit;
+        });
+
+        const delBtn = row.createEl('button', { cls: 'sr-rb-del-btn', text: '✕' });
+        delBtn.addEventListener('click', () => {
+          this.fd.remindBeforeList.splice(idx, 1);
+          renderList();
+        });
+      };
+
+      for (let i = 0; i < this.fd.remindBeforeList.length; i++) {
+        renderEntry(i);
+      }
+
+      const addBtn = content.createEl('button', { cls: 'sr-rb-add-btn', text: t.remindBeforeAddBtn });
+      addBtn.addEventListener('click', () => {
+        this.fd.remindBeforeList.push({ value: 30, unit: 'minute' });
+        renderList();
       });
     };
 
-    if (this.fd.remindBeforeEnabled) buildContent();
+    if (this.fd.remindBeforeEnabled) renderList();
 
     cb.addEventListener('change', () => {
       this.fd.remindBeforeEnabled = cb.checked;
       wrap.classList.toggle('sr-toggle-block--open', cb.checked);
-      if (cb.checked) buildContent();
-      else content.empty();
+      if (cb.checked) {
+        if (this.fd.remindBeforeList.length === 0) {
+          this.fd.remindBeforeList.push({ value: 30, unit: 'minute' });
+        }
+        renderList();
+      } else {
+        content.empty();
+      }
     });
   }
 
   private addAdvToggle(parent: HTMLElement, label: string, dummy: string, buildContent: (c: HTMLElement) => void) {
-    let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay || false;
+    let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay;
     const block = parent.createDiv('sr-toggle-block sr-toggle-adv' + (isOpen ? ' sr-toggle-block--open' : ''));
     const header = block.createDiv('sr-toggle-header');
     header.createSpan({ cls: 'sr-toggle-label', text: label });
@@ -550,11 +571,9 @@ export class AddReminderModal extends Modal {
             intraDayStepMin: null,
             timeWindowStart: null,
             timeWindowEnd: null,
-            remindBeforeValue: null,
-            remindBeforeUnit: null,
-            emoji: '⏰',
+            remindBefore: [],
+            emoji: DEFAULT_EMOJI,
             nextTrigger: null,
-            remindBeforeTrigger: null,
             completedAt: null,
           };
 
@@ -572,9 +591,8 @@ export class AddReminderModal extends Modal {
     r.intraDayStepMin = null;
     r.timeWindowStart = null;
     r.timeWindowEnd = null;
-    r.remindBeforeValue = null;
-    r.remindBeforeUnit = null;
-    r.emoji = d.emoji || '⏰';
+    r.remindBefore = [];
+    r.emoji = d.emoji || DEFAULT_EMOJI;
 
     if (d.mode === 'once') {
       if (!d.specificDate) {
@@ -609,20 +627,20 @@ export class AddReminderModal extends Modal {
       r.repMonth = d.repUnit === 'year' ? d.repMonth : null;
 
       if (d.useStart && d.startDate) {
-        const ts = new Date(d.startDate).getTime();
-        if (isNaN(ts)) {
+        const parts = d.startDate.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) {
           new Notice(t.errBadDate);
           return;
         }
-        r.startDate = ts;
+        r.startDate = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
       }
       if (d.useEnd && d.endDate) {
-        const ts = new Date(d.endDate).getTime();
-        if (isNaN(ts)) {
+        const parts = d.endDate.split('-').map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) {
           new Notice(t.errBadDate);
           return;
         }
-        r.endDate = ts;
+        r.endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999).getTime();
       }
 
       if (d.isIntraDay) {
@@ -646,14 +664,13 @@ export class AddReminderModal extends Modal {
 
     r.nextTrigger = calcNextTrigger(r, now);
 
-    if (d.remindBeforeEnabled && d.remindBeforeValue > 0) {
-      r.remindBeforeValue = d.remindBeforeValue;
-      r.remindBeforeUnit = d.remindBeforeUnit;
-      r.remindBeforeTrigger = calcRemindBeforeTrigger(r);
+    if (d.remindBeforeEnabled && d.remindBeforeList.some((e) => e.value > 0)) {
+      r.remindBefore = calcRemindBeforeTriggers(
+        r.nextTrigger,
+        d.remindBeforeList.filter((e) => e.value > 0).map((e) => ({ ...e, trigger: null })),
+      );
     } else {
-      r.remindBeforeValue = null;
-      r.remindBeforeUnit = null;
-      r.remindBeforeTrigger = null;
+      r.remindBefore = [];
     }
 
     if (isEdit && r.nextTrigger != null && r.nextTrigger > now) {

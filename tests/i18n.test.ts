@@ -144,8 +144,9 @@ describe('getStrings — Russian', () => {
   });
 
   it('ruleEvery produces correct form', () => {
-    expect(ru.ruleEvery(1, 'день')).toBe('Каждые 1 день');
-    expect(ru.ruleEvery(3, 'дней')).toBe('Каждые 3 дней');
+    expect(ru.ruleEvery(1, 'день')).toBe('Каждый 1 день');
+    expect(ru.ruleEvery(3, 'дня')).toBe('Каждые 3 дня');
+    expect(ru.ruleEvery(5, 'дней')).toBe('Каждые 5 дней');
   });
 
   it('ruleAt formats time correctly', () => {
@@ -190,6 +191,16 @@ describe('EN/RU consistency', () => {
   it('both languages have 4 periodic unit singular forms', () => {
     expect(getStrings('en').periodicUnitSingular).toHaveLength(4);
     expect(getStrings('ru').periodicUnitSingular).toHaveLength(4);
+  });
+
+  it('both languages have 4 periodic unit few forms', () => {
+    expect(getStrings('en').periodicUnitFew).toHaveLength(4);
+    expect(getStrings('ru').periodicUnitFew).toHaveLength(4);
+  });
+
+  it('both languages have periodicEverySingular string', () => {
+    expect(typeof getStrings('en').periodicEverySingular).toBe('string');
+    expect(typeof getStrings('ru').periodicEverySingular).toBe('string');
   });
 
   it('both languages have non-empty strings', () => {

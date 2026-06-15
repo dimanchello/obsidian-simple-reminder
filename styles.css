@@ -54,31 +54,30 @@
 .sr-add-btn:hover  { opacity: .87; }
 .sr-add-btn:active { transform: scale(.97); }
 
-/* ── Stats bar ───────────────────────────────────────────────────── */
-.sr-stats {
+/* ── Tabs ────────────────────────────────────────────────────────── */
+.sr-tabs {
   display: flex;
   gap: 8px;
   align-items: center;
   padding: 2px 0 6px;
 }
 
-.sr-stat {
-  font-size: 0.78em;
-  padding: 2px 7px;
+.sr-tab {
+  font-size: 0.85em;
+  padding: 4px 10px;
   border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
 }
 
-.sr-stat--active {
+.sr-tab:hover {
+  background: color-mix(in srgb, var(--background-modifier-hover) 30%, transparent);
+}
+
+.sr-tab--active {
   background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
   color: var(--interactive-accent);
 }
-
-.sr-stat--done {
-  background: color-mix(in srgb, var(--text-muted) 15%, transparent);
-  color: var(--text-muted);
-}
-
-.sr-stat-sep { color: var(--text-faint); font-size: .75em; }
 
 /* ── Empty state ─────────────────────────────────────────────────── */
 .sr-empty {
@@ -202,7 +201,7 @@
    Modal
    ═══════════════════════════════════════════════════════════════════ */
 
-.sr-modal { min-width: 340px; max-width: 480px; }
+.sr-modal { min-width: 360px; max-width: 520px; }
 
 .sr-modal-header {
   display: flex;
@@ -561,9 +560,6 @@
   color: var(--text-faint);
   margin-left: 6px;
 }
-
-/* ── Make modal a bit wider for the builder ──────────────────────── */
-.sr-modal { min-width: 360px; max-width: 520px; }
 
 /* ── Calendar card ───────────────────────────────────────────────── */
 .sr-cal-card {

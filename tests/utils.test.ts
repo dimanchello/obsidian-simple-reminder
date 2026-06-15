@@ -4,6 +4,7 @@ import {
   advanceTrigger,
   generateId,
   mondayOf,
+  isValidDay,
   migrateLegacyReminder,
   pruneOldCompleted,
   remindBeforeToMs,
@@ -98,6 +99,101 @@ describe('mondayOf', () => {
     const originalTime = original.getTime();
     mondayOf(original);
     expect(original.getTime()).toBe(originalTime);
+  });
+});
+
+// ── isValidDay ──────────────────────────────────────────────────────────────
+
+describe('isValidDay', () => {
+  it('returns true for same day with daily unit', () => {
+    const d = new Date(2025, 0, 15);
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'day', repStep: 1 });
+    expect(isValidDay(d, anchor, r)).toBe(true);
+  });
+
+  it('returns true for day matching daily step', () => {
+    const d = new Date(2025, 0, 17);
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'day', repStep: 2 });
+    expect(isValidDay(d, anchor, r)).toBe(true);
+  });
+
+  it('returns false for day not matching daily step', () => {
+    const d = new Date(2025, 0, 16);
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'day', repStep: 3 });
+    expect(isValidDay(d, anchor, r)).toBe(false);
+  });
+
+  it('returns false for day before anchor', () => {
+    const d = new Date(2025, 0, 14);
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'day', repStep: 1 });
+    expect(isValidDay(d, anchor, r)).toBe(false);
+  });
+
+  it('returns true for correct weekday with weekly unit', () => {
+    const mon = new Date(2025, 5, 16); // Monday
+    const anchor = new Date(2025, 5, 16);
+    const r = makeReminder({ type: 'repeat', repUnit: 'week', repStep: 1, repDaysOfWeek: [1, 3] });
+    expect(isValidDay(mon, anchor, r)).toBe(true);
+  });
+
+  it('returns false for wrong weekday with weekly unit', () => {
+    const tue = new Date(2025, 5, 17); // Tuesday
+    const anchor = new Date(2025, 5, 16);
+    const r = makeReminder({ type: 'repeat', repUnit: 'week', repStep: 1, repDaysOfWeek: [1, 3] });
+    expect(isValidDay(tue, anchor, r)).toBe(false);
+  });
+
+  it('returns false for wrong week with repStep > 1', () => {
+    const mon2 = new Date(2025, 5, 23); // Monday + 1 week
+    const anchor = new Date(2025, 5, 16);
+    const r = makeReminder({ type: 'repeat', repUnit: 'week', repStep: 3, repDaysOfWeek: [1] });
+    expect(isValidDay(mon2, anchor, r)).toBe(false);
+  });
+
+  it('returns true for correct day of month', () => {
+    const d = new Date(2025, 1, 15);
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'month', repStep: 1 });
+    expect(isValidDay(d, anchor, r)).toBe(true);
+  });
+
+  it('adjusts day of month for shorter month', () => {
+    const d = new Date(2025, 1, 28); // Feb 28
+    const anchor = new Date(2025, 0, 31);
+    const r = makeReminder({ type: 'repeat', repUnit: 'month', repStep: 1 });
+    expect(isValidDay(d, anchor, r)).toBe(true);
+  });
+
+  it('skips month not matching repStep', () => {
+    const d = new Date(2025, 2, 15); // March
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'month', repStep: 3 });
+    expect(isValidDay(d, anchor, r)).toBe(false);
+  });
+
+  it('returns true for correct year-month-day', () => {
+    const d = new Date(2025, 5, 15);
+    const anchor = new Date(2025, 5, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'year', repStep: 1, repMonth: 5 });
+    expect(isValidDay(d, anchor, r)).toBe(true);
+  });
+
+  it('returns false for wrong month in yearly', () => {
+    const d = new Date(2025, 6, 15); // July
+    const anchor = new Date(2025, 5, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: 'year', repStep: 1, repMonth: 5 });
+    expect(isValidDay(d, anchor, r)).toBe(false);
+  });
+
+  it('returns false for unknown repUnit', () => {
+    const d = new Date(2025, 0, 15);
+    const anchor = new Date(2025, 0, 15);
+    const r = makeReminder({ type: 'repeat', repUnit: null, repStep: 1 });
+    expect(isValidDay(d, anchor, r)).toBe(false);
   });
 });
 

@@ -3,6 +3,9 @@ import { Language } from './types';
 export interface Strings {
   pluginName: string;
   addBtn: string;
+  tabAll: string;
+  tabActive: string;
+  tabDone: string;
   statActiveLabel: string;
   statDoneLabel: string;
   noReminders: string;
@@ -31,6 +34,8 @@ export interface Strings {
   monthsFull: string[];
 
   periodicEvery: string;
+  periodicEverySingular: string;
+  periodicUnitFew: string[];
   periodicUnitLabels: string[];
   periodicUnitSingular: string[];
   periodicUnitShort: string[];
@@ -114,6 +119,8 @@ export interface Strings {
   okPermAlready: string;
   remindBeforePrefix: string;
   deleteConfirm: string;
+  confirmYes: string;
+  confirmNo: string;
 
   // Calendar modal
   calendarBtn: string;
@@ -125,6 +132,9 @@ export interface Strings {
 const en: Strings = {
   pluginName: 'Simple Reminder',
   addBtn: '+ Add',
+  tabAll: 'All',
+  tabActive: 'Active',
+  tabDone: 'Done',
   statActiveLabel: 'Active',
   statDoneLabel: 'Done',
   noReminders: 'No reminders',
@@ -166,6 +176,8 @@ const en: Strings = {
   ],
 
   periodicEvery: 'Every',
+  periodicEverySingular: 'Every',
+  periodicUnitFew: ['days', 'weeks', 'months', 'years'],
   periodicUnitLabels: ['days', 'weeks', 'months', 'years'],
   periodicUnitSingular: ['day', 'week', 'month', 'year'],
   periodicUnitShort: ['Day', 'Week', 'Month', 'Year'],
@@ -248,6 +260,8 @@ const en: Strings = {
   okPermAlready: '✅ Notifications already allowed',
   remindBeforePrefix: '⏰ Reminder soon:',
   deleteConfirm: 'Delete this reminder?',
+  confirmYes: 'Yes',
+  confirmNo: 'No',
 
   calendarBtn: '📅 Calendar',
   calendarBack: 'Back',
@@ -258,6 +272,9 @@ const en: Strings = {
 const ru: Strings = {
   pluginName: 'Simple Reminder',
   addBtn: '+ Добавить',
+  tabAll: 'Все',
+  tabActive: 'Активные',
+  tabDone: 'Выполнены',
   statActiveLabel: 'Активных',
   statDoneLabel: 'Выполнено',
   noReminders: 'Нет напоминаний',
@@ -299,6 +316,8 @@ const ru: Strings = {
   ],
 
   periodicEvery: 'Каждые',
+  periodicEverySingular: 'Каждый',
+  periodicUnitFew: ['дня', 'недели', 'месяца', 'года'],
   periodicUnitLabels: ['дней', 'недель', 'месяцев', 'лет'],
   periodicUnitSingular: ['день', 'неделю', 'месяц', 'год'],
   periodicUnitShort: ['День', 'Неделю', 'Месяц', 'Год'],
@@ -338,7 +357,7 @@ const ru: Strings = {
   okAdded: '✅ Напоминание добавлено',
   okUpdated: '✅ Напоминание обновлено',
 
-  ruleEvery: (n, unit) => `Каждые ${n} ${unit}`,
+  ruleEvery: (n, unit) => `${n === 1 ? 'Каждый' : 'Каждые'} ${n} ${unit}`,
   ruleAt: (time) => `в ${time}`,
   ruleInterval: (mins, f, t) => `каждые ${mins} мин (${f}-${t})`,
 
@@ -381,6 +400,8 @@ const ru: Strings = {
   okPermAlready: '✅ Уведомления уже разрешены',
   remindBeforePrefix: '⏰ Скоро напоминание:',
   deleteConfirm: 'Удалить это напоминание?',
+  confirmYes: 'Да',
+  confirmNo: 'Нет',
 
   calendarBtn: '📅 Календарь',
   calendarBack: 'Назад',

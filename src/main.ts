@@ -1,5 +1,5 @@
 import { Notice, Plugin } from 'obsidian';
-import { PluginSettings, Reminder, DEFAULT_SETTINGS } from './types';
+import { PluginSettings, Reminder, DEFAULT_SETTINGS, DEFAULT_EMOJI } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderSettingTab } from './SettingsTab';
@@ -131,7 +131,7 @@ export default class SimpleReminderPlugin extends Plugin {
 
   // ── Check logic ────────────────────────────────────────────────────────────
 
-  checkReminders(): void {
+  async checkReminders(): Promise<void> {
     this.pruneOldCompleted();
 
     const now = Date.now();
@@ -168,7 +168,7 @@ export default class SimpleReminderPlugin extends Plugin {
     }
 
     if (changed) {
-      this.saveSettings();
+      await this.saveSettings();
       this.refreshView();
     }
   }
@@ -190,7 +190,7 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   fireNotification(r: Reminder, isPreAlert = false): void {
-    const emoji = r.emoji || '⏰';
+    const emoji = r.emoji || DEFAULT_EMOJI;
     const prefix = isPreAlert ? `${emoji} ${this.t.remindBeforePrefix}` : `${emoji} ${this.t.pluginName}`;
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try {

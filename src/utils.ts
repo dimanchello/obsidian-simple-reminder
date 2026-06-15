@@ -1,4 +1,4 @@
-import { Reminder, LegacyReminder, RemindBeforeUnit } from './types';
+import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry, DEFAULT_EMOJI } from './types';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -114,6 +114,8 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
   return null;
 }
 
+const MAX_SEARCH_DAYS = 36500; // ~100 years
+
 export function calcNextTrigger(r: Reminder, now: number): number | null {
   if (r.type === 'once') return r.specificTs && r.specificTs > now ? r.specificTs : null;
   if (r.type !== 'repeat') return null;
@@ -124,7 +126,7 @@ export function calcNextTrigger(r: Reminder, now: number): number | null {
   const cand = new Date(Math.max(now, r.startDate ?? 0));
   cand.setHours(0, 0, 0, 0);
 
-  for (let i = 0; i < 2000; i++) {
+  for (let i = 0; i < MAX_SEARCH_DAYS; i++) {
     if (isValidDay(cand, anchor, r)) {
       const nextTime = findNextTimeOnDay(cand, r, now, r.startDate ?? 0);
       if (nextTime !== null) {
@@ -145,7 +147,7 @@ export function advanceTrigger(r: Reminder, now: number): number | null {
 }
 
 export function migrateLegacyReminder(r: LegacyReminder): Reminder {
-  if (r.type === 'once' || r.type === 'repeat') return r as Reminder; // Уже мигрировано
+  if (r.type === 'once' || r.type === 'repeat') return migrateRemindBefore(r as Reminder); // Уже мигрировано
 
   const migrated: Reminder = {
     id: r.id ?? '',
@@ -165,11 +167,9 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     intraDayStepMin: null,
     timeWindowStart: null,
     timeWindowEnd: null,
-    remindBeforeValue: null,
-    remindBeforeUnit: null,
-    emoji: '⏰',
+    remindBefore: [],
+    emoji: DEFAULT_EMOJI,
     nextTrigger: null,
-    remindBeforeTrigger: null,
     completedAt: null,
   };
 
@@ -198,10 +198,11 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
   return migrated;
 }
 
+const PRUNE_AFTER_MS = 3 * 86400_000;
+
 export function pruneOldCompleted(reminders: Reminder[], now: number = Date.now()): Reminder[] {
-  const threeDaysMs = 3 * 86400_000;
   return reminders.filter((r) => {
-    if (r.checked && r.completedAt != null && now - r.completedAt > threeDaysMs) {
+    if (r.checked && r.completedAt != null && now - r.completedAt > PRUNE_AFTER_MS) {
       return false;
     }
     return true;
@@ -226,10 +227,35 @@ export function remindBeforeToMs(value: number, unit: RemindBeforeUnit): number 
   }
 }
 
-export function calcRemindBeforeTrigger(r: Reminder): number | null {
-  const trigger = r.nextTrigger;
-  if (trigger == null || r.remindBeforeValue == null || r.remindBeforeUnit == null) return null;
-  const beforeMs = remindBeforeToMs(r.remindBeforeValue, r.remindBeforeUnit);
-  const result = trigger - beforeMs;
-  return result > Date.now() ? result : null;
+export function calcRemindBeforeTriggers(
+  nextTrigger: number | null,
+  entries: RemindBeforeEntry[],
+): RemindBeforeEntry[] {
+  return entries.map((e) => {
+    if (nextTrigger == null) return { ...e, trigger: null };
+    const beforeMs = remindBeforeToMs(e.value, e.unit);
+    const result = nextTrigger - beforeMs;
+    return { ...e, trigger: result > Date.now() ? result : null };
+  });
+}
+
+export function migrateRemindBefore(r: Reminder): Reminder {
+  const raw = r as unknown as Record<string, unknown>;
+  if (!Array.isArray(raw.remindBefore)) {
+    if (raw.remindBeforeValue != null && (raw.remindBeforeValue as number) > 0) {
+      r.remindBefore = [
+        {
+          value: raw.remindBeforeValue as number,
+          unit: (raw.remindBeforeUnit as RemindBeforeUnit) || 'minute',
+          trigger: (raw.remindBeforeTrigger as number | null) ?? null,
+        },
+      ];
+    } else {
+      r.remindBefore = [];
+    }
+    delete raw.remindBeforeValue;
+    delete raw.remindBeforeUnit;
+    delete raw.remindBeforeTrigger;
+  }
+  return r;
 }

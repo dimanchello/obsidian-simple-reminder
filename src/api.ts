@@ -1,5 +1,5 @@
-import { Reminder, RepeatUnit } from './types';
-import { generateId, calcNextTrigger, calcRemindBeforeTrigger } from './utils';
+import { Reminder, RepeatUnit, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
+import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
 import type SimpleReminderPlugin from './main';
 
 export interface OnceOptions {
@@ -29,7 +29,8 @@ export type AddReminderOptions = {
   title: string;
   emoji?: string;
   remindBeforeValue?: number;
-  remindBeforeUnit?: 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+  remindBeforeUnit?: RemindBeforeUnit;
+  remindBefore?: { value: number; unit: RemindBeforeUnit }[];
 } & (OnceOptions | RepeatOptions);
 
 export interface ReminderInfo {
@@ -137,11 +138,9 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       intraDayStepMin: null,
       timeWindowStart: null,
       timeWindowEnd: null,
-      remindBeforeValue: null,
-      remindBeforeUnit: null,
-      emoji: '⏰',
+      remindBefore: [],
+      emoji: DEFAULT_EMOJI,
       nextTrigger: null,
-      remindBeforeTrigger: null,
       completedAt: null,
     };
 
@@ -165,15 +164,16 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     }
 
     if (options.emoji) r.emoji = options.emoji;
-    if (options.remindBeforeValue != null && options.remindBeforeValue > 0) {
-      r.remindBeforeValue = options.remindBeforeValue;
-      r.remindBeforeUnit = options.remindBeforeUnit ?? null;
-    }
+
+    const rawEntries =
+      options.remindBefore ??
+      (options.remindBeforeValue != null && options.remindBeforeValue > 0
+        ? [{ value: options.remindBeforeValue, unit: options.remindBeforeUnit ?? 'minute' }]
+        : []);
+    const entries = rawEntries.filter((e) => e.value > 0).map((e) => ({ ...e, trigger: null }));
 
     r.nextTrigger = calcNextTrigger(r, now);
-    if (r.remindBeforeValue != null) {
-      r.remindBeforeTrigger = calcRemindBeforeTrigger(r);
-    }
+    r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, entries);
     this.plugin.reminders.push(r);
     this.plugin.saveSettings();
     this._emitAdded(r);
@@ -195,6 +195,8 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     const r = this.plugin.reminders.find((x) => x.id === id);
     if (!r) return false;
     r.checked = checked;
+    if (checked) r.completedAt = Date.now();
+    else r.completedAt = null;
     this.plugin.saveSettings();
     this._emitUpdated(r);
     this.plugin.refreshView();

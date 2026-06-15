@@ -1,6 +1,6 @@
 import { App, Modal } from 'obsidian';
 import type SimpleReminderPlugin from './main';
-import { Reminder } from './types';
+import { Reminder, DEFAULT_EMOJI } from './types';
 import { isValidDay } from './utils';
 
 const MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
@@ -185,7 +185,7 @@ export class CalendarModal extends Modal {
     const list = container.createDiv('sr-cal-day-list');
     for (const r of reminders) {
       const item = list.createDiv('sr-cal-day-item');
-      item.createSpan({ cls: 'sr-cal-day-item-emoji', text: r.emoji || '⏰' });
+      item.createSpan({ cls: 'sr-cal-day-item-emoji', text: r.emoji || DEFAULT_EMOJI });
       const body = item.createDiv('sr-cal-day-item-body');
       body.createDiv({ cls: 'sr-cal-day-item-title', text: r.title });
       if (r.type === 'once' && r.specificTs) {
