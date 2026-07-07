@@ -2,6 +2,7 @@ import { ItemView, Modal, WorkspaceLeaf } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { AddReminderModal } from './AddReminderModal';
 import { CalendarModal } from './CalendarModal';
+import { ReminderViewModal } from './ReminderViewModal';
 import { fmtDate, fmtDateShort } from './utils';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
@@ -141,12 +142,19 @@ export class ReminderView extends ItemView {
     const body = item.createDiv('sr-body');
     body.createDiv({ cls: 'sr-title', text: `${r.emoji || DEFAULT_EMOJI} ${r.title}` });
 
+    body.addEventListener('click', (e) => {
+      // Игнорируем клики, если они случайным образом дошли от чекбокса или кнопок
+      if ((e.target as HTMLElement).closest('.sr-cb-wrap, .sr-actions')) return;
+      new ReminderViewModal(this.app, r, t).open();
+    });
+
     const sched = body.createDiv('sr-sched');
     this.renderSchedule(sched, r, t);
 
     if (!isDone && r.type === 'repeat') this.renderMeta(body, r, t);
 
     const acts = item.createDiv('sr-actions');
+
     const editBtn = acts.createEl('button', { cls: 'sr-edit-btn', text: '✏️' });
     editBtn.setAttribute('aria-label', t.editAriaLabel);
     editBtn.addEventListener('click', () =>

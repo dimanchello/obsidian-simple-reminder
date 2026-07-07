@@ -1,12 +1,12 @@
 import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
-import { EMOJIS } from './emojis';
-import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
+import { EMOJIS_BY_CATEGORY } from './emojis';
+import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs, fmtDate } from './utils';
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
-type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay';
+type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay' | 'useDescription';
 
 interface RemindBeforeFormItem {
   value: number;
@@ -15,6 +15,8 @@ interface RemindBeforeFormItem {
 
 interface FormData {
   title: string;
+  useDescription: boolean;
+  description: string;
   mode: ReminderMode;
   specificDate: string;
 
@@ -56,6 +58,8 @@ function reminderToFD(r: Reminder): FormData {
   const rb = r.remindBefore.filter((e) => e.value > 0);
   return {
     title: r.title,
+    useDescription: !!r.description,
+    description: r.description || '',
     mode: isRepeat ? 'repeat' : 'once',
     specificDate: r.specificTs ? tsToLocal(r.specificTs) : '',
     repUnit: r.repUnit || 'day',
@@ -84,6 +88,8 @@ function reminderToFD(r: Reminder): FormData {
 function defaultFD(): FormData {
   return {
     title: '',
+    useDescription: false,
+    description: '',
     mode: 'once',
     specificDate: '',
     repUnit: 'day',
@@ -149,6 +155,14 @@ export class AddReminderModal extends Modal {
     });
     setTimeout(() => ti.focus(), 50);
 
+    this.addToggle(form, t.descriptionLabel, 'useDescription', (c) => {
+      const ta = c.createEl('textarea', { cls: 'sr-input sr-textarea', placeholder: t.descriptionPlaceholder });
+      ta.value = this.fd.description;
+      ta.addEventListener('input', (e) => {
+        this.fd.description = (e.target as HTMLTextAreaElement).value;
+      });
+    });
+
     const g2 = form.createDiv('sr-field-group');
     g2.createEl('label', { cls: 'sr-label', text: t.sectionType });
     const typeRow = g2.createDiv('sr-type-row');
@@ -182,9 +196,6 @@ export class AddReminderModal extends Modal {
     btnRow
       .createEl('button', { cls: 'sr-save-btn', text: isEdit ? t.updateBtn : t.saveBtn })
       .addEventListener('click', () => this.submit(isEdit));
-    btnRow
-      .createEl('button', { cls: 'sr-cancel-btn', text: t.cancelBtn })
-      .addEventListener('click', () => this.close());
   }
 
   private buildBody(t: Strings): void {
@@ -396,7 +407,7 @@ export class AddReminderModal extends Modal {
   }
 
   private buildEmojiField(parent: HTMLElement, t: Strings): void {
-    const g = parent.createDiv('sr-field-group');
+    const g = parent.createDiv('sr-field-group sr-emoji-group');
     g.createEl('label', { cls: 'sr-label', text: t.fieldEmoji });
     const header = g.createDiv('sr-emoji-header');
     const preview = header.createEl('button', {
@@ -404,28 +415,78 @@ export class AddReminderModal extends Modal {
       text: this.fd.emoji,
       type: 'button',
     });
-    const wrap = g.createDiv('sr-emoji-wrap');
-    const grid = wrap.createDiv('sr-emoji-grid');
-    EMOJIS.forEach((e) => {
-      const btn = grid.createEl('button', {
-        cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
-        text: e,
-        type: 'button',
+    const wrap = g.createDiv('sr-emoji-popover');
+
+    // Вкладки категорий
+    const tabsRow = wrap.createDiv('sr-emoji-tabs');
+    const contentArea = wrap.createDiv('sr-emoji-content');
+
+    const categories = EMOJIS_BY_CATEGORY;
+
+    let activeCategory = Object.keys(categories)[0];
+
+    const renderGrid = () => {
+      contentArea.empty();
+      const grid = contentArea.createDiv('sr-emoji-grid');
+      const emojis = categories[activeCategory] || [];
+      emojis.forEach((e) => {
+        const btn = grid.createEl('button', {
+          cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
+          text: e,
+          type: 'button',
+        });
+        btn.setAttribute('aria-label', `${t.fieldEmoji}: ${e}`);
+        btn.addEventListener('click', () => {
+          this.fd.emoji = e;
+          preview.textContent = e;
+          grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
+          btn.classList.add('sr-emoji-btn--active');
+          toggle(); // Закрываем popover после выбора
+        });
       });
-      btn.setAttribute('aria-label', `${t.fieldEmoji}: ${e}`);
-      btn.addEventListener('click', () => {
-        this.fd.emoji = e;
-        preview.textContent = e;
-        grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
-        btn.classList.add('sr-emoji-btn--active');
+    };
+
+    const renderTabs = () => {
+      tabsRow.empty();
+      Object.keys(categories).forEach((cat) => {
+        const btn = tabsRow.createEl('button', {
+          cls: 'sr-emoji-tab' + (activeCategory === cat ? ' sr-emoji-tab--active' : ''),
+          text: cat,
+          type: 'button',
+        });
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          activeCategory = cat;
+          renderTabs();
+          renderGrid();
+        });
       });
-    });
+    };
+
+    renderTabs();
+    renderGrid();
+
     let open = false;
     const toggle = () => {
       open = !open;
-      wrap.classList.toggle('sr-emoji-wrap--open', open);
+      wrap.classList.toggle('sr-emoji-popover--open', open);
     };
     preview.addEventListener('click', toggle);
+
+    // Закрытие при клике вне
+    const closeOnOutside = (e: MouseEvent) => {
+      if (open && !g.contains(e.target as Node)) {
+        toggle();
+      }
+    };
+    document.addEventListener('click', closeOnOutside);
+
+    // Очистка при закрытии модалки (привязываемся к onClose модалки)
+    const oldOnClose = this.onClose.bind(this);
+    this.onClose = () => {
+      document.removeEventListener('click', closeOnOutside);
+      oldOnClose();
+    };
   }
 
   private buildRemindBeforeField(parent: HTMLElement, t: Strings): void {
@@ -438,20 +499,18 @@ export class AddReminderModal extends Modal {
 
     const renderList = () => {
       content.empty();
-      const list = content.createDiv('sr-rb-list');
+      const scrollWrap = content.createDiv('sr-rb-scroll');
+      const list = scrollWrap.createDiv('sr-rb-list');
 
       const renderEntry = (idx: number) => {
         const entry = this.fd.remindBeforeList[idx];
-        const row = list.createDiv('sr-rb-row');
+        const rowWrap = list.createDiv('sr-rb-row-wrap');
+        const row = rowWrap.createDiv('sr-rb-row');
         row.dataset.idx = String(idx);
 
         const nInp = row.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
         nInp.min = '1';
         nInp.value = String(entry.value);
-        nInp.addEventListener('input', (e) => {
-          const v = parseInt((e.target as HTMLInputElement).value, 10);
-          this.fd.remindBeforeList[idx].value = Math.max(1, isNaN(v) ? 1 : v);
-        });
 
         const sel = row.createEl('select', { cls: 'sr-select' });
         t.remindBeforeUnitLabels.forEach((name) => {
@@ -459,15 +518,37 @@ export class AddReminderModal extends Modal {
           opt.value = name;
           if (entry.unit === name) opt.selected = true;
         });
-        sel.addEventListener('change', (e) => {
-          this.fd.remindBeforeList[idx].unit = (e.target as HTMLSelectElement).value as RemindBeforeUnit;
-        });
 
         const delBtn = row.createEl('button', { cls: 'sr-rb-del-btn', text: '✕' });
         delBtn.addEventListener('click', () => {
           this.fd.remindBeforeList.splice(idx, 1);
           renderList();
         });
+
+        const dateEl = rowWrap.createDiv('sr-rb-date-hint');
+
+        const updateDate = () => {
+          const nextTrigger = this.previewNextTrigger();
+          if (nextTrigger) {
+            const triggerMs = nextTrigger - remindBeforeToMs(entry.value, entry.unit);
+            dateEl.textContent = fmtDate(triggerMs);
+          } else {
+            dateEl.textContent = '';
+          }
+        };
+
+        nInp.addEventListener('input', (e) => {
+          const v = parseInt((e.target as HTMLInputElement).value, 10);
+          entry.value = Math.max(1, isNaN(v) ? 1 : v);
+          updateDate();
+        });
+
+        sel.addEventListener('change', (e) => {
+          entry.unit = (e.target as HTMLSelectElement).value as RemindBeforeUnit;
+          updateDate();
+        });
+
+        updateDate();
       };
 
       for (let i = 0; i < this.fd.remindBeforeList.length; i++) {
@@ -541,6 +622,52 @@ export class AddReminderModal extends Modal {
     });
   }
 
+  private previewNextTrigger(): number | null {
+    const d = this.fd;
+    const r: Partial<Reminder> = { type: d.mode };
+    if (d.mode === 'once') {
+      if (!d.specificDate) return null;
+      const ts = new Date(d.specificDate).getTime();
+      if (isNaN(ts)) return null;
+      r.specificTs = ts;
+    } else {
+      if (d.repStep < 1) return null;
+      r.repUnit = d.repUnit;
+      r.repStep = d.repStep;
+      r.repDayOfMonth = d.repUnit === 'month' || d.repUnit === 'year' ? d.repDayOfMonth : null;
+      r.repMonth = d.repUnit === 'year' ? d.repMonth : null;
+      if (d.repUnit === 'week') {
+        const days = d.repDaysOfWeek.map((v, i) => (v ? i : -1)).filter((i) => i >= 0);
+        if (days.length === 0) return null;
+        r.repDaysOfWeek = days;
+      }
+      if (d.useStart && d.startDate) {
+        const parts = d.startDate.split('-').map(Number);
+        if (parts.length === 3 && !parts.some(isNaN)) {
+          r.startDate = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+        }
+      }
+      if (d.useEnd && d.endDate) {
+        const parts = d.endDate.split('-').map(Number);
+        if (parts.length === 3 && !parts.some(isNaN)) {
+          r.endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999).getTime();
+        }
+      }
+      if (d.isIntraDay) {
+        if (d.intraStepMin < 1) return null;
+        r.intraDayMode = 'interval';
+        r.intraDayStepMin = d.intraStepMin;
+        r.timeWindowStart = d.timeFrom || '00:00';
+        r.timeWindowEnd = d.timeTo || '23:59';
+      } else {
+        if (!d.intraTime) return null;
+        r.intraDayMode = 'single';
+        r.intraDayTime = d.intraTime;
+      }
+    }
+    return calcNextTrigger(r as Reminder, Date.now());
+  }
+
   private submit(isEdit: boolean): void {
     const d = this.fd,
       t = this.plugin.t,
@@ -578,6 +705,7 @@ export class AddReminderModal extends Modal {
           };
 
     r.title = d.title.trim();
+    r.description = d.useDescription ? d.description.trim() : '';
     r.specificTs = null;
     r.repUnit = null;
     r.repStep = null;

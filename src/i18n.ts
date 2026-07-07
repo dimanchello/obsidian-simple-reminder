@@ -19,11 +19,15 @@ export interface Strings {
   monthsShort: string[];
   deleteAriaLabel: string;
   editAriaLabel: string;
+  viewAriaLabel: string;
 
   modalTitle: string;
   modalEditTitle: string;
   fieldName: string;
   fieldNamePlaceholder: string;
+  descriptionLabel: string;
+  descriptionTitle: string;
+  descriptionPlaceholder: string;
   sectionType: string;
   typeOnce: string;
   typeRepeat: string;
@@ -58,6 +62,7 @@ export interface Strings {
   fieldEmoji: string;
   fieldEmojiPlaceholder: string;
   remindBeforeLabel: string;
+  formatRemindBefore: (value: number, unit: string) => string;
   remindBeforeUnitLabels: string[];
   remindBeforeAddBtn: string;
 
@@ -136,9 +141,9 @@ export interface Strings {
 const en: Strings = {
   pluginName: 'Simple Reminder',
   addBtn: '+ Add',
-  tabAll: 'All',
-  tabActive: 'Active',
-  tabDone: 'Done',
+  tabAll: '📋',
+  tabActive: '⏳',
+  tabDone: '✅',
   statActiveLabel: 'Active',
   statDoneLabel: 'Done',
   noReminders: 'No reminders',
@@ -152,11 +157,15 @@ const en: Strings = {
   monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   deleteAriaLabel: 'Delete',
   editAriaLabel: 'Edit',
+  viewAriaLabel: 'View',
 
   modalTitle: 'New Reminder',
   modalEditTitle: 'Edit Reminder',
   fieldName: 'Task name',
   fieldNamePlaceholder: 'e.g. Drink water',
+  descriptionLabel: '📝 Add description',
+  descriptionTitle: 'Description',
+  descriptionPlaceholder: 'Notes, details, links...',
   sectionType: 'Type',
   typeOnce: '📅  Once — specific date & time',
   typeRepeat: '🔁  Repeat — regularly (daily, weekly, etc.)',
@@ -204,6 +213,13 @@ const en: Strings = {
   fieldEmoji: 'Icon',
   fieldEmojiPlaceholder: 'e.g. ⏰ 🔔 📌',
   remindBeforeLabel: 'Remind before',
+  formatRemindBefore: (v, u) => {
+    const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);
+    if (idx < 0) return `${v} ${u}`;
+    const singular = ['minute', 'hour', 'day', 'week', 'month', 'year'];
+    const plural = ['minutes', 'hours', 'days', 'weeks', 'months', 'years'];
+    return `${v} ${v === 1 ? singular[idx] : plural[idx]}`;
+  },
   remindBeforeUnitLabels: ['minutes', 'hours', 'days', 'weeks', 'months', 'years'],
   remindBeforeAddBtn: '+ Add pre-alert',
 
@@ -280,9 +296,9 @@ const en: Strings = {
 const ru: Strings = {
   pluginName: 'Simple Reminder',
   addBtn: '+ Добавить',
-  tabAll: 'Все',
-  tabActive: 'Активные',
-  tabDone: 'Выполнены',
+  tabAll: '📋',
+  tabActive: '⏳',
+  tabDone: '✅',
   statActiveLabel: 'Активных',
   statDoneLabel: 'Выполнено',
   noReminders: 'Нет напоминаний',
@@ -296,11 +312,15 @@ const ru: Strings = {
   monthsShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
   deleteAriaLabel: 'Удалить',
   editAriaLabel: 'Редактировать',
+  viewAriaLabel: 'Просмотр',
 
   modalTitle: 'Новое напоминание',
   modalEditTitle: 'Редактировать напоминание',
   fieldName: 'Название задачи',
   fieldNamePlaceholder: 'Например: Выпить воды',
+  descriptionLabel: '📝 Описание',
+  descriptionTitle: 'Описание',
+  descriptionPlaceholder: 'Заметки, подробности, ссылки...',
   sectionType: 'Тип',
   typeOnce: '📅  Разово — конкретная дата и время',
   typeRepeat: '🔁  Повтор — регулярно (дни, недели и т.д.)',
@@ -348,6 +368,22 @@ const ru: Strings = {
   fieldEmoji: 'Иконка',
   fieldEmojiPlaceholder: 'например ⏰ 🔔 📌',
   remindBeforeLabel: 'Напомнить за',
+  formatRemindBefore: (v, u) => {
+    const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);
+    if (idx < 0) return `${v} ${u}`;
+    const m10 = v % 10;
+    const m100 = v % 100;
+    let form = 2; // many
+    if (m10 === 1 && m100 !== 11)
+      form = 0; // singular
+    else if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) form = 1; // few
+
+    const singular = ['минуту', 'час', 'день', 'неделю', 'месяц', 'год'];
+    const few = ['минуты', 'часа', 'дня', 'недели', 'месяца', 'года'];
+    const many = ['минут', 'часов', 'дней', 'недель', 'месяцев', 'лет'];
+
+    return `${v} ${form === 0 ? singular[idx] : form === 1 ? few[idx] : many[idx]}`;
+  },
   remindBeforeUnitLabels: ['минут', 'часов', 'дней', 'недель', 'месяцев', 'лет'],
   remindBeforeAddBtn: '+ Добавить пред-уведомление',
 

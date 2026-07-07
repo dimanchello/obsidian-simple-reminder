@@ -63,7 +63,7 @@
 }
 
 .sr-tab {
-  font-size: 0.85em;
+  font-size: 1em;
   padding: 4px 10px;
   border-radius: 10px;
   cursor: pointer;
@@ -1068,4 +1068,182 @@
 
 @media (max-width: 320px) {
   .sr-cal-year-grid { grid-template-columns: repeat(1, 1fr); gap: 3px; }
+}
+
+/* ==========================================================================
+   Emoji Popover
+   ========================================================================== */
+.sr-emoji-group {
+  position: relative;
+}
+.sr-emoji-popover {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  width: 100%;
+  max-width: 300px;
+  height: 250px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+.sr-emoji-popover--open {
+  display: flex;
+}
+.sr-emoji-tabs {
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  gap: 4px;
+}
+.sr-emoji-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+.sr-emoji-tab {
+  background: transparent;
+  border: none;
+  font-size: 1.1em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.sr-emoji-tab:hover {
+  opacity: 1;
+  background-color: var(--background-modifier-hover);
+}
+.sr-emoji-tab--active {
+  opacity: 1;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.sr-emoji-content {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ==========================================================================
+   Description Field
+   ========================================================================== */
+.sr-textarea {
+  width: 100%;
+  min-height: 80px;
+  max-height: 200px;
+  resize: vertical;
+  margin-top: 8px;
+  padding: 8px;
+}
+
+/* ==========================================================================
+   ReminderViewModal
+   ========================================================================== */
+.sr-view-modal {
+  padding: 16px;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sr-view-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 10px;
+}
+.sr-view-icon {
+  font-size: 1.5em;
+}
+.sr-view-title {
+  margin: 0;
+  font-size: 1.3em;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.sr-view-sched {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.sr-view-desc-wrap h4,
+.sr-view-rb-wrap h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sr-view-desc {
+  white-space: pre-wrap;
+  background-color: var(--background-secondary);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.95em;
+  line-height: 1.5;
+  border-left: 3px solid var(--interactive-accent);
+}
+.sr-view-rb-scroll {
+  max-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background-color: var(--background-secondary);
+}
+.sr-view-rb-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sr-view-rb-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sr-view-rb-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sr-view-rb-item:last-child {
+  border-bottom: none;
+}
+.sr-view-rb-val {
+  font-weight: 500;
+  color: var(--text-normal);
+}
+.sr-view-rb-date {
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+.sr-view-next-wrap {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--background-modifier-border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9em;
+}
+.sr-view-next-label {
+  color: var(--text-muted);
+}
+.sr-view-next-val {
+  font-weight: 500;
+  color: var(--interactive-accent);
+}
+.sr-body {
+  cursor: pointer;
+}
+.sr-body:hover {
+  opacity: 0.9;
 }
