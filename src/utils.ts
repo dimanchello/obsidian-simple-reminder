@@ -257,5 +257,45 @@ export function migrateRemindBefore(r: Reminder): Reminder {
     delete raw.remindBeforeUnit;
     delete raw.remindBeforeTrigger;
   }
+
+  if (Array.isArray(r.remindBefore)) {
+    r.remindBefore.forEach((rb) => {
+      const u = rb.unit as string;
+      let broken = false;
+      if (['минут', 'минуты', 'минуту', 'minutes'].includes(u)) {
+        rb.unit = 'minute';
+        broken = true;
+      } else if (['часов', 'часа', 'час', 'hours'].includes(u)) {
+        rb.unit = 'hour';
+        broken = true;
+      } else if (['дней', 'дня', 'день', 'days'].includes(u)) {
+        rb.unit = 'day';
+        broken = true;
+      } else if (['недель', 'недели', 'неделю', 'weeks'].includes(u)) {
+        rb.unit = 'week';
+        broken = true;
+      } else if (['месяцев', 'месяца', 'месяц', 'months'].includes(u)) {
+        rb.unit = 'month';
+        broken = true;
+      } else if (['лет', 'года', 'год', 'years'].includes(u)) {
+        rb.unit = 'year';
+        broken = true;
+      }
+
+      // If the unit was broken, its trigger was calculated as NaN and saved as null.
+      // We can try to repair it here if we have a nextTrigger.
+      if (broken && rb.trigger === null) {
+        const target = r.nextTrigger ?? r.specificTs;
+        if (target) {
+          const ms = remindBeforeToMs(rb.value, rb.unit);
+          const result = target - ms;
+          if (result > Date.now()) {
+            rb.trigger = result;
+          }
+        }
+      }
+    });
+  }
+
   return r;
 }

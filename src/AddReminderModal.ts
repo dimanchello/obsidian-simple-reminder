@@ -2,7 +2,7 @@ import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
 import { EMOJIS_BY_CATEGORY } from './emojis';
-import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs, fmtDate } from './utils';
+import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs } from './utils';
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
@@ -55,7 +55,9 @@ function tsToDateLocal(ts: number): string {
 
 function reminderToFD(r: Reminder): FormData {
   const isRepeat = r.type === 'repeat';
-  const rb = r.remindBefore.filter((e) => e.value > 0);
+  const rb = [...r.remindBefore]
+    .filter((e) => e.value > 0)
+    .sort((a, b) => remindBeforeToMs(b.value, b.unit) - remindBeforeToMs(a.value, a.unit));
   return {
     title: r.title,
     useDescription: !!r.description,
@@ -513,10 +515,11 @@ export class AddReminderModal extends Modal {
         nInp.value = String(entry.value);
 
         const sel = row.createEl('select', { cls: 'sr-select' });
-        t.remindBeforeUnitLabels.forEach((name) => {
-          const opt = sel.createEl('option', { text: name });
-          opt.value = name;
-          if (entry.unit === name) opt.selected = true;
+        const units: RemindBeforeUnit[] = ['minute', 'hour', 'day', 'week', 'month', 'year'];
+        units.forEach((u, i) => {
+          const opt = sel.createEl('option', { text: t.remindBeforeUnitLabels[i] });
+          opt.value = u;
+          if (entry.unit === u) opt.selected = true;
         });
 
         const delBtn = row.createEl('button', { cls: 'sr-rb-del-btn', text: '✕' });
@@ -525,30 +528,14 @@ export class AddReminderModal extends Modal {
           renderList();
         });
 
-        const dateEl = rowWrap.createDiv('sr-rb-date-hint');
-
-        const updateDate = () => {
-          const nextTrigger = this.previewNextTrigger();
-          if (nextTrigger) {
-            const triggerMs = nextTrigger - remindBeforeToMs(entry.value, entry.unit);
-            dateEl.textContent = fmtDate(triggerMs);
-          } else {
-            dateEl.textContent = '';
-          }
-        };
-
         nInp.addEventListener('input', (e) => {
           const v = parseInt((e.target as HTMLInputElement).value, 10);
           entry.value = Math.max(1, isNaN(v) ? 1 : v);
-          updateDate();
         });
 
         sel.addEventListener('change', (e) => {
           entry.unit = (e.target as HTMLSelectElement).value as RemindBeforeUnit;
-          updateDate();
         });
-
-        updateDate();
       };
 
       for (let i = 0; i < this.fd.remindBeforeList.length; i++) {
@@ -620,52 +607,6 @@ export class AddReminderModal extends Modal {
       if (cb.checked) buildOn(content);
       else if (buildOff) buildOff(content);
     });
-  }
-
-  private previewNextTrigger(): number | null {
-    const d = this.fd;
-    const r: Partial<Reminder> = { type: d.mode };
-    if (d.mode === 'once') {
-      if (!d.specificDate) return null;
-      const ts = new Date(d.specificDate).getTime();
-      if (isNaN(ts)) return null;
-      r.specificTs = ts;
-    } else {
-      if (d.repStep < 1) return null;
-      r.repUnit = d.repUnit;
-      r.repStep = d.repStep;
-      r.repDayOfMonth = d.repUnit === 'month' || d.repUnit === 'year' ? d.repDayOfMonth : null;
-      r.repMonth = d.repUnit === 'year' ? d.repMonth : null;
-      if (d.repUnit === 'week') {
-        const days = d.repDaysOfWeek.map((v, i) => (v ? i : -1)).filter((i) => i >= 0);
-        if (days.length === 0) return null;
-        r.repDaysOfWeek = days;
-      }
-      if (d.useStart && d.startDate) {
-        const parts = d.startDate.split('-').map(Number);
-        if (parts.length === 3 && !parts.some(isNaN)) {
-          r.startDate = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
-        }
-      }
-      if (d.useEnd && d.endDate) {
-        const parts = d.endDate.split('-').map(Number);
-        if (parts.length === 3 && !parts.some(isNaN)) {
-          r.endDate = new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999).getTime();
-        }
-      }
-      if (d.isIntraDay) {
-        if (d.intraStepMin < 1) return null;
-        r.intraDayMode = 'interval';
-        r.intraDayStepMin = d.intraStepMin;
-        r.timeWindowStart = d.timeFrom || '00:00';
-        r.timeWindowEnd = d.timeTo || '23:59';
-      } else {
-        if (!d.intraTime) return null;
-        r.intraDayMode = 'single';
-        r.intraDayTime = d.intraTime;
-      }
-    }
-    return calcNextTrigger(r as Reminder, Date.now());
   }
 
   private submit(isEdit: boolean): void {
@@ -793,10 +734,11 @@ export class AddReminderModal extends Modal {
     r.nextTrigger = calcNextTrigger(r, now);
 
     if (d.remindBeforeEnabled && d.remindBeforeList.some((e) => e.value > 0)) {
-      r.remindBefore = calcRemindBeforeTriggers(
-        r.nextTrigger,
-        d.remindBeforeList.filter((e) => e.value > 0).map((e) => ({ ...e, trigger: null })),
-      );
+      const sortedEntries = d.remindBeforeList
+        .filter((e) => e.value > 0)
+        .sort((a, b) => remindBeforeToMs(b.value, b.unit) - remindBeforeToMs(a.value, a.unit))
+        .map((e) => ({ ...e, trigger: null }));
+      r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, sortedEntries);
     } else {
       r.remindBefore = [];
     }

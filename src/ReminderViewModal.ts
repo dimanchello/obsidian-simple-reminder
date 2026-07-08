@@ -37,17 +37,31 @@ export class ReminderViewModal extends Modal {
       const scrollWrap = rbWrap.createDiv('sr-view-rb-scroll');
       const ul = scrollWrap.createEl('ul', { cls: 'sr-view-rb-list' });
 
-      reminder.remindBefore.forEach((rb) => {
-        const li = ul.createEl('li', { cls: 'sr-view-rb-item' });
-        li.createDiv({ cls: 'sr-view-rb-val', text: t.formatRemindBefore(rb.value, rb.unit) });
+      const sortedRb = [...reminder.remindBefore].sort(
+        (a, b) => remindBeforeToMs(b.value, b.unit) - remindBeforeToMs(a.value, a.unit),
+      );
 
+      sortedRb.forEach((rb) => {
+        const li = ul.createEl('li', { cls: 'sr-view-rb-item' });
         let triggerMs = rb.trigger;
-        if (!triggerMs && reminder.nextTrigger) {
-          triggerMs = reminder.nextTrigger - remindBeforeToMs(rb.value, rb.unit);
+        if (!triggerMs) {
+          const target = reminder.nextTrigger ?? reminder.specificTs ?? reminder.completedAt;
+          if (target) {
+            triggerMs = target - remindBeforeToMs(rb.value, rb.unit);
+          }
         }
 
+        const isPast = triggerMs ? triggerMs <= Date.now() : true;
+
+        const leftContent = li.createDiv({ cls: 'sr-view-rb-left' });
+        leftContent.createDiv({ cls: 'sr-view-rb-val', text: t.formatRemindBefore(rb.value, rb.unit) });
         if (triggerMs) {
-          li.createDiv({ cls: 'sr-view-rb-date', text: fmtDate(triggerMs) });
+          leftContent.createDiv({ cls: 'sr-view-rb-date', text: fmtDate(triggerMs) });
+        }
+
+        if (isPast) {
+          const rightContent = li.createDiv({ cls: 'sr-view-rb-right' });
+          rightContent.createSpan({ text: '✅' });
         }
       });
     }

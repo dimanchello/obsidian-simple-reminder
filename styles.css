@@ -1148,7 +1148,7 @@
    ========================================================================== */
 .sr-view-modal {
   padding: 16px;
-  max-width: 400px;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1211,8 +1211,17 @@
   padding: 8px 12px;
   border-bottom: 1px solid var(--background-modifier-border);
   display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.sr-view-rb-left {
+  display: flex;
   flex-direction: column;
   gap: 2px;
+}
+.sr-view-rb-right {
+  font-size: 1.2em;
 }
 .sr-view-rb-item:last-child {
   border-bottom: none;
