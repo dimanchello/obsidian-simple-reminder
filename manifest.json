@@ -1,7 +1,7 @@
 {
   "id": "obsidian-simple-reminder",
   "name": "Obsidian Simple Reminder",
-  "version": "1.6.2",
+  "version": "1.8.0",
   "minAppVersion": "0.15.0",
   "description": "Reminder list with system notifications. Supports interval, one-shot and scheduled types.",
   "author": "Dimanchello",

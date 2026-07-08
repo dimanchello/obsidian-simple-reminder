@@ -221,10 +221,20 @@ export function remindBeforeToMs(value: number, unit: RemindBeforeUnit): number 
     case 'week':
       return value * 10080 * minuteMs;
     case 'month':
-      return value * 43200 * minuteMs; // 30 days
+      return value * 43200 * minuteMs; // 30 days (fallback for sorting)
     case 'year':
-      return value * 525600 * minuteMs; // 365 days
+      return value * 525600 * minuteMs; // 365 days (fallback for sorting)
   }
+}
+
+export function calcRemindBeforeTarget(targetTs: number, value: number, unit: RemindBeforeUnit): number {
+  if (unit === 'month' || unit === 'year') {
+    const d = new Date(targetTs);
+    if (unit === 'month') d.setMonth(d.getMonth() - value);
+    if (unit === 'year') d.setFullYear(d.getFullYear() - value);
+    return d.getTime();
+  }
+  return targetTs - remindBeforeToMs(value, unit);
 }
 
 export function calcRemindBeforeTriggers(
@@ -233,8 +243,7 @@ export function calcRemindBeforeTriggers(
 ): RemindBeforeEntry[] {
   return entries.map((e) => {
     if (nextTrigger == null) return { ...e, trigger: null };
-    const beforeMs = remindBeforeToMs(e.value, e.unit);
-    const result = nextTrigger - beforeMs;
+    const result = calcRemindBeforeTarget(nextTrigger, e.value, e.unit);
     return { ...e, trigger: result > Date.now() ? result : null };
   });
 }
@@ -287,8 +296,7 @@ export function migrateRemindBefore(r: Reminder): Reminder {
       if (broken && rb.trigger === null) {
         const target = r.nextTrigger ?? r.specificTs;
         if (target) {
-          const ms = remindBeforeToMs(rb.value, rb.unit);
-          const result = target - ms;
+          const result = calcRemindBeforeTarget(target, rb.value, rb.unit as RemindBeforeUnit);
           if (result > Date.now()) {
             rb.trigger = result;
           }

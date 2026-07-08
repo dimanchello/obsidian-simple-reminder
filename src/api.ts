@@ -106,6 +106,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       try {
         cb(payload);
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.error('[SimpleReminder API] error:', e);
       }
     });

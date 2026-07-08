@@ -1,7 +1,7 @@
 import { App, Modal } from 'obsidian';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
-import { fmtDate, fmtDateShort, remindBeforeToMs } from './utils';
+import { fmtDate, fmtDateShort, remindBeforeToMs, calcRemindBeforeTarget } from './utils';
 
 export class ReminderViewModal extends Modal {
   private reminder: Reminder;
@@ -47,7 +47,7 @@ export class ReminderViewModal extends Modal {
         if (!triggerMs) {
           const target = reminder.nextTrigger ?? reminder.specificTs ?? reminder.completedAt;
           if (target) {
-            triggerMs = target - remindBeforeToMs(rb.value, rb.unit);
+            triggerMs = calcRemindBeforeTarget(target, rb.value, rb.unit);
           }
         }
 

@@ -16,6 +16,7 @@ export default class SimpleReminderPlugin extends Plugin {
   api!: SimpleReminderAPIImpl;
 
   private checkTimer: number | null = null;
+  private lastPruneTime: number = 0;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -132,9 +133,14 @@ export default class SimpleReminderPlugin extends Plugin {
   // ── Check logic ────────────────────────────────────────────────────────────
 
   async checkReminders(): Promise<void> {
-    this.pruneOldCompleted();
-
     const now = Date.now();
+
+    if (now - this.lastPruneTime > 3600_000) {
+      // Every hour
+      this.pruneOldCompleted();
+      this.lastPruneTime = now;
+    }
+
     let changed = false;
 
     for (const r of this.reminders) {
@@ -142,6 +148,11 @@ export default class SimpleReminderPlugin extends Plugin {
       if (!r.checked && Array.isArray(r.remindBefore)) {
         for (const entry of r.remindBefore) {
           if (entry.trigger != null && now >= entry.trigger) {
+            if (r.nextTrigger != null && now >= r.nextTrigger) {
+              entry.trigger = null;
+              changed = true;
+              continue;
+            }
             this.fireNotification(r, true);
             entry.trigger = null;
             changed = true;
