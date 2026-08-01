@@ -19,7 +19,6 @@ export interface Strings {
   monthsShort: string[];
   deleteAriaLabel: string;
   editAriaLabel: string;
-  viewAriaLabel: string;
 
   modalTitle: string;
   modalEditTitle: string;
@@ -53,14 +52,11 @@ export interface Strings {
   toggleIntraDay: string;
   hintIntraDay: string;
   fieldDateTime: string;
-  fieldStartDate: string;
-  fieldEndDate: string;
   fieldIntervalUnit: string;
   fieldTimeFrom: string;
   fieldTimeTo: string;
 
   fieldEmoji: string;
-  fieldEmojiPlaceholder: string;
   remindBeforeLabel: string;
   formatRemindBefore: (value: number, unit: string) => string;
   remindBeforeUnitLabels: string[];
@@ -68,24 +64,18 @@ export interface Strings {
 
   saveBtn: string;
   updateBtn: string;
-  cancelBtn: string;
 
   errNoTitle: string;
   errNoDate: string;
   errBadDate: string;
-  errNoStartDate: string;
   errBadInterval: string;
-  errNoTimeFrom: string;
-  errNoTimeTo: string;
   errNoDays: string;
-  errBadDayNum: string;
   errNoTime: string;
   errPeriodNMin: string;
   okAdded: string;
   okUpdated: string;
 
   // Описание правила
-  ruleEvery: (n: number, unit: string) => string;
   ruleAt: (time: string) => string;
   ruleInterval: (mins: number, from: string, to: string) => string;
 
@@ -157,7 +147,6 @@ const en: Strings = {
   monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
   deleteAriaLabel: 'Delete',
   editAriaLabel: 'Edit',
-  viewAriaLabel: 'View',
 
   modalTitle: 'New Reminder',
   modalEditTitle: 'Edit Reminder',
@@ -204,14 +193,11 @@ const en: Strings = {
   toggleIntraDay: '🔄 Multiple times a day',
   hintIntraDay: 'Fire repeatedly within a time window',
   fieldDateTime: 'Date and time',
-  fieldStartDate: 'Start date and time',
-  fieldEndDate: 'End date and time',
   fieldIntervalUnit: 'mins.',
   fieldTimeFrom: 'Active from',
   fieldTimeTo: 'to',
 
   fieldEmoji: 'Icon',
-  fieldEmojiPlaceholder: 'e.g. ⏰ 🔔 📌',
   remindBeforeLabel: 'Remind before',
   formatRemindBefore: (v, u) => {
     const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);
@@ -225,23 +211,17 @@ const en: Strings = {
 
   saveBtn: 'Save',
   updateBtn: 'Update',
-  cancelBtn: 'Cancel',
 
   errNoTitle: '⚠️ Enter a reminder title',
   errNoDate: '⚠️ Select date and time',
   errBadDate: '⚠️ Invalid date',
-  errNoStartDate: '⚠️ Select a start date',
   errBadInterval: '⚠️ Interval must be at least 1 minute',
-  errNoTimeFrom: '⚠️ Enter start time',
-  errNoTimeTo: '⚠️ Enter end time',
   errNoDays: '⚠️ Select at least one day',
-  errBadDayNum: '⚠️ Enter a day of the month (1–31)',
   errNoTime: '⚠️ Enter notification time',
   errPeriodNMin: '⚠️ Interval must be at least 1',
   okAdded: '✅ Reminder added',
   okUpdated: '✅ Reminder updated',
 
-  ruleEvery: (n, unit) => `Every ${n} ${unit}`,
   ruleAt: (time) => `at ${time}`,
   ruleInterval: (mins, f, t) => `every ${mins}m (${f}-${t})`,
 
@@ -312,7 +292,6 @@ const ru: Strings = {
   monthsShort: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
   deleteAriaLabel: 'Удалить',
   editAriaLabel: 'Редактировать',
-  viewAriaLabel: 'Просмотр',
 
   modalTitle: 'Новое напоминание',
   modalEditTitle: 'Редактировать напоминание',
@@ -359,14 +338,11 @@ const ru: Strings = {
   toggleIntraDay: '🔄 Несколько раз в день',
   hintIntraDay: 'Срабатывать повторно в течение окна',
   fieldDateTime: 'Дата и время',
-  fieldStartDate: 'Дата и время начала',
-  fieldEndDate: 'Дата и время окончания',
   fieldIntervalUnit: 'мин.',
   fieldTimeFrom: 'С',
   fieldTimeTo: 'до',
 
   fieldEmoji: 'Иконка',
-  fieldEmojiPlaceholder: 'например ⏰ 🔔 📌',
   remindBeforeLabel: 'Напомнить за',
   formatRemindBefore: (v, u) => {
     const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);
@@ -389,23 +365,17 @@ const ru: Strings = {
 
   saveBtn: 'Сохранить',
   updateBtn: 'Обновить',
-  cancelBtn: 'Отмена',
 
   errNoTitle: '⚠️ Введите название напоминания',
   errNoDate: '⚠️ Выберите дату и время',
   errBadDate: '⚠️ Некорректная дата',
-  errNoStartDate: '⚠️ Выберите дату начала',
   errBadInterval: '⚠️ Интервал должен быть не менее 1 минуты',
-  errNoTimeFrom: '⚠️ Укажите время начала',
-  errNoTimeTo: '⚠️ Укажите время окончания',
   errNoDays: '⚠️ Выберите хотя бы один день',
-  errBadDayNum: '⚠️ Укажите день месяца (1–31)',
   errNoTime: '⚠️ Укажите время уведомления',
   errPeriodNMin: '⚠️ Интервал должен быть не менее 1',
   okAdded: '✅ Напоминание добавлено',
   okUpdated: '✅ Напоминание обновлено',
 
-  ruleEvery: (n, unit) => `${n === 1 ? 'Каждый' : 'Каждые'} ${n} ${unit}`,
   ruleAt: (time) => `в ${time}`,
   ruleInterval: (mins, f, t) => `каждые ${mins} мин (${f}-${t})`,
 

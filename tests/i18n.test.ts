@@ -37,9 +37,8 @@ describe('getStrings — English', () => {
     expect(en.modalTitle).toBe('New Reminder');
   });
 
-  it('has save and cancel buttons', () => {
+  it('has save button', () => {
     expect(en.saveBtn).toBe('Save');
-    expect(en.cancelBtn).toBe('Cancel');
   });
 
   it('has error messages', () => {
@@ -66,16 +65,6 @@ describe('getStrings — English', () => {
   it('has months (12 items)', () => {
     expect(en.monthsShort).toHaveLength(12);
     expect(en.monthsFull).toHaveLength(12);
-  });
-
-  it('ruleEvery produces correct singular form', () => {
-    expect(en.ruleEvery(1, 'day')).toBe('Every 1 day');
-    expect(en.ruleEvery(1, 'week')).toBe('Every 1 week');
-  });
-
-  it('ruleEvery produces correct plural form', () => {
-    expect(en.ruleEvery(3, 'days')).toBe('Every 3 days');
-    expect(en.ruleEvery(2, 'weeks')).toBe('Every 2 weeks');
   });
 
   it('ruleAt formats time correctly', () => {
@@ -110,9 +99,8 @@ describe('getStrings — Russian', () => {
     expect(ru.modalTitle).toBe('Новое напоминание');
   });
 
-  it('has save and cancel buttons', () => {
+  it('has save button', () => {
     expect(ru.saveBtn).toBe('Сохранить');
-    expect(ru.cancelBtn).toBe('Отмена');
   });
 
   it('has error messages', () => {
@@ -141,12 +129,6 @@ describe('getStrings — Russian', () => {
     expect(ru.monthsShort).toHaveLength(12);
     expect(ru.monthsFull).toHaveLength(12);
     expect(ru.monthsFull[0]).toBe('Январь');
-  });
-
-  it('ruleEvery produces correct form', () => {
-    expect(ru.ruleEvery(1, 'день')).toBe('Каждый 1 день');
-    expect(ru.ruleEvery(3, 'дня')).toBe('Каждые 3 дня');
-    expect(ru.ruleEvery(5, 'дней')).toBe('Каждые 5 дней');
   });
 
   it('ruleAt formats time correctly', () => {

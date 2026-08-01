@@ -216,8 +216,11 @@ export class CalendarModal extends Modal {
 
   private getRemindersForDay(year: number, month: number, day: number): Reminder[] {
     const result: Reminder[] = [];
+    const dayStart = new Date(year, month, day).getTime();
     for (const r of this.plugin.reminders) {
-      if (r.checked) continue;
+      if (r.checked) {
+        continue;
+      }
 
       if (r.type === 'once' && r.specificTs) {
         const d = new Date(r.specificTs);
@@ -225,10 +228,13 @@ export class CalendarModal extends Modal {
           result.push(r);
         }
       } else if (r.type === 'repeat') {
+        if (r.endDate && dayStart > r.endDate) {
+          continue;
+        }
         const anchor = new Date(r.startDate ?? Date.now());
         anchor.setHours(0, 0, 0, 0);
         const cand = new Date(year, month, day);
-        if (isValidDay(cand, anchor, r)) {
+        if (cand.getTime() >= anchor.getTime() && isValidDay(cand, anchor, r)) {
           result.push(r);
         }
       }

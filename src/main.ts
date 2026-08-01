@@ -2,6 +2,7 @@ import { Notice, Plugin } from 'obsidian';
 import { PluginSettings, Reminder, DEFAULT_SETTINGS, DEFAULT_EMOJI } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
+import { ReminderViewModal } from './ReminderViewModal';
 import { ReminderSettingTab } from './SettingsTab';
 import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTriggers } from './utils';
 import { getStrings, Strings } from './i18n';
@@ -11,20 +12,16 @@ export default class SimpleReminderPlugin extends Plugin {
   settings!: PluginSettings;
   reminders!: Reminder[];
   t!: Strings;
-
-  /** Public API — accessible to other plugins via app.plugins.plugins['simple-reminder'].api */
   api!: SimpleReminderAPIImpl;
 
   private checkTimer: number | null = null;
   private lastPruneTime: number = 0;
-
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  private isChecking: boolean = false;
 
   async onload(): Promise<void> {
     await this.loadSettings();
     this.refreshStrings();
 
-    // Expose API before anything else so other plugins loading after us can use it
     this.api = new SimpleReminderAPIImpl(this);
 
     this.registerView(VIEW_TYPE_REMINDER, (leaf) => new ReminderView(leaf, this));
@@ -60,8 +57,6 @@ export default class SimpleReminderPlugin extends Plugin {
     this.stopCheckLoop();
   }
 
-  // ── Settings ───────────────────────────────────────────────────────────────
-
   async loadSettings(): Promise<void> {
     const saved = (await this.loadData()) ?? {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
@@ -74,13 +69,9 @@ export default class SimpleReminderPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  // ── i18n ───────────────────────────────────────────────────────────────────
-
   refreshStrings(): void {
     this.t = getStrings(this.settings.language);
   }
-
-  // ── View ───────────────────────────────────────────────────────────────────
 
   async activateView(): Promise<void> {
     const { workspace } = this.app;
@@ -101,8 +92,6 @@ export default class SimpleReminderPlugin extends Plugin {
       (leaf.view as ReminderView).refresh();
     }
   }
-
-  // ── Check loop ─────────────────────────────────────────────────────────────
 
   startCheckLoop(): void {
     this.stopCheckLoop();
@@ -130,67 +119,74 @@ export default class SimpleReminderPlugin extends Plugin {
     }
   }
 
-  // ── Check logic ────────────────────────────────────────────────────────────
-
   async checkReminders(): Promise<void> {
-    const now = Date.now();
-
-    if (now - this.lastPruneTime > 3600_000) {
-      // Every hour
-      this.pruneOldCompleted();
-      this.lastPruneTime = now;
+    if (this.isChecking) {
+      return;
     }
+    this.isChecking = true;
+    try {
+      const now = Date.now();
 
-    let changed = false;
+      if (now - this.lastPruneTime > 3600_000) {
+        this.pruneOldCompleted();
+        this.lastPruneTime = now;
+      }
 
-    for (const r of this.reminders) {
-      // ── remindBefore check ───────────────────────────────────────────────────
-      if (!r.checked && Array.isArray(r.remindBefore)) {
-        for (const entry of r.remindBefore) {
-          if (entry.trigger != null && now >= entry.trigger) {
-            if (r.nextTrigger != null && now >= r.nextTrigger) {
+      let changed = false;
+
+      for (const r of this.reminders) {
+        if (!r.checked && Array.isArray(r.remindBefore)) {
+          for (const entry of r.remindBefore) {
+            if (entry.trigger != null && now >= entry.trigger) {
+              if (r.nextTrigger != null && now >= r.nextTrigger) {
+                entry.trigger = null;
+                changed = true;
+                continue;
+              }
+              this.fireNotification(r, true);
               entry.trigger = null;
               changed = true;
-              continue;
             }
-            this.fireNotification(r, true);
-            entry.trigger = null;
-            changed = true;
           }
         }
-      }
 
-      // ── Main trigger check ───────────────────────────────────────────────────
-      if (r.checked) continue;
-      if (r.nextTrigger == null) continue;
-      if (now < r.nextTrigger) continue;
-
-      this.fireNotification(r, false);
-      this.api._emitFired(r);
-
-      if (r.type === 'once') {
-        r.checked = true;
-        r.completedAt = now;
-        r.nextTrigger = null;
-        r.remindBefore.forEach((e) => {
-          e.trigger = null;
-        });
-      } else {
-        r.nextTrigger = advanceTrigger(r, now);
-        if (r.remindBefore.length > 0) {
-          r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+        if (r.checked) {
+          continue;
         }
-      }
-      changed = true;
-    }
+        if (r.nextTrigger == null) {
+          continue;
+        }
+        if (now < r.nextTrigger) {
+          continue;
+        }
 
-    if (changed) {
-      await this.saveSettings();
-      this.refreshView();
+        this.fireNotification(r, false);
+        this.api._emitFired(r);
+
+        if (r.type === 'once') {
+          r.checked = true;
+          r.completedAt = now;
+          r.nextTrigger = null;
+          r.remindBefore.forEach((e) => {
+            e.trigger = null;
+          });
+        } else {
+          r.nextTrigger = advanceTrigger(r, now);
+          if (r.remindBefore.length > 0) {
+            r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+          }
+        }
+        changed = true;
+      }
+
+      if (changed) {
+        await this.saveSettings();
+        this.refreshView();
+      }
+    } finally {
+      this.isChecking = false;
     }
   }
-
-  // ── Notifications ──────────────────────────────────────────────────────────
 
   requestNotificationPermission(showNotice: boolean): void {
     if (typeof Notification === 'undefined') return;
@@ -211,7 +207,11 @@ export default class SimpleReminderPlugin extends Plugin {
     const prefix = isPreAlert ? `${emoji} ${this.t.remindBeforePrefix}` : `${emoji} ${this.t.pluginName}`;
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try {
-        new Notification(prefix, { body: r.title, silent: false });
+        const notif = new Notification(prefix, { body: r.title, silent: false });
+        notif.onclick = (): void => {
+          window.focus();
+          new ReminderViewModal(this.app, r, this.t).open();
+        };
         return;
       } catch {
         /* ignore */
@@ -225,13 +225,18 @@ export default class SimpleReminderPlugin extends Plugin {
       new Notice(this.t.testFallback, 5000);
       return;
     }
-    const fire = () => new Notification(`⏰ ${this.t.pluginName}`, { body: this.t.testBody });
+    const fire = (): void => {
+      new Notification(`⏰ ${this.t.pluginName}`, { body: this.t.testBody });
+    };
     if (Notification.permission === 'granted') {
       fire();
     } else if (Notification.permission === 'default') {
       Notification.requestPermission().then((p) => {
-        if (p === 'granted') fire();
-        else new Notice(this.t.warnPermDenied, 5000);
+        if (p === 'granted') {
+          fire();
+        } else {
+          new Notice(this.t.warnPermDenied, 5000);
+        }
       });
     } else {
       new Notice(this.t.warnPermBlocked, 6000);

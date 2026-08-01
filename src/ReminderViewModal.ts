@@ -1,7 +1,7 @@
 import { App, Modal } from 'obsidian';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
-import { fmtDate, fmtDateShort, remindBeforeToMs, calcRemindBeforeTarget } from './utils';
+import { fmtDate, remindBeforeToMs, calcRemindBeforeTarget, formatScheduleSummary } from './utils';
 
 export class ReminderViewModal extends Modal {
   private reminder: Reminder;
@@ -13,7 +13,7 @@ export class ReminderViewModal extends Modal {
     this.t = t;
   }
 
-  onOpen() {
+  onOpen(): void {
     const { contentEl, reminder, t } = this;
     contentEl.addClass('sr-view-modal');
 
@@ -73,45 +73,16 @@ export class ReminderViewModal extends Modal {
     }
   }
 
-  onClose() {
+  onClose(): void {
     this.contentEl.empty();
   }
 
   private renderSchedule(el: HTMLElement, r: Reminder, t: Strings): void {
-    if (r.type === 'once') {
-      el.createSpan({ cls: 'sr-tag sr-tag--once', text: t.tagOnce });
-      el.createSpan({ cls: 'sr-sched-text', text: fmtDate(r.specificTs) });
-      return;
+    const summary = formatScheduleSummary(r, t);
+    el.createSpan({ cls: summary.tagCls, text: summary.tagText });
+    el.createSpan({ cls: 'sr-sched-text', text: summary.mainText });
+    if (summary.endBadgeText) {
+      el.createSpan({ cls: 'sr-badge sr-badge--end', text: summary.endBadgeText });
     }
-
-    el.createSpan({ cls: 'sr-tag sr-tag--repeat', text: t.tagRepeat });
-
-    const parts = [];
-    const n = r.repStep ?? 1;
-    const unitIdx = ['day', 'week', 'month', 'year'].indexOf(r.repUnit ?? 'day');
-    const prefix = n === 1 ? t.periodicEverySingular : t.periodicEvery;
-    let unitLabel: string;
-    if (n === 1) {
-      unitLabel = t.periodicUnitSingular[unitIdx];
-    } else if (n >= 2 && n <= 4) {
-      unitLabel = t.periodicUnitFew[unitIdx];
-    } else {
-      unitLabel = t.periodicUnitLabels[unitIdx];
-    }
-    parts.push(`${prefix} ${n} ${unitLabel}`);
-
-    if (r.repUnit === 'week' && r.repDaysOfWeek) {
-      parts.push(`(${r.repDaysOfWeek.map((d) => t.daysShort[d]).join(', ')})`);
-    }
-
-    if (r.intraDayMode === 'interval') {
-      parts.push(t.ruleInterval(r.intraDayStepMin ?? 15, r.timeWindowStart || '00:00', r.timeWindowEnd || '23:59'));
-    } else {
-      parts.push(t.ruleAt(r.intraDayTime || '09:00'));
-    }
-
-    el.createSpan({ cls: 'sr-sched-text', text: parts.join(' ') });
-
-    if (r.endDate) el.createSpan({ cls: 'sr-badge sr-badge--end', text: `${t.endsLabel} ${fmtDateShort(r.endDate)}` });
   }
 }

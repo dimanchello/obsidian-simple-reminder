@@ -43,8 +43,8 @@ interface FormData {
 }
 
 function tsToLocal(ts: number): string {
-  const d = new Date(ts),
-    pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date(ts);
+  const pad = (n: number): string => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
@@ -120,6 +120,7 @@ export class AddReminderModal extends Modal {
   private existing: Reminder | null;
   private fd: FormData;
   private bodyEl!: HTMLElement;
+  private closeEmojiPopoverOnOutside: ((evt: MouseEvent) => void) | null = null;
 
   constructor(app: App, plugin: SimpleReminderPlugin, onSave: () => void, existing?: Reminder | null) {
     super(app);
@@ -141,6 +142,10 @@ export class AddReminderModal extends Modal {
   }
 
   onClose(): void {
+    if (this.closeEmojiPopoverOnOutside) {
+      document.removeEventListener('click', this.closeEmojiPopoverOnOutside);
+      this.closeEmojiPopoverOnOutside = null;
+    }
     this.contentEl.empty();
   }
 
@@ -256,7 +261,7 @@ export class AddReminderModal extends Modal {
 
     // Дополнительные настройки (Спойлер)
     const advWrap = body.createDiv('sr-adv-wrap');
-    this.addAdvToggle(advWrap, t.advSettings, 'isOpen', (content) => {
+    this.addAdvToggle(advWrap, t.advSettings, (content) => {
       this.buildAdvSettings(content, t);
     });
 
@@ -368,16 +373,6 @@ export class AddReminderModal extends Modal {
     });
   }
 
-  private buildIntraSingle(c: HTMLElement, t: Strings): void {
-    const gTime = c.createDiv('sr-field-group');
-    gTime.createEl('label', { cls: 'sr-label', text: t.periodicTimeLabel });
-    const timeInp = gTime.createEl('input', { cls: 'sr-input sr-input--time', type: 'time' });
-    timeInp.value = this.fd.intraTime;
-    timeInp.addEventListener('change', (e) => {
-      this.fd.intraTime = (e.target as HTMLInputElement).value;
-    });
-  }
-
   private buildIntraInterval(c: HTMLElement, t: Strings): void {
     const nRow = c.createDiv('sr-interval-row');
     nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.periodicEvery });
@@ -427,20 +422,20 @@ export class AddReminderModal extends Modal {
 
     let activeCategory = Object.keys(categories)[0];
 
-    const renderGrid = () => {
+    const renderGrid = (): void => {
       contentArea.empty();
       const grid = contentArea.createDiv('sr-emoji-grid');
       const emojis = categories[activeCategory] || [];
-      emojis.forEach((e) => {
+      emojis.forEach((emojiChar) => {
         const btn = grid.createEl('button', {
-          cls: 'sr-emoji-btn' + (this.fd.emoji === e ? ' sr-emoji-btn--active' : ''),
-          text: e,
+          cls: 'sr-emoji-btn' + (this.fd.emoji === emojiChar ? ' sr-emoji-btn--active' : ''),
+          text: emojiChar,
           type: 'button',
         });
-        btn.setAttribute('aria-label', `${t.fieldEmoji}: ${e}`);
+        btn.setAttribute('aria-label', `${t.fieldEmoji}: ${emojiChar}`);
         btn.addEventListener('click', () => {
-          this.fd.emoji = e;
-          preview.textContent = e;
+          this.fd.emoji = emojiChar;
+          preview.textContent = emojiChar;
           grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
           btn.classList.add('sr-emoji-btn--active');
           toggle(); // Закрываем popover после выбора
@@ -448,7 +443,7 @@ export class AddReminderModal extends Modal {
       });
     };
 
-    const renderTabs = () => {
+    const renderTabs = (): void => {
       tabsRow.empty();
       Object.keys(categories).forEach((cat) => {
         const btn = tabsRow.createEl('button', {
@@ -469,26 +464,23 @@ export class AddReminderModal extends Modal {
     renderGrid();
 
     let open = false;
-    const toggle = () => {
+    const toggle = (): void => {
       open = !open;
       wrap.classList.toggle('sr-emoji-popover--open', open);
     };
     preview.addEventListener('click', toggle);
 
-    // Закрытие при клике вне
-    const closeOnOutside = (e: MouseEvent) => {
-      if (open && !g.contains(e.target as Node)) {
+    if (this.closeEmojiPopoverOnOutside) {
+      document.removeEventListener('click', this.closeEmojiPopoverOnOutside);
+      this.closeEmojiPopoverOnOutside = null;
+    }
+
+    this.closeEmojiPopoverOnOutside = (evt: MouseEvent): void => {
+      if (open && !g.contains(evt.target as Node)) {
         toggle();
       }
     };
-    document.addEventListener('click', closeOnOutside);
-
-    // Очистка при закрытии модалки (привязываемся к onClose модалки)
-    const oldOnClose = this.onClose.bind(this);
-    this.onClose = () => {
-      document.removeEventListener('click', closeOnOutside);
-      oldOnClose();
-    };
+    document.addEventListener('click', this.closeEmojiPopoverOnOutside);
   }
 
   private buildRemindBeforeField(parent: HTMLElement, t: Strings): void {
@@ -499,12 +491,12 @@ export class AddReminderModal extends Modal {
     header.createSpan({ cls: 'sr-toggle-label', text: t.remindBeforeLabel });
     const content = wrap.createDiv('sr-toggle-content');
 
-    const renderList = () => {
+    const renderList = (): void => {
       content.empty();
       const scrollWrap = content.createDiv('sr-rb-scroll');
       const list = scrollWrap.createDiv('sr-rb-list');
 
-      const renderEntry = (idx: number) => {
+      const renderEntry = (idx: number): void => {
         const entry = this.fd.remindBeforeList[idx];
         const rowWrap = list.createDiv('sr-rb-row-wrap');
         const row = rowWrap.createDiv('sr-rb-row');
@@ -565,20 +557,26 @@ export class AddReminderModal extends Modal {
     });
   }
 
-  private addAdvToggle(parent: HTMLElement, label: string, dummy: string, buildContent: (c: HTMLElement) => void) {
+  private addAdvToggle(parent: HTMLElement, label: string, buildContent: (c: HTMLElement) => void): void {
     let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay;
     const block = parent.createDiv('sr-toggle-block sr-toggle-adv' + (isOpen ? ' sr-toggle-block--open' : ''));
     const header = block.createDiv('sr-toggle-header');
     header.createSpan({ cls: 'sr-toggle-label', text: label });
     const content = block.createDiv('sr-toggle-content');
-    if (isOpen) buildContent(content);
+    if (isOpen) {
+      buildContent(content);
+    }
 
     header.addEventListener('click', (e) => {
-      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+      if ((e.target as HTMLElement).tagName === 'INPUT') {
+        return;
+      }
       isOpen = !isOpen;
       block.classList.toggle('sr-toggle-block--open', isOpen);
       content.empty();
-      if (isOpen) buildContent(content);
+      if (isOpen) {
+        buildContent(content);
+      }
     });
   }
 
@@ -588,7 +586,7 @@ export class AddReminderModal extends Modal {
     fdKey: BoolFormDataKey,
     buildOn: (c: HTMLElement) => void,
     buildOff?: (c: HTMLElement) => void,
-  ) {
+  ): void {
     const isActive = this.fd[fdKey];
     const block = parent.createDiv('sr-toggle-block' + (isActive ? ' sr-toggle-block--open' : ''));
     const header = block.createDiv('sr-toggle-header');
@@ -597,15 +595,21 @@ export class AddReminderModal extends Modal {
     header.createSpan({ cls: 'sr-toggle-label', text: label });
     const content = block.createDiv('sr-toggle-content');
 
-    if (isActive) buildOn(content);
-    else if (buildOff) buildOff(content);
+    if (isActive) {
+      buildOn(content);
+    } else if (buildOff) {
+      buildOff(content);
+    }
 
     cb.addEventListener('change', () => {
       this.fd[fdKey] = cb.checked;
       block.classList.toggle('sr-toggle-block--open', cb.checked);
       content.empty();
-      if (cb.checked) buildOn(content);
-      else if (buildOff) buildOff(content);
+      if (cb.checked) {
+        buildOn(content);
+      } else if (buildOff) {
+        buildOff(content);
+      }
     });
   }
 
@@ -702,6 +706,8 @@ export class AddReminderModal extends Modal {
           return;
         }
         r.startDate = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+      } else if (!r.startDate) {
+        r.startDate = now;
       }
       if (d.useEnd && d.endDate) {
         const parts = d.endDate.split('-').map(Number);

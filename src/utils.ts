@@ -1,4 +1,10 @@
 import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry, DEFAULT_EMOJI } from './types';
+import { Strings } from './i18n';
+
+export const DAY_MS = 86400_000;
+export const MINUTE_MS = 60_000;
+export const THREE_DAYS_MS = 3 * DAY_MS;
+export const MAX_SEARCH_DAYS = 36500;
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
@@ -38,8 +44,7 @@ function parseTime(hhmm: string): [number, number] {
 }
 
 export function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
-  const dayMs = 86400_000;
-  const diffDays = Math.round((cand.getTime() - anchor.getTime()) / dayMs);
+  const diffDays = Math.round((cand.getTime() - anchor.getTime()) / DAY_MS);
   if (diffDays < 0) return false;
 
   const step = r.repStep || 1;
@@ -50,7 +55,7 @@ export function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
   if (r.repUnit === 'week') {
     const anchorMon = mondayOf(anchor);
     const candMon = mondayOf(cand);
-    const diffWeeks = Math.round((candMon.getTime() - anchorMon.getTime()) / (7 * dayMs));
+    const diffWeeks = Math.round((candMon.getTime() - anchorMon.getTime()) / (7 * DAY_MS));
     if (diffWeeks % step !== 0) return false;
 
     const days = r.repDaysOfWeek && r.repDaysOfWeek.length > 0 ? r.repDaysOfWeek : [anchor.getDay()];
@@ -81,9 +86,9 @@ export function isValidDay(cand: Date, anchor: Date, r: Reminder): boolean {
 }
 
 function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: number): number | null {
-  const y = candDay.getFullYear(),
-    m = candDay.getMonth(),
-    d = candDay.getDate();
+  const y = candDay.getFullYear();
+  const m = candDay.getMonth();
+  const d = candDay.getDate();
 
   if (r.intraDayMode === 'single') {
     const [hh, mm] = parseTime(r.intraDayTime || '09:00');
@@ -98,9 +103,9 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
 
     const winStart = new Date(y, m, d, sH, sM).getTime();
     let winEnd = new Date(y, m, d, eH, eM).getTime();
-    if (winEnd < winStart) winEnd += 86400_000; // Обработка ночных окон (например с 23:00 до 06:00)
+    if (winEnd < winStart) winEnd += DAY_MS;
 
-    const stepMs = (r.intraDayStepMin || 15) * 60_000;
+    const stepMs = (r.intraDayStepMin || 15) * MINUTE_MS;
     const searchFrom = Math.max(now, startTs);
     let nextTs = winStart;
 
@@ -114,23 +119,29 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
   return null;
 }
 
-const MAX_SEARCH_DAYS = 36500; // ~100 years
-
 export function calcNextTrigger(r: Reminder, now: number): number | null {
-  if (r.type === 'once') return r.specificTs && r.specificTs > now ? r.specificTs : null;
-  if (r.type !== 'repeat') return null;
+  if (r.type === 'once') {
+    return r.specificTs && r.specificTs > now ? r.specificTs : null;
+  }
+  if (r.type !== 'repeat') {
+    return null;
+  }
 
-  const anchor = new Date(r.startDate ?? Date.now());
+  const anchorTs = r.startDate ?? now;
+  const anchor = new Date(anchorTs);
   anchor.setHours(0, 0, 0, 0);
 
-  const cand = new Date(Math.max(now, r.startDate ?? 0));
+  const cand = new Date(Math.max(now, anchorTs));
+  cand.setDate(cand.getDate() - 1);
   cand.setHours(0, 0, 0, 0);
 
   for (let i = 0; i < MAX_SEARCH_DAYS; i++) {
-    if (isValidDay(cand, anchor, r)) {
-      const nextTime = findNextTimeOnDay(cand, r, now, r.startDate ?? 0);
+    if (cand.getTime() + DAY_MS >= anchor.getTime() && isValidDay(cand, anchor, r)) {
+      const nextTime = findNextTimeOnDay(cand, r, now, anchorTs);
       if (nextTime !== null) {
-        if (r.endDate && nextTime > r.endDate) return null;
+        if (r.endDate && nextTime > r.endDate) {
+          return null;
+        }
         return nextTime;
       }
     }
@@ -142,12 +153,11 @@ export function calcNextTrigger(r: Reminder, now: number): number | null {
 export function advanceTrigger(r: Reminder, now: number): number | null {
   if (r.type === 'once') return null;
   const nextNow = Math.max(now, r.nextTrigger ?? now);
-  // Прибавляем 1 минуту, чтобы скрипт шагнул дальше текущего сработавшего времени
-  return calcNextTrigger(r, nextNow + 60_000);
+  return calcNextTrigger(r, nextNow + MINUTE_MS);
 }
 
 export function migrateLegacyReminder(r: LegacyReminder): Reminder {
-  if (r.type === 'once' || r.type === 'repeat') return migrateRemindBefore(r as Reminder); // Уже мигрировано
+  if (r.type === 'once' || r.type === 'repeat') return migrateRemindBefore(r as Reminder);
 
   const migrated: Reminder = {
     id: r.id ?? '',
@@ -198,40 +208,43 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
   return migrated;
 }
 
-const PRUNE_AFTER_MS = 3 * 86400_000;
-
 export function pruneOldCompleted(reminders: Reminder[], now: number = Date.now()): Reminder[] {
   return reminders.filter((r) => {
-    if (r.checked && r.completedAt != null && now - r.completedAt > PRUNE_AFTER_MS) {
-      return false;
-    }
-    return true;
+    if (!r.checked || r.completedAt == null) return true;
+    return now - r.completedAt <= THREE_DAYS_MS;
   });
 }
 
 export function remindBeforeToMs(value: number, unit: RemindBeforeUnit): number {
-  const minuteMs = 60_000;
   switch (unit) {
     case 'minute':
-      return value * minuteMs;
+      return value * MINUTE_MS;
     case 'hour':
-      return value * 60 * minuteMs;
+      return value * 60 * MINUTE_MS;
     case 'day':
-      return value * 1440 * minuteMs;
+      return value * 1440 * MINUTE_MS;
     case 'week':
-      return value * 10080 * minuteMs;
+      return value * 10080 * MINUTE_MS;
     case 'month':
-      return value * 43200 * minuteMs; // 30 days (fallback for sorting)
+      return value * 43200 * MINUTE_MS;
     case 'year':
-      return value * 525600 * minuteMs; // 365 days (fallback for sorting)
+      return value * 525600 * MINUTE_MS;
   }
 }
 
 export function calcRemindBeforeTarget(targetTs: number, value: number, unit: RemindBeforeUnit): number {
   if (unit === 'month' || unit === 'year') {
     const d = new Date(targetTs);
-    if (unit === 'month') d.setMonth(d.getMonth() - value);
-    if (unit === 'year') d.setFullYear(d.getFullYear() - value);
+    const targetDay = d.getDate();
+    if (unit === 'month') {
+      d.setMonth(d.getMonth() - value);
+    }
+    if (unit === 'year') {
+      d.setFullYear(d.getFullYear() - value);
+    }
+    if (d.getDate() !== targetDay) {
+      d.setDate(0);
+    }
     return d.getTime();
   }
   return targetTs - remindBeforeToMs(value, unit);
@@ -291,8 +304,6 @@ export function migrateRemindBefore(r: Reminder): Reminder {
         broken = true;
       }
 
-      // If the unit was broken, its trigger was calculated as NaN and saved as null.
-      // We can try to repair it here if we have a nextTrigger.
       if (broken && rb.trigger === null) {
         const target = r.nextTrigger ?? r.specificTs;
         if (target) {
@@ -306,4 +317,55 @@ export function migrateRemindBefore(r: Reminder): Reminder {
   }
 
   return r;
+}
+
+export interface ScheduleSummary {
+  isOnce: boolean;
+  tagCls: string;
+  tagText: string;
+  mainText: string;
+  endBadgeText?: string;
+}
+
+export function formatScheduleSummary(r: Reminder, t: Strings): ScheduleSummary {
+  if (r.type === 'once') {
+    return {
+      isOnce: true,
+      tagCls: 'sr-tag sr-tag--once',
+      tagText: t.tagOnce,
+      mainText: fmtDate(r.specificTs),
+    };
+  }
+
+  const parts: string[] = [];
+  const n = r.repStep ?? 1;
+  const unitIdx = ['day', 'week', 'month', 'year'].indexOf(r.repUnit ?? 'day');
+  const prefix = n === 1 ? t.periodicEverySingular : t.periodicEvery;
+  let unitLabel: string;
+  if (n === 1) {
+    unitLabel = t.periodicUnitSingular[unitIdx];
+  } else if (n >= 2 && n <= 4) {
+    unitLabel = t.periodicUnitFew[unitIdx];
+  } else {
+    unitLabel = t.periodicUnitLabels[unitIdx];
+  }
+  parts.push(`${prefix} ${n} ${unitLabel}`);
+
+  if (r.repUnit === 'week' && r.repDaysOfWeek) {
+    parts.push(`(${r.repDaysOfWeek.map((d) => t.daysShort[d]).join(', ')})`);
+  }
+
+  if (r.intraDayMode === 'interval') {
+    parts.push(t.ruleInterval(r.intraDayStepMin ?? 15, r.timeWindowStart || '00:00', r.timeWindowEnd || '23:59'));
+  } else {
+    parts.push(t.ruleAt(r.intraDayTime || '09:00'));
+  }
+
+  return {
+    isOnce: false,
+    tagCls: 'sr-tag sr-tag--repeat',
+    tagText: t.tagRepeat,
+    mainText: parts.join(' '),
+    endBadgeText: r.endDate ? `${t.endsLabel} ${fmtDateShort(r.endDate)}` : undefined,
+  };
 }

@@ -182,5 +182,3 @@ export const EMOJIS_BY_CATEGORY: Record<string, string[]> = {
   ],
   '💡': ['⏰', '🔔', '📌', '📅', '💡', '📝', '⭐', '❤️', '✅', '🔄', '🔥', '💎', '🌈', '🌙'],
 };
-
-export const EMOJIS = Object.values(EMOJIS_BY_CATEGORY).flat();

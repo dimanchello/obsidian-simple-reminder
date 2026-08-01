@@ -155,7 +155,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       r.repDaysOfWeek = options.daysOfWeek ?? null;
       r.repDayOfMonth = options.dayOfMonth ?? null;
       r.repMonth = options.month ?? null;
-      r.startDate = toTs(options.startDate);
+      r.startDate = toTs(options.startDate) ?? now;
       r.endDate = toTs(options.endDate);
       r.intraDayMode = options.intraDayMode;
       r.intraDayTime = options.intraDayTime ?? null;
@@ -164,7 +164,9 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       r.timeWindowEnd = options.timeWindowEnd ?? null;
     }
 
-    if (options.emoji) r.emoji = options.emoji;
+    if (options.emoji) {
+      r.emoji = options.emoji;
+    }
 
     const rawEntries =
       options.remindBefore ??
@@ -184,7 +186,9 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
 
   removeReminder(id: string): boolean {
     const idx = this.plugin.reminders.findIndex((r) => r.id === id);
-    if (idx === -1) return false;
+    if (idx === -1) {
+      return false;
+    }
     this.plugin.reminders.splice(idx, 1);
     this.plugin.saveSettings();
     this._emitRemoved(id);
@@ -194,10 +198,23 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
 
   setChecked(id: string, checked: boolean): boolean {
     const r = this.plugin.reminders.find((x) => x.id === id);
-    if (!r) return false;
+    if (!r) {
+      return false;
+    }
     r.checked = checked;
-    if (checked) r.completedAt = Date.now();
-    else r.completedAt = null;
+    if (checked) {
+      r.completedAt = Date.now();
+      r.nextTrigger = null;
+      r.remindBefore.forEach((e) => {
+        e.trigger = null;
+      });
+    } else {
+      r.completedAt = null;
+      r.nextTrigger = calcNextTrigger(r, Date.now());
+      if (r.remindBefore.length > 0) {
+        r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+      }
+    }
     this.plugin.saveSettings();
     this._emitUpdated(r);
     this.plugin.refreshView();

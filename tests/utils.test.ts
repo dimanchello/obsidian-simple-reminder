@@ -9,8 +9,11 @@ import {
   pruneOldCompleted,
   remindBeforeToMs,
   calcRemindBeforeTriggers,
+  calcRemindBeforeTarget,
+  formatScheduleSummary,
 } from '../src/utils';
 import { Reminder } from '../src/types';
+import { getStrings } from '../src/i18n';
 
 function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
   return {
@@ -773,48 +776,33 @@ describe('migrateLegacyReminder', () => {
 });
 
 describe('pruneOldCompleted', () => {
-  const threeDaysMs = 3 * 86400_000;
-  const now = Date.now();
+  const now = 1000_000_000_000;
+  const dayMs = 86400_000;
 
   it('removes completed reminders older than 3 days', () => {
     const reminders: Reminder[] = [
-      makeReminder({ id: '1', checked: true, completedAt: now - threeDaysMs - 1000 }),
-      makeReminder({ id: '2', checked: false }),
+      makeReminder({ id: '1', checked: true, completedAt: now - 4 * dayMs }),
+      makeReminder({ id: '2', checked: true, completedAt: now - 2 * dayMs }),
+      makeReminder({ id: '3', checked: false }),
     ];
     const result = pruneOldCompleted(reminders, now);
-    expect(result.length).toBe(1);
-    expect(result[0].id).toBe('2');
+    expect(result.map((r) => r.id)).toEqual(['2', '3']);
   });
 
-  it('keeps completed reminders younger than 3 days', () => {
-    const reminders: Reminder[] = [
-      makeReminder({ id: '1', checked: true, completedAt: now - threeDaysMs + 1000 }),
-      makeReminder({ id: '2', checked: false }),
-    ];
+  it('retains completed reminders within 3 days', () => {
+    const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: now - 3 * dayMs })];
     const result = pruneOldCompleted(reminders, now);
-    expect(result.length).toBe(2);
+    expect(result).toHaveLength(1);
   });
 
-  it('keeps active reminders regardless of completedAt', () => {
-    const reminders: Reminder[] = [makeReminder({ id: '1', checked: false, completedAt: now - threeDaysMs * 2 })];
-    const result = pruneOldCompleted(reminders, now);
-    expect(result.length).toBe(1);
-  });
-
-  it('keeps completed reminders with null completedAt', () => {
+  it('retains completed reminders with null completedAt', () => {
     const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: null })];
     const result = pruneOldCompleted(reminders, now);
-    expect(result.length).toBe(1);
+    expect(result).toHaveLength(1);
   });
 
   it('returns empty array for empty input', () => {
     expect(pruneOldCompleted([], now)).toEqual([]);
-  });
-
-  it('handles exactly 3 days boundary', () => {
-    const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: now - threeDaysMs })];
-    const result = pruneOldCompleted(reminders, now);
-    expect(result.length).toBe(1);
   });
 });
 
@@ -891,5 +879,55 @@ describe('calcRemindBeforeTriggers', () => {
     expect(result).toHaveLength(2);
     expect(result[0].trigger).toBe(future - 30 * 60_000);
     expect(result[1].trigger).toBe(future - 3600_000);
+  });
+
+  it('clamps date to end of month when subtracting month on 31st (March 31 -> Feb 28)', () => {
+    const march31 = new Date(2026, 2, 31, 10, 0).getTime();
+    const trigger = calcRemindBeforeTarget(march31, 1, 'month');
+    const d = new Date(trigger);
+    expect(d.getMonth()).toBe(1); // February
+    expect(d.getDate()).toBe(28); // Clamped to Feb 28
+  });
+});
+
+describe('formatScheduleSummary', () => {
+  const tEn = getStrings('en');
+
+  it('formats once reminder summary correctly', () => {
+    const r = makeReminder({ type: 'once', specificTs: new Date(2025, 5, 15, 10, 0).getTime() });
+    const summary = formatScheduleSummary(r, tEn);
+    expect(summary.isOnce).toBe(true);
+    expect(summary.tagCls).toBe('sr-tag sr-tag--once');
+    expect(summary.tagText).toBe(tEn.tagOnce);
+    expect(summary.mainText).not.toBe('—');
+  });
+
+  it('formats repeat reminder summary correctly', () => {
+    const r = makeReminder({
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
+    });
+    const summary = formatScheduleSummary(r, tEn);
+    expect(summary.isOnce).toBe(false);
+    expect(summary.tagCls).toBe('sr-tag sr-tag--repeat');
+    expect(summary.mainText).toContain('Every 1 day');
+    expect(summary.mainText).toContain('at 09:00');
+  });
+
+  it('includes end date badge if endDate is set', () => {
+    const r = makeReminder({
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 1,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
+      endDate: new Date(2025, 11, 31).getTime(),
+    });
+    const summary = formatScheduleSummary(r, tEn);
+    expect(summary.endBadgeText).toBeDefined();
+    expect(summary.endBadgeText).toContain(tEn.endsLabel);
   });
 });

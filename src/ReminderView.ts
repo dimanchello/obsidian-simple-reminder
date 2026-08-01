@@ -3,7 +3,7 @@ import type SimpleReminderPlugin from './main';
 import { AddReminderModal } from './AddReminderModal';
 import { CalendarModal } from './CalendarModal';
 import { ReminderViewModal } from './ReminderViewModal';
-import { fmtDate, fmtDateShort } from './utils';
+import { fmtDate, formatScheduleSummary } from './utils';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
 
@@ -131,27 +131,26 @@ export class ReminderView extends ItemView {
 
     const cb = item.createDiv('sr-cb-wrap').createEl('input', { type: 'checkbox', cls: 'sr-checkbox' });
     cb.checked = r.checked;
-    cb.addEventListener('change', async () => {
-      r.checked = cb.checked;
-      if (cb.checked) r.completedAt = Date.now();
-      else r.completedAt = null;
-      await this.plugin.saveSettings();
-      this.refresh();
+    cb.addEventListener('change', () => {
+      this.plugin.api.setChecked(r.id, cb.checked);
     });
 
     const body = item.createDiv('sr-body');
     body.createDiv({ cls: 'sr-title', text: `${r.emoji || DEFAULT_EMOJI} ${r.title}` });
 
     body.addEventListener('click', (e) => {
-      // Игнорируем клики, если они случайным образом дошли от чекбокса или кнопок
-      if ((e.target as HTMLElement).closest('.sr-cb-wrap, .sr-actions')) return;
+      if ((e.target as HTMLElement).closest('.sr-cb-wrap, .sr-actions')) {
+        return;
+      }
       new ReminderViewModal(this.app, r, t).open();
     });
 
     const sched = body.createDiv('sr-sched');
     this.renderSchedule(sched, r, t);
 
-    if (!isDone && r.type === 'repeat') this.renderMeta(body, r, t);
+    if (!isDone && r.type === 'repeat') {
+      this.renderMeta(body, r, t);
+    }
 
     const acts = item.createDiv('sr-actions');
 
@@ -171,52 +170,20 @@ export class ReminderView extends ItemView {
 
     const delBtn = acts.createEl('button', { cls: 'sr-del-btn', text: '✕' });
     delBtn.setAttribute('aria-label', t.deleteAriaLabel);
-    delBtn.addEventListener('click', async () => {
-      confirmModal(this.app, t.deleteConfirm, t, async () => {
-        this.plugin.reminders = this.plugin.reminders.filter((x) => x.id !== r.id);
-        await this.plugin.saveSettings();
-        this.refresh();
+    delBtn.addEventListener('click', () => {
+      confirmModal(this.app, t.deleteConfirm, t, () => {
+        this.plugin.api.removeReminder(r.id);
       });
     });
   }
 
   private renderSchedule(el: HTMLElement, r: Reminder, t: Strings): void {
-    if (r.type === 'once') {
-      el.createSpan({ cls: 'sr-tag sr-tag--once', text: t.tagOnce });
-      el.createSpan({ cls: 'sr-sched-text', text: fmtDate(r.specificTs) });
-      return;
+    const summary = formatScheduleSummary(r, t);
+    el.createSpan({ cls: summary.tagCls, text: summary.tagText });
+    el.createSpan({ cls: 'sr-sched-text', text: summary.mainText });
+    if (summary.endBadgeText) {
+      el.createSpan({ cls: 'sr-badge sr-badge--end', text: summary.endBadgeText });
     }
-
-    el.createSpan({ cls: 'sr-tag sr-tag--repeat', text: t.tagRepeat });
-
-    // Формируем красивое описание правила
-    const parts = [];
-    const n = r.repStep ?? 1;
-    const unitIdx = ['day', 'week', 'month', 'year'].indexOf(r.repUnit ?? 'day');
-    const prefix = n === 1 ? t.periodicEverySingular : t.periodicEvery;
-    let unitLabel: string;
-    if (n === 1) {
-      unitLabel = t.periodicUnitSingular[unitIdx];
-    } else if (n >= 2 && n <= 4) {
-      unitLabel = t.periodicUnitFew[unitIdx];
-    } else {
-      unitLabel = t.periodicUnitLabels[unitIdx];
-    }
-    parts.push(`${prefix} ${n} ${unitLabel}`);
-
-    if (r.repUnit === 'week' && r.repDaysOfWeek) {
-      parts.push(`(${r.repDaysOfWeek.map((d) => t.daysShort[d]).join(', ')})`);
-    }
-
-    if (r.intraDayMode === 'interval') {
-      parts.push(t.ruleInterval(r.intraDayStepMin ?? 15, r.timeWindowStart || '00:00', r.timeWindowEnd || '23:59'));
-    } else {
-      parts.push(t.ruleAt(r.intraDayTime || '09:00'));
-    }
-
-    el.createSpan({ cls: 'sr-sched-text', text: parts.join(' ') });
-
-    if (r.endDate) el.createSpan({ cls: 'sr-badge sr-badge--end', text: `${t.endsLabel} ${fmtDateShort(r.endDate)}` });
   }
 
   private renderMeta(body: HTMLElement, r: Reminder, t: Strings): void {

@@ -26,10 +26,17 @@ export default [
       'prettier/prettier': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        { allowExpressions: true, allowTypedFunctionExpressions: true },
+      ],
       'no-console': 'warn',
       'eqeqeq': ['error', 'smart'],
       'no-var': 'error',
       'prefer-const': 'error',
+      'no-duplicate-imports': 'error',
+      'curly': ['error', 'all'],
     },
   },
   {
