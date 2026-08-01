@@ -124,6 +124,7 @@ export interface Strings {
   // Calendar modal
   calendarBtn: string;
   calendarBack: string;
+  calendarAddReminder: string;
   calendarRemindersFor: string;
   calendarNoReminders: string;
 }
@@ -140,7 +141,7 @@ const en: Strings = {
   noRemindersHint: 'Click «+ Add» to create your first reminder',
   tagOnce: '📅 Once',
   tagRepeat: '🔁 Repeat',
-  nextLabel: 'Next:',
+  nextLabel: 'Scheduled for:',
   alreadyFired: '✅ Already fired',
   endsLabel: 'Until:',
   daysShort: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
@@ -269,6 +270,7 @@ const en: Strings = {
 
   calendarBtn: '📅 Calendar',
   calendarBack: 'Back',
+  calendarAddReminder: '+ Add reminder',
   calendarRemindersFor: 'Reminders for',
   calendarNoReminders: 'No reminders on this day',
 };
@@ -285,7 +287,7 @@ const ru: Strings = {
   noRemindersHint: 'Нажмите «+ Добавить» чтобы создать первое',
   tagOnce: '📅 Разово',
   tagRepeat: '🔁 Повтор',
-  nextLabel: 'Следующее:',
+  nextLabel: 'Сработает:',
   alreadyFired: '✅ Уже сработало',
   endsLabel: 'До:',
   daysShort: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
@@ -423,6 +425,7 @@ const ru: Strings = {
 
   calendarBtn: '📅 Календарь',
   calendarBack: 'Назад',
+  calendarAddReminder: '+ Добавить напоминание',
   calendarRemindersFor: 'Напоминания на',
   calendarNoReminders: 'На этот день нет напоминаний',
 };

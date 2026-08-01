@@ -1,7 +1,7 @@
 import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
-import { EMOJIS_BY_CATEGORY } from './emojis';
+import { EMOJIS } from './emojis';
 import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs } from './utils';
 import { Strings } from './i18n';
 
@@ -87,20 +87,30 @@ function reminderToFD(r: Reminder): FormData {
   };
 }
 
-function defaultFD(): FormData {
+function defaultFD(initialDate?: Date): FormData {
+  let specificDate = '';
+  let startDate = '';
+  let useStart = false;
+
+  if (initialDate) {
+    specificDate = tsToLocal(initialDate.getTime());
+    startDate = tsToDateLocal(initialDate.getTime());
+    useStart = true;
+  }
+
   return {
     title: '',
     useDescription: false,
     description: '',
     mode: 'once',
-    specificDate: '',
+    specificDate,
     repUnit: 'day',
     repStep: 1,
     repDaysOfWeek: [false, false, false, false, false, false, false],
-    repDayOfMonth: 1,
-    repMonth: 0,
-    useStart: false,
-    startDate: '',
+    repDayOfMonth: initialDate ? initialDate.getDate() : 1,
+    repMonth: initialDate ? initialDate.getMonth() : 0,
+    useStart,
+    startDate,
     useEnd: false,
     endDate: '',
     isIntraDay: false,
@@ -122,12 +132,18 @@ export class AddReminderModal extends Modal {
   private bodyEl!: HTMLElement;
   private closeEmojiPopoverOnOutside: ((evt: MouseEvent) => void) | null = null;
 
-  constructor(app: App, plugin: SimpleReminderPlugin, onSave: () => void, existing?: Reminder | null) {
+  constructor(
+    app: App,
+    plugin: SimpleReminderPlugin,
+    onSave: () => void,
+    existing?: Reminder | null,
+    initialDate?: Date,
+  ) {
     super(app);
     this.plugin = plugin;
     this.onSave = onSave;
     this.existing = existing ?? null;
-    this.fd = existing ? reminderToFD(existing) : defaultFD();
+    this.fd = existing ? reminderToFD(existing) : defaultFD(initialDate);
   }
 
   onOpen(): void {
@@ -413,55 +429,24 @@ export class AddReminderModal extends Modal {
       type: 'button',
     });
     const wrap = g.createDiv('sr-emoji-popover');
-
-    // Вкладки категорий
-    const tabsRow = wrap.createDiv('sr-emoji-tabs');
     const contentArea = wrap.createDiv('sr-emoji-content');
+    const grid = contentArea.createDiv('sr-emoji-grid');
 
-    const categories = EMOJIS_BY_CATEGORY;
-
-    let activeCategory = Object.keys(categories)[0];
-
-    const renderGrid = (): void => {
-      contentArea.empty();
-      const grid = contentArea.createDiv('sr-emoji-grid');
-      const emojis = categories[activeCategory] || [];
-      emojis.forEach((emojiChar) => {
-        const btn = grid.createEl('button', {
-          cls: 'sr-emoji-btn' + (this.fd.emoji === emojiChar ? ' sr-emoji-btn--active' : ''),
-          text: emojiChar,
-          type: 'button',
-        });
-        btn.setAttribute('aria-label', `${t.fieldEmoji}: ${emojiChar}`);
-        btn.addEventListener('click', () => {
-          this.fd.emoji = emojiChar;
-          preview.textContent = emojiChar;
-          grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
-          btn.classList.add('sr-emoji-btn--active');
-          toggle(); // Закрываем popover после выбора
-        });
+    EMOJIS.forEach((emojiChar) => {
+      const btn = grid.createEl('button', {
+        cls: 'sr-emoji-btn' + (this.fd.emoji === emojiChar ? ' sr-emoji-btn--active' : ''),
+        text: emojiChar,
+        type: 'button',
       });
-    };
-
-    const renderTabs = (): void => {
-      tabsRow.empty();
-      Object.keys(categories).forEach((cat) => {
-        const btn = tabsRow.createEl('button', {
-          cls: 'sr-emoji-tab' + (activeCategory === cat ? ' sr-emoji-tab--active' : ''),
-          text: cat,
-          type: 'button',
-        });
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          activeCategory = cat;
-          renderTabs();
-          renderGrid();
-        });
+      btn.setAttribute('aria-label', `${t.fieldEmoji}: ${emojiChar}`);
+      btn.addEventListener('click', () => {
+        this.fd.emoji = emojiChar;
+        preview.textContent = emojiChar;
+        grid.querySelectorAll('.sr-emoji-btn').forEach((b) => b.classList.remove('sr-emoji-btn--active'));
+        btn.classList.add('sr-emoji-btn--active');
+        toggle();
       });
-    };
-
-    renderTabs();
-    renderGrid();
+    });
 
     let open = false;
     const toggle = (): void => {

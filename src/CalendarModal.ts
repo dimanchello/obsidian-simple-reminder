@@ -2,6 +2,7 @@ import { App, Modal } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { isValidDay } from './utils';
+import { AddReminderModal } from './AddReminderModal';
 
 const MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
 
@@ -117,12 +118,37 @@ export class CalendarModal extends Modal {
     const t = this.plugin.t;
 
     const header = container.createDiv('sr-cal-header');
-    const backBtn = header.createEl('button', { cls: 'sr-cal-back-btn', text: '← ' + t.calendarBack });
+    const navGroup = header.createDiv('sr-cal-nav-group');
+    const backBtn = navGroup.createEl('button', { cls: 'sr-cal-back-btn', text: '← ' + t.calendarBack });
     backBtn.addEventListener('click', () => {
       this.viewMonth = null;
       this.selDay = null;
       this.render();
     });
+
+    const addBtn = navGroup.createEl('button', { cls: 'sr-cal-add-btn', text: t.calendarAddReminder });
+    addBtn.addEventListener('click', () => {
+      const day = this.selDay ?? 1;
+      const now = new Date();
+      const targetDate = new Date(this.selYear, this.selMonth, day);
+      if (this.selYear === now.getFullYear() && this.selMonth === now.getMonth() && day === now.getDate()) {
+        targetDate.setHours(now.getHours(), now.getMinutes());
+      } else {
+        targetDate.setHours(9, 0, 0, 0);
+      }
+
+      new AddReminderModal(
+        this.app,
+        this.plugin,
+        () => {
+          this.render();
+          this.plugin.refreshView();
+        },
+        null,
+        targetDate,
+      ).open();
+    });
+
     header.createSpan({ cls: 'sr-cal-title', text: `${t.monthsFull[this.selMonth]} ${this.selYear}` });
 
     const main = container.createDiv('sr-cal-month-main');
