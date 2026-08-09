@@ -1,6 +1,7 @@
 export type ReminderType = 'once' | 'repeat';
 export type RepeatUnit = 'day' | 'week' | 'month' | 'year';
 export type RemindBeforeUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+export type GroupBy = 'none' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
 export type Language = 'auto' | 'en' | 'ru';
 
 export interface RemindBeforeEntry {
@@ -53,6 +54,7 @@ export interface PluginSettings {
   checkIntervalSec: number;
   language: Language;
   activeTab: 'all' | 'active' | 'done';
+  groupBy: GroupBy;
 }
 
 export const DEFAULT_EMOJI = '⏰';
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   checkIntervalSec: 30,
   language: 'auto',
   activeTab: 'all',
+  groupBy: 'none',
 };
 
 /** Legacy format for backward compatibility (pre-v1.0.0). Migrated via migrateLegacyReminder(). */

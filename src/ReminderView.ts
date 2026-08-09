@@ -3,7 +3,7 @@ import type SimpleReminderPlugin from './main';
 import { AddReminderModal } from './AddReminderModal';
 import { CalendarModal } from './CalendarModal';
 import { ReminderViewModal } from './ReminderViewModal';
-import { fmtDate, formatScheduleSummary } from './utils';
+import { fmtDate, formatScheduleSummary, groupReminders } from './utils';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
 
@@ -122,7 +122,17 @@ export class ReminderView extends ItemView {
       if (a.checked !== b.checked) return a.checked ? 1 : -1;
       return (a.nextTrigger ?? Infinity) - (b.nextTrigger ?? Infinity);
     });
-    for (const r of sorted) this.renderItem(list, r, t);
+
+    const groupBy = this.plugin.settings.groupBy;
+    const groups = groupReminders(sorted, groupBy, t);
+
+    for (const group of groups) {
+      if (groupBy !== 'none' && group.label) {
+        const divider = list.createDiv('sr-group-divider');
+        divider.createSpan({ cls: 'sr-group-divider-text', text: group.label });
+      }
+      for (const r of group.items) this.renderItem(list, r, t);
+    }
   }
 
   private renderItem(container: HTMLElement, r: Reminder, t: Strings): void {

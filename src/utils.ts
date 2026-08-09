@@ -1,4 +1,4 @@
-import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry, DEFAULT_EMOJI } from './types';
+import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry, GroupBy, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
 
 export const DAY_MS = 86400_000;
@@ -368,4 +368,109 @@ export function formatScheduleSummary(r: Reminder, t: Strings): ScheduleSummary 
     mainText: parts.join(' '),
     endBadgeText: r.endDate ? `${t.endsLabel} ${fmtDateShort(r.endDate)}` : undefined,
   };
+}
+
+const NO_TRIGGER_KEY = '__no_trigger__';
+
+function pad2(n: number): string {
+  return n < 10 ? '0' + n : String(n);
+}
+
+function isoWeek(d: Date): number {
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  return Math.ceil(((tmp.getTime() - yearStart.getTime()) / DAY_MS + 1) / 7);
+}
+
+export function getGroupKey(ts: number | null, groupBy: GroupBy): string {
+  if (groupBy === 'none') return '';
+  if (ts == null) return NO_TRIGGER_KEY;
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const mo = d.getMonth();
+  const da = d.getDate();
+  const hh = d.getHours();
+  const mm = d.getMinutes();
+  switch (groupBy) {
+    case 'minute':
+      return `${y}-${pad2(mo + 1)}-${pad2(da)} ${pad2(hh)}:${pad2(mm)}`;
+    case 'hour':
+      return `${y}-${pad2(mo + 1)}-${pad2(da)} ${pad2(hh)}:00`;
+    case 'day':
+      return `${y}-${pad2(mo + 1)}-${pad2(da)}`;
+    case 'week':
+      return `${y}-W${pad2(isoWeek(d))}`;
+    case 'month':
+      return `${y}-${pad2(mo + 1)}`;
+    case 'year':
+      return `${y}`;
+  }
+}
+
+export function formatGroupLabel(key: string, groupBy: GroupBy, t: Strings): string {
+  if (groupBy === 'none') return '';
+  if (key === NO_TRIGGER_KEY) return t.groupNoTrigger;
+
+  const parts = key.split(/[-W :T]+/).map(Number);
+
+  switch (groupBy) {
+    case 'minute': {
+      const [y, mo, da, hh, mm] = parts;
+      return `${pad2(da)} ${t.monthsShort[mo - 1]} ${y}, ${pad2(hh)}:${pad2(mm)}`;
+    }
+    case 'hour': {
+      const [y, mo, da, hh] = parts;
+      return `${pad2(da)} ${t.monthsShort[mo - 1]} ${y}, ${pad2(hh)}:00`;
+    }
+    case 'day': {
+      const [y, mo, da] = parts;
+      return `${pad2(da)} ${t.monthsShort[mo - 1]} ${y}`;
+    }
+    case 'week': {
+      const [y, w] = parts;
+      return t.groupWeekLabel(w, y);
+    }
+    case 'month': {
+      const [y, mo] = parts;
+      return `${t.monthsShort[mo - 1]} ${y}`;
+    }
+    case 'year': {
+      return key;
+    }
+  }
+}
+
+export interface ReminderGroup {
+  label: string;
+  items: Reminder[];
+}
+
+export function groupReminders(items: Reminder[], groupBy: GroupBy, t: Strings): ReminderGroup[] {
+  if (groupBy === 'none' || items.length === 0) {
+    return [{ label: '', items }];
+  }
+
+  const groups: ReminderGroup[] = [];
+  let currentKey: string | null = null;
+  let currentGroup: Reminder[] = [];
+
+  for (const r of items) {
+    const ts = r.checked ? r.completedAt : (r.nextTrigger ?? r.specificTs);
+    const key = getGroupKey(ts, groupBy);
+    if (key !== currentKey) {
+      if (currentGroup.length > 0 && currentKey !== null) {
+        groups.push({ label: formatGroupLabel(currentKey, groupBy, t), items: currentGroup });
+      }
+      currentKey = key;
+      currentGroup = [r];
+    } else {
+      currentGroup.push(r);
+    }
+  }
+  if (currentGroup.length > 0 && currentKey !== null) {
+    groups.push({ label: formatGroupLabel(currentKey, groupBy, t), items: currentGroup });
+  }
+
+  return groups;
 }

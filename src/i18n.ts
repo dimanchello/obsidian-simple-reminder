@@ -127,6 +127,18 @@ export interface Strings {
   calendarAddReminder: string;
   calendarRemindersFor: string;
   calendarNoReminders: string;
+
+  groupByName: string;
+  groupByDesc: string;
+  groupByNone: string;
+  groupByMinute: string;
+  groupByHour: string;
+  groupByDay: string;
+  groupByWeek: string;
+  groupByMonth: string;
+  groupByYear: string;
+  groupNoTrigger: string;
+  groupWeekLabel: (week: number, year: number) => string;
 }
 
 const en: Strings = {
@@ -273,6 +285,18 @@ const en: Strings = {
   calendarAddReminder: '+ Add reminder',
   calendarRemindersFor: 'Reminders for',
   calendarNoReminders: 'No reminders on this day',
+
+  groupByName: 'Group reminders by',
+  groupByDesc: 'Display dividers between groups in the sidebar',
+  groupByNone: 'No grouping',
+  groupByMinute: 'Minute',
+  groupByHour: 'Hour',
+  groupByDay: 'Day',
+  groupByWeek: 'Week',
+  groupByMonth: 'Month',
+  groupByYear: 'Year',
+  groupNoTrigger: 'No scheduled time',
+  groupWeekLabel: (week, year) => `Week ${week}, ${year}`,
 };
 
 const ru: Strings = {
@@ -428,6 +452,18 @@ const ru: Strings = {
   calendarAddReminder: '+ Добавить напоминание',
   calendarRemindersFor: 'Напоминания на',
   calendarNoReminders: 'На этот день нет напоминаний',
+
+  groupByName: 'Группировать напоминания по',
+  groupByDesc: 'Отображать разделители между группами в панели',
+  groupByNone: 'Без группировки',
+  groupByMinute: 'Минута',
+  groupByHour: 'Час',
+  groupByDay: 'День',
+  groupByWeek: 'Неделя',
+  groupByMonth: 'Месяц',
+  groupByYear: 'Год',
+  groupNoTrigger: 'Без даты',
+  groupWeekLabel: (week, year) => `Неделя ${week}, ${year}`,
 };
 
 const STRINGS: Record<'en' | 'ru', Strings> = { en, ru };

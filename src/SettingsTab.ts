@@ -1,6 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting } from 'obsidian';
 import type SimpleReminderPlugin from './main';
-import { Language } from './types';
+import { GroupBy, Language } from './types';
 
 export class ReminderSettingTab extends PluginSettingTab {
   private plugin: SimpleReminderPlugin;
@@ -72,6 +72,27 @@ export class ReminderSettingTab extends PluginSettingTab {
             this.plugin.refreshStrings();
             // Re-render settings page with new language
             this.display();
+          });
+      });
+
+    // Group by
+    new Setting(el)
+      .setName(t.groupByName)
+      .setDesc(t.groupByDesc)
+      .addDropdown((drop) => {
+        drop
+          .addOption('none', t.groupByNone)
+          .addOption('minute', t.groupByMinute)
+          .addOption('hour', t.groupByHour)
+          .addOption('day', t.groupByDay)
+          .addOption('week', t.groupByWeek)
+          .addOption('month', t.groupByMonth)
+          .addOption('year', t.groupByYear)
+          .setValue(this.plugin.settings.groupBy)
+          .onChange(async (val) => {
+            this.plugin.settings.groupBy = val as GroupBy;
+            await this.plugin.saveSettings();
+            this.plugin.refreshView();
           });
       });
 

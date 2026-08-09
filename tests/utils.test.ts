@@ -11,6 +11,9 @@ import {
   calcRemindBeforeTriggers,
   calcRemindBeforeTarget,
   formatScheduleSummary,
+  getGroupKey,
+  formatGroupLabel,
+  groupReminders,
 } from '../src/utils';
 import { Reminder } from '../src/types';
 import { getStrings } from '../src/i18n';
@@ -890,9 +893,9 @@ describe('calcRemindBeforeTriggers', () => {
   });
 });
 
-describe('formatScheduleSummary', () => {
-  const tEn = getStrings('en');
+const tEn = getStrings('en');
 
+describe('formatScheduleSummary', () => {
   it('formats once reminder summary correctly', () => {
     const r = makeReminder({ type: 'once', specificTs: new Date(2025, 5, 15, 10, 0).getTime() });
     const summary = formatScheduleSummary(r, tEn);
@@ -929,5 +932,164 @@ describe('formatScheduleSummary', () => {
     const summary = formatScheduleSummary(r, tEn);
     expect(summary.endBadgeText).toBeDefined();
     expect(summary.endBadgeText).toContain(tEn.endsLabel);
+  });
+});
+
+// ── getGroupKey ──────────────────────────────────────────────────────────────
+
+describe('getGroupKey', () => {
+  const ts = new Date(2026, 7, 9, 14, 35, 22).getTime(); // 2026-08-09 14:35:22
+
+  it('returns empty string for none', () => {
+    expect(getGroupKey(ts, 'none')).toBe('');
+  });
+
+  it('returns __no_trigger__ for null ts', () => {
+    expect(getGroupKey(null, 'day')).toBe('__no_trigger__');
+  });
+
+  it('groups by minute', () => {
+    expect(getGroupKey(ts, 'minute')).toBe('2026-08-09 14:35');
+  });
+
+  it('groups by hour', () => {
+    expect(getGroupKey(ts, 'hour')).toBe('2026-08-09 14:00');
+  });
+
+  it('groups by day', () => {
+    expect(getGroupKey(ts, 'day')).toBe('2026-08-09');
+  });
+
+  it('groups by week', () => {
+    const key = getGroupKey(ts, 'week');
+    expect(key).toMatch(/^2026-W\d{2}$/);
+  });
+
+  it('groups by month', () => {
+    expect(getGroupKey(ts, 'month')).toBe('2026-08');
+  });
+
+  it('groups by year', () => {
+    expect(getGroupKey(ts, 'year')).toBe('2026');
+  });
+
+  it('same hour different minutes produce same hour key', () => {
+    const ts1 = new Date(2026, 0, 1, 10, 5).getTime();
+    const ts2 = new Date(2026, 0, 1, 10, 55).getTime();
+    expect(getGroupKey(ts1, 'hour')).toBe(getGroupKey(ts2, 'hour'));
+  });
+
+  it('different hours produce different hour keys', () => {
+    const ts1 = new Date(2026, 0, 1, 10, 0).getTime();
+    const ts2 = new Date(2026, 0, 1, 11, 0).getTime();
+    expect(getGroupKey(ts1, 'hour')).not.toBe(getGroupKey(ts2, 'hour'));
+  });
+
+  it('returns __no_trigger__ for null ts regardless of groupBy', () => {
+    expect(getGroupKey(null, 'minute')).toBe('__no_trigger__');
+    expect(getGroupKey(null, 'year')).toBe('__no_trigger__');
+  });
+});
+
+// ── formatGroupLabel ────────────────────────────────────────────────────────
+
+describe('formatGroupLabel', () => {
+  it('returns empty string for none', () => {
+    expect(formatGroupLabel('', 'none', tEn)).toBe('');
+  });
+
+  it('returns groupNoTrigger for __no_trigger__', () => {
+    expect(formatGroupLabel('__no_trigger__', 'day', tEn)).toBe(tEn.groupNoTrigger);
+  });
+
+  it('formats minute label', () => {
+    expect(formatGroupLabel('2026-08-09 14:35', 'minute', tEn)).toBe('09 Aug 2026, 14:35');
+  });
+
+  it('formats hour label', () => {
+    expect(formatGroupLabel('2026-08-09 14:00', 'hour', tEn)).toBe('09 Aug 2026, 14:00');
+  });
+
+  it('formats day label', () => {
+    expect(formatGroupLabel('2026-08-09', 'day', tEn)).toBe('09 Aug 2026');
+  });
+
+  it('formats week label EN', () => {
+    expect(formatGroupLabel('2026-W32', 'week', tEn)).toBe('Week 32, 2026');
+  });
+
+  it('formats week label RU', () => {
+    const tRu = getStrings('ru');
+    expect(formatGroupLabel('2026-W32', 'week', tRu)).toContain('32');
+    expect(formatGroupLabel('2026-W32', 'week', tRu)).toContain('2026');
+  });
+
+  it('formats month label', () => {
+    expect(formatGroupLabel('2026-08', 'month', tEn)).toBe('Aug 2026');
+  });
+
+  it('formats year label', () => {
+    expect(formatGroupLabel('2026', 'year', tEn)).toBe('2026');
+  });
+});
+
+// ── groupReminders ──────────────────────────────────────────────────────────
+
+describe('groupReminders', () => {
+  it('returns single group for none', () => {
+    const items = [makeReminder({ nextTrigger: Date.now() + 60000 })];
+    const groups = groupReminders(items, 'none', tEn);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe('');
+    expect(groups[0].items).toHaveLength(1);
+  });
+
+  it('returns single group with empty items for empty list', () => {
+    const groups = groupReminders([], 'day', tEn);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].items).toHaveLength(0);
+  });
+
+  it('groups items by day into separate groups', () => {
+    const day1 = new Date(2026, 7, 9, 10, 0).getTime();
+    const day2 = new Date(2026, 7, 10, 15, 0).getTime();
+    const items = [
+      makeReminder({ id: 'a', nextTrigger: day1 }),
+      makeReminder({ id: 'b', nextTrigger: day1 + 3600000 }),
+      makeReminder({ id: 'c', nextTrigger: day2 }),
+    ];
+    const groups = groupReminders(items, 'day', tEn);
+    expect(groups).toHaveLength(2);
+    expect(groups[0].items).toHaveLength(2);
+    expect(groups[1].items).toHaveLength(1);
+  });
+
+  it('puts null-trigger items in no-trigger group', () => {
+    const items = [makeReminder({ id: 'a', nextTrigger: null }), makeReminder({ id: 'b', nextTrigger: null })];
+    const groups = groupReminders(items, 'day', tEn);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe(tEn.groupNoTrigger);
+  });
+
+  it('uses completedAt for checked reminders', () => {
+    const ts1 = new Date(2026, 7, 9, 10, 0).getTime();
+    const ts2 = new Date(2026, 7, 10, 10, 0).getTime();
+    const items = [
+      makeReminder({ id: 'a', checked: true, completedAt: ts1, nextTrigger: null }),
+      makeReminder({ id: 'b', checked: true, completedAt: ts2, nextTrigger: null }),
+    ];
+    const groups = groupReminders(items, 'day', tEn);
+    expect(groups).toHaveLength(2);
+  });
+
+  it('preserves item order within groups', () => {
+    const ts = new Date(2026, 7, 9, 10, 0).getTime();
+    const items = [
+      makeReminder({ id: 'first', nextTrigger: ts }),
+      makeReminder({ id: 'second', nextTrigger: ts + 60000 }),
+    ];
+    const groups = groupReminders(items, 'day', tEn);
+    expect(groups[0].items[0].id).toBe('first');
+    expect(groups[0].items[1].id).toBe('second');
   });
 });

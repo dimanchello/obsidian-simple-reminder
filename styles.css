@@ -96,6 +96,29 @@
 /* ── List ────────────────────────────────────────────────────────── */
 .sr-list { display: flex; flex-direction: column; gap: 6px; }
 
+/* ── Group divider ──────────────────────────────────────────────── */
+.sr-group-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 2px;
+  margin-top: 4px;
+}
+.sr-group-divider::before,
+.sr-group-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--background-modifier-border);
+}
+.sr-group-divider-text {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  white-space: nowrap;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
 /* ── Item ────────────────────────────────────────────────────────── */
 .sr-item {
   display: flex;

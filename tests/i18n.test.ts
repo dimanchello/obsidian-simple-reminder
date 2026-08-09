@@ -80,6 +80,16 @@ describe('getStrings — English', () => {
     expect(text).toContain('v1.1.0');
     expect(text).toContain('60');
   });
+
+  it('has groupBy strings', () => {
+    expect(en.groupByName).toBe('Group reminders by');
+    expect(en.groupByNone).toBe('No grouping');
+    expect(en.groupNoTrigger).toBe('No scheduled time');
+  });
+
+  it('groupWeekLabel formats correctly', () => {
+    expect(en.groupWeekLabel(32, 2026)).toBe('Week 32, 2026');
+  });
 });
 
 // ── getStrings — Russian ─────────────────────────────────────────────────────
@@ -143,6 +153,16 @@ describe('getStrings — Russian', () => {
     const text = ru.aboutText(60);
     expect(text).toContain('v1.1.0');
     expect(text).toContain('60');
+  });
+
+  it('has groupBy strings in Russian', () => {
+    expect(ru.groupByNone).toContain('группировки');
+    expect(ru.groupNoTrigger).toContain('даты');
+  });
+
+  it('groupWeekLabel formats correctly in Russian', () => {
+    expect(ru.groupWeekLabel(32, 2026)).toContain('32');
+    expect(ru.groupWeekLabel(32, 2026)).toContain('2026');
   });
 });
 
