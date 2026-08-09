@@ -47,6 +47,10 @@ export interface Reminder {
   // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;
   completedAt: number | null;
+
+  // ── Markdown Integration ──────────────────────────────────────────────────
+  file?: string;
+  line?: number;
 }
 
 export interface PluginSettings {

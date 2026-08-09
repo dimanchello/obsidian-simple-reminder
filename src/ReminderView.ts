@@ -79,8 +79,8 @@ export class ReminderView extends ItemView {
   }
 
   private renderTabs(root: HTMLElement, t: Strings): void {
-    const all = this.plugin.reminders.length;
-    const active = this.plugin.reminders.filter((r) => !r.checked).length;
+    const all = this.plugin.allReminders.length;
+    const active = this.plugin.allReminders.filter((r) => !r.checked).length;
     const done = all - active;
     const tabs: { id: TabId; label: string; count: number }[] = [
       { id: 'all', label: t.tabAll, count: all },
@@ -106,7 +106,7 @@ export class ReminderView extends ItemView {
 
   private renderList(root: HTMLElement, t: Strings): void {
     const list = root.createDiv('sr-list');
-    const items = this.plugin.reminders.filter((r) => {
+    const items = this.plugin.allReminders.filter((r) => {
       if (this.currentTab === 'active') return !r.checked;
       if (this.currentTab === 'done') return r.checked;
       return true;

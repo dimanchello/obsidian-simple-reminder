@@ -116,7 +116,7 @@ export interface Strings {
   warnPermDenied: string;
   warnPermBlocked: string;
   okPermAlready: string;
-  remindBeforePrefix: string;
+  remindBeforePrefix: (timeStr?: string) => string;
   deleteConfirm: string;
   confirmYes: string;
   confirmNo: string;
@@ -275,7 +275,7 @@ const en: Strings = {
   warnPermDenied: '⚠️ Permission denied. Check system settings.',
   warnPermBlocked: '⚠️ Notifications blocked. Check system / browser settings.',
   okPermAlready: '✅ Notifications already allowed',
-  remindBeforePrefix: '⏰ Reminder soon:',
+  remindBeforePrefix: (t) => (t ? `Soon (in ${t}):` : 'Reminder soon:'),
   deleteConfirm: 'Delete this reminder?',
   confirmYes: 'Yes',
   confirmNo: 'No',
@@ -442,7 +442,7 @@ const ru: Strings = {
   warnPermDenied: '⚠️ Разрешение отклонено. Проверьте настройки системы.',
   warnPermBlocked: '⚠️ Уведомления заблокированы. Проверьте настройки.',
   okPermAlready: '✅ Уведомления уже разрешены',
-  remindBeforePrefix: '⏰ Скоро напоминание:',
+  remindBeforePrefix: (t) => (t ? `Скоро (через ${t}):` : 'Скоро напоминание:'),
   deleteConfirm: 'Удалить это напоминание?',
   confirmYes: 'Да',
   confirmNo: 'Нет',

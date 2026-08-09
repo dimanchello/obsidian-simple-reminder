@@ -35,12 +35,15 @@ src/
   main.ts              — Plugin entry: lifecycle, check loop, notifications, view management, pruning
   types.ts             — Reminder, PluginSettings, GroupBy, LegacyReminder interfaces + defaults
   utils.ts             — Pure functions: generateId, fmtDate, calcNextTrigger, advanceTrigger, migrateLegacyReminder, pruneOldCompleted, remindBeforeToMs, calcRemindBeforeTrigger, getGroupKey, formatGroupLabel, groupReminders
+  markdownScanner.ts   — Background scanner for `@remind` tags in Markdown files
+  MarkdownSuggest.ts   — EditorSuggest for autocompleting `@remind`
   api.ts               — Public API for other plugins (add/remove/get reminders, event system)
   i18n.ts              — EN/RU string dictionaries, language resolution
   ReminderView.ts      — Obsidian ItemView (sidebar panel) with tab/group rendering
   AddReminderModal.ts  — Modal for creating/editing reminders
   CalendarModal.ts     — Calendar view modal
   ReminderViewModal.ts — Read-only reminder detail modal
+  CustomDateModal.ts   — Modal with native datetime-local picker for custom dates
   SettingsTab.ts       — Obsidian PluginSettingTab
   emojis.ts            — Emoji picker data
 tests/
@@ -58,6 +61,7 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - Pure logic lives in `utils.ts` — keep it framework-agnostic
 - DOM manipulation stays in views/modals — use Obsidian's `createEl`/`createDiv` API
 - **Mobile compatibility** — all changes must work correctly on mobile devices (iOS/Android): touch events, no hover-only interactions, responsive layout
+- **IMPORTANT RULE**: Any changes to existing logic, addition of new features, or removal of mechanics MUST be documented in `README.md` as well. This is a strict requirement to keep documentation in sync with the codebase.
 
 ## Important implementation details
 
@@ -95,6 +99,13 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
   2. Check `nextTrigger` — if due, fire main notification
 - On fire (once): notification → `checked = true` → `completedAt = now` → clear triggers → save → refresh view
 - On fire (repeat): notification → `advanceTrigger` → recalculate `remindBefore` triggers → save → refresh view
+
+### Markdown Reminders (Inline)
+- The plugin supports parsing inline reminders in the format `@remind(YYYY-MM-DD HH:mm)`.
+- `MarkdownScanner` tracks these across the vault by listening to `modify`, `rename`, and `delete` events.
+- Inline reminders are merged with regular `data.json` reminders via the `plugin.allReminders` getter.
+- Upon firing, the plugin dynamically edits the file to change `@remind(...)` to `@remind-done(...)`.
+- `MarkdownSuggest` provides autocomplete functionality in the editor when the user types `@remind`.
 
 ### Completed reminder pruning
 - `pruneOldCompleted()` removes reminders where `checked === true` and `completedAt` is older than 3 days
