@@ -35,13 +35,11 @@ src/
   main.ts              — Plugin entry: lifecycle, check loop, notifications, view management, pruning
   types.ts             — Reminder, PluginSettings, LegacyReminder interfaces + defaults
   utils.ts             — Pure functions: generateId, fmtDate, calcNextTrigger, advanceTrigger, migrateLegacyReminder, pruneOldCompleted, remindBeforeToMs, calcRemindBeforeTrigger
-  markdownScanner.ts   — Background scanner for `@remind` tags in Markdown files
-  MarkdownSuggest.ts   — EditorSuggest for autocompleting `@remind`
   api.ts               — Public API for other plugins (add/remove/get reminders, event system)
   i18n.ts              — EN/RU string dictionaries, language resolution
   ReminderView.ts      — Obsidian ItemView (sidebar panel)
   AddReminderModal.ts  — Modal for creating/editing reminders
-  CustomDateModal.ts   — Modal with native datetime-local picker for custom dates
+  SettingsTab.ts       — Obsidian PluginSettingTab
   SettingsTab.ts       — Obsidian PluginSettingTab
 tests/
   utils.test.ts        — Tests for calcNextTrigger, advanceTrigger, migration, helpers, remindBefore
@@ -88,7 +86,9 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - Two-pass per reminder:
   1. Check `remindBeforeTrigger` — if due, fire pre-alert and clear trigger
   2. Check `nextTrigger` — if due, fire main notification
-- On fire (once): notification → `checked = true` → `completedAt = now` → clear triggers → save → refresh view
+- On fire (once): 
+  - If `nagMode` is false: notification → `checked = true` → `completedAt = now` → clear triggers → save → refresh view
+  - If `nagMode` is true: notification → `advanceTrigger` by `nagIntervalMin` → recalculate `remindBeforeTrigger` → save → refresh view
 - On fire (repeat): notification → `advanceTrigger` → recalculate `remindBeforeTrigger` → save → refresh view
 
 ### Completed reminder pruning
@@ -101,12 +101,11 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - `reminder-added` / `reminder-removed` / `reminder-updated` — CRUD operations
 - Access via `app.plugins.plugins['simple-reminder'].api`
 
-### Markdown Reminders (Inline)
-- The plugin supports parsing inline reminders in the format `@remind(YYYY-MM-DD HH:mm)`.
-- `MarkdownScanner` tracks these across the vault by listening to `modify`, `rename`, and `delete` events.
-- Inline reminders are merged with regular `data.json` reminders via the `plugin.allReminders` getter.
-- Upon firing, the plugin dynamically edits the file to change `@remind(...)` to `@remind-done(...)`.
-- `MarkdownSuggest` provides autocomplete functionality in the editor when the user types `@remind`.
+### Nag Mode (Persistent Notification)
+- Can be enabled for `once` reminders.
+- If enabled (`nagMode = true`), the reminder does not auto-complete on trigger.
+- Instead, `nextTrigger` is advanced by `nagIntervalMin` minutes.
+- It will keep firing and advancing until the user manually checks it off in the UI.
 
 ### Migration
 - `migrateLegacyReminder` converts old reminder formats (`specific`, `flexible`, `scheduled`, `periodic`) to the current `once`/`repeat` schema

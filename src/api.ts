@@ -5,6 +5,8 @@ import type SimpleReminderPlugin from './main';
 export interface OnceOptions {
   type: 'once';
   date: string | number | Date;
+  nagMode?: boolean;
+  nagIntervalMin?: number;
 }
 
 export interface RepeatOptions {
@@ -127,6 +129,8 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       checked: false,
       type: 'once',
       specificTs: null,
+      nagMode: false,
+      nagIntervalMin: null,
       repUnit: null,
       repStep: null,
       repDaysOfWeek: null,
@@ -148,6 +152,8 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     if (options.type === 'once') {
       r.type = 'once';
       r.specificTs = toTs(options.date);
+      r.nagMode = options.nagMode ?? false;
+      r.nagIntervalMin = options.nagIntervalMin ?? null;
     } else {
       r.type = 'repeat';
       r.repUnit = options.unit;

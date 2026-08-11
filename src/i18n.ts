@@ -55,6 +55,9 @@ export interface Strings {
   fieldIntervalUnit: string;
   fieldTimeFrom: string;
   fieldTimeTo: string;
+  toggleNagMode: string;
+  hintNagMode: string;
+  fieldNagInterval: string;
 
   fieldEmoji: string;
   remindBeforeLabel: string;
@@ -139,6 +142,8 @@ export interface Strings {
   groupByYear: string;
   groupNoTrigger: string;
   groupWeekLabel: (week: number, year: number) => string;
+  pruneCompletedDaysName: string;
+  pruneCompletedDaysDesc: string;
 }
 
 const en: Strings = {
@@ -209,6 +214,9 @@ const en: Strings = {
   fieldIntervalUnit: 'mins.',
   fieldTimeFrom: 'Active from',
   fieldTimeTo: 'to',
+  toggleNagMode: '🔔 Persistent notification',
+  hintNagMode: 'Repeat notification until marked as done',
+  fieldNagInterval: 'Repeat every (mins)',
 
   fieldEmoji: 'Icon',
   remindBeforeLabel: 'Remind before',
@@ -297,6 +305,8 @@ const en: Strings = {
   groupByYear: 'Year',
   groupNoTrigger: 'No scheduled time',
   groupWeekLabel: (week, year) => `Week ${week}, ${year}`,
+  pruneCompletedDaysName: 'Auto-delete completed after (days)',
+  pruneCompletedDaysDesc: 'Days to keep completed reminders. Set to 0 to keep them forever.',
 };
 
 const ru: Strings = {
@@ -367,6 +377,9 @@ const ru: Strings = {
   fieldIntervalUnit: 'мин.',
   fieldTimeFrom: 'С',
   fieldTimeTo: 'до',
+  toggleNagMode: '🔔 Настойчивое уведомление',
+  hintNagMode: 'Повторять уведомление, пока вы его не отметите',
+  fieldNagInterval: 'Повторять каждые (мин)',
 
   fieldEmoji: 'Иконка',
   remindBeforeLabel: 'Напомнить за',
@@ -464,6 +477,8 @@ const ru: Strings = {
   groupByYear: 'Год',
   groupNoTrigger: 'Без даты',
   groupWeekLabel: (week, year) => `Неделя ${week}, ${year}`,
+  pruneCompletedDaysName: 'Авто-удаление завершенных через (дней)',
+  pruneCompletedDaysDesc: 'Сколько дней хранить завершенные напоминания. Установите 0, чтобы хранить вечно.',
 };
 
 const STRINGS: Record<'en' | 'ru', Strings> = { en, ru };

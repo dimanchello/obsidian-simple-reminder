@@ -96,6 +96,27 @@ export class ReminderSettingTab extends PluginSettingTab {
           });
       });
 
+    // Prune completed days
+    new Setting(el)
+      .setName(t.pruneCompletedDaysName)
+      .setDesc(t.pruneCompletedDaysDesc)
+      .addText((text) => {
+        text
+          .setPlaceholder('3')
+          .setValue(String(this.plugin.settings.pruneCompletedDays))
+          .onChange(async (val) => {
+            const parsed = parseInt(val, 10);
+            if (!isNaN(parsed) && parsed >= 0) {
+              this.plugin.settings.pruneCompletedDays = parsed;
+              await this.plugin.saveSettings();
+              this.plugin.pruneOldCompleted();
+            }
+          });
+        text.inputEl.type = 'number';
+        text.inputEl.min = '0';
+        text.inputEl.style.width = '80px';
+      });
+
     // Test notification
     new Setting(el)
       .setName(t.testName)

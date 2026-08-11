@@ -25,6 +25,8 @@ function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
     checked: false,
     type: 'once',
     specificTs: null,
+    nagMode: false,
+    nagIntervalMin: null,
     repUnit: null,
     repStep: null,
     repDaysOfWeek: null,
@@ -788,24 +790,33 @@ describe('pruneOldCompleted', () => {
       makeReminder({ id: '2', checked: true, completedAt: now - 2 * dayMs }),
       makeReminder({ id: '3', checked: false }),
     ];
-    const result = pruneOldCompleted(reminders, now);
+    const result = pruneOldCompleted(reminders, 3, now);
     expect(result.map((r) => r.id)).toEqual(['2', '3']);
   });
 
   it('retains completed reminders within 3 days', () => {
     const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: now - 3 * dayMs })];
-    const result = pruneOldCompleted(reminders, now);
+    const result = pruneOldCompleted(reminders, 3, now);
     expect(result).toHaveLength(1);
   });
 
   it('retains completed reminders with null completedAt', () => {
     const reminders: Reminder[] = [makeReminder({ id: '1', checked: true, completedAt: null })];
-    const result = pruneOldCompleted(reminders, now);
+    const result = pruneOldCompleted(reminders, 3, now);
     expect(result).toHaveLength(1);
   });
 
   it('returns empty array for empty input', () => {
-    expect(pruneOldCompleted([], now)).toEqual([]);
+    expect(pruneOldCompleted([], 3, now)).toEqual([]);
+  });
+
+  it('keeps all reminders if keepDays is 0', () => {
+    const reminders: Reminder[] = [
+      makeReminder({ id: '1', checked: true, completedAt: now - 4 * dayMs }),
+      makeReminder({ id: '2', checked: true, completedAt: now - 2 * dayMs }),
+    ];
+    const result = pruneOldCompleted(reminders, 0, now);
+    expect(result).toHaveLength(2);
   });
 });
 

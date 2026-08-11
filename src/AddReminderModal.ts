@@ -6,7 +6,7 @@ import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
-type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay' | 'useDescription';
+type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay' | 'useDescription' | 'useNagMode';
 
 interface RemindBeforeFormItem {
   value: number;
@@ -19,6 +19,8 @@ interface FormData {
   description: string;
   mode: ReminderMode;
   specificDate: string;
+  useNagMode: boolean;
+  nagIntervalMin: number;
 
   repUnit: RepeatUnit;
   repStep: number;
@@ -64,6 +66,8 @@ function reminderToFD(r: Reminder): FormData {
     description: r.description || '',
     mode: isRepeat ? 'repeat' : 'once',
     specificDate: r.specificTs ? tsToLocal(r.specificTs) : '',
+    useNagMode: r.nagMode ?? false,
+    nagIntervalMin: r.nagIntervalMin ?? 15,
     repUnit: r.repUnit || 'day',
     repStep: r.repStep || 1,
     repDaysOfWeek: Array.from({ length: 7 }, (_, i) =>
@@ -104,6 +108,8 @@ function defaultFD(initialDate?: Date): FormData {
     description: '',
     mode: 'once',
     specificDate,
+    useNagMode: false,
+    nagIntervalMin: 15,
     repUnit: 'day',
     repStep: 1,
     repDaysOfWeek: [false, false, false, false, false, false, false],
@@ -235,6 +241,20 @@ export class AddReminderModal extends Modal {
     inp.addEventListener('change', (e) => {
       this.fd.specificDate = (e.target as HTMLInputElement).value;
     });
+
+    this.addToggle(body, t.toggleNagMode, 'useNagMode', (c) => {
+      c.createEl('span', { cls: 'sr-hint', text: t.hintNagMode });
+      const nRow = c.createDiv('sr-interval-row');
+      nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.fieldNagInterval });
+      const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
+      nInp.min = '1';
+      nInp.value = String(this.fd.nagIntervalMin);
+      nInp.addEventListener('input', (e) => {
+        const v = parseInt((e.target as HTMLInputElement).value, 10);
+        this.fd.nagIntervalMin = Math.max(1, isNaN(v) ? 15 : v);
+      });
+    });
+
     this.buildEmojiField(body, t);
     this.buildRemindBeforeField(body, t);
   }
@@ -616,6 +636,8 @@ export class AddReminderModal extends Modal {
             type: 'once',
             checked: false,
             specificTs: null,
+            nagMode: false,
+            nagIntervalMin: null,
             repUnit: null,
             repStep: null,
             repDaysOfWeek: null,
@@ -650,6 +672,8 @@ export class AddReminderModal extends Modal {
     r.timeWindowStart = null;
     r.timeWindowEnd = null;
     r.remindBefore = [];
+    r.nagMode = false;
+    r.nagIntervalMin = null;
     r.emoji = d.emoji || DEFAULT_EMOJI;
 
     if (d.mode === 'once') {
@@ -664,6 +688,10 @@ export class AddReminderModal extends Modal {
       }
       r.type = 'once';
       r.specificTs = ts;
+      if (d.useNagMode) {
+        r.nagMode = true;
+        r.nagIntervalMin = d.nagIntervalMin;
+      }
     } else {
       if (d.repStep < 1) {
         new Notice(t.errPeriodNMin);

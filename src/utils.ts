@@ -165,6 +165,8 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     checked: r.checked ?? false,
     type: 'once',
     specificTs: r.specificTs ?? null,
+    nagMode: false,
+    nagIntervalMin: null,
     repUnit: null,
     repStep: null,
     repDaysOfWeek: null,
@@ -208,10 +210,12 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
   return migrated;
 }
 
-export function pruneOldCompleted(reminders: Reminder[], now: number = Date.now()): Reminder[] {
+export function pruneOldCompleted(reminders: Reminder[], keepDays: number, now: number = Date.now()): Reminder[] {
+  if (keepDays === 0) return reminders;
+  const maxAgeMs = keepDays * DAY_MS;
   return reminders.filter((r) => {
     if (!r.checked || r.completedAt == null) return true;
-    return now - r.completedAt <= THREE_DAYS_MS;
+    return now - r.completedAt <= maxAgeMs;
   });
 }
 

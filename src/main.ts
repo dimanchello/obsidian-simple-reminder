@@ -1,4 +1,4 @@
-import { Notice, Plugin, TFile } from 'obsidian';
+import { Notice, Plugin } from 'obsidian';
 import { PluginSettings, Reminder, DEFAULT_SETTINGS, DEFAULT_EMOJI, RemindBeforeEntry } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
 import { AddReminderModal } from './AddReminderModal';
@@ -7,8 +7,6 @@ import { ReminderSettingTab } from './SettingsTab';
 import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTriggers } from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
-import { MarkdownScanner } from './markdownScanner';
-import { MarkdownSuggest } from './MarkdownSuggest';
 
 export default class SimpleReminderPlugin extends Plugin {
   settings!: PluginSettings;
@@ -19,10 +17,9 @@ export default class SimpleReminderPlugin extends Plugin {
   private checkTimer: number | null = null;
   private lastPruneTime: number = 0;
   private isChecking: boolean = false;
-  public markdownScanner!: MarkdownScanner;
 
   get allReminders(): Reminder[] {
-    return [...this.reminders, ...(this.markdownScanner?.getAllReminders() || [])];
+    return this.reminders;
   }
 
   async onload(): Promise<void> {
@@ -54,42 +51,7 @@ export default class SimpleReminderPlugin extends Plugin {
     this.addSettingTab(new ReminderSettingTab(this.app, this));
     this.requestNotificationPermission(false);
 
-    this.markdownScanner = new MarkdownScanner(this.app);
-    this.registerEditorSuggest(new MarkdownSuggest(this.app, this));
-
-    this.registerEvent(
-      this.app.vault.on('modify', async (file) => {
-        if (file instanceof TFile && file.extension === 'md') {
-          await this.markdownScanner.parseFile(file);
-          this.refreshView();
-        }
-      }),
-    );
-
-    this.registerEvent(
-      this.app.vault.on('rename', (file, oldPath) => {
-        if (file instanceof TFile && file.extension === 'md') {
-          this.markdownScanner.renameFile(oldPath, file.path);
-          this.refreshView();
-        }
-      }),
-    );
-
-    this.registerEvent(
-      this.app.vault.on('delete', (file) => {
-        if (file instanceof TFile && file.extension === 'md') {
-          this.markdownScanner.removeFile(file.path);
-          this.refreshView();
-        }
-      }),
-    );
-
     this.app.workspace.onLayoutReady(async () => {
-      // Initial scan of all markdown files
-      const files = this.app.vault.getMarkdownFiles();
-      for (const file of files) {
-        await this.markdownScanner.parseFile(file);
-      }
       this.checkReminders();
       this.startCheckLoop();
     });
@@ -154,7 +116,7 @@ export default class SimpleReminderPlugin extends Plugin {
 
   pruneOldCompleted(): void {
     const before = this.reminders.length;
-    this.reminders = pruneOldCompleted(this.reminders);
+    this.reminders = pruneOldCompleted(this.reminders, this.settings.pruneCompletedDays);
     if (this.reminders.length !== before) {
       this.saveSettings();
       this.refreshView();
@@ -206,36 +168,27 @@ export default class SimpleReminderPlugin extends Plugin {
         this.fireNotification(r);
         this.api._emitFired(r);
 
-        if (r.file && r.line !== undefined) {
-          // File-based reminder
-          const file = this.app.vault.getAbstractFileByPath(r.file);
-          if (file instanceof TFile) {
-            await this.app.vault.process(file, (data) => {
-              const lines = data.split('\n');
-              if (r.line !== undefined && lines[r.line]) {
-                lines[r.line] = lines[r.line].replace(/@remind\(/, '@remind-done(');
-              }
-              return lines.join('\n');
-            });
-          }
-          // The modify event will automatically update the cache for this file
-        } else {
-          // data.json reminder
-          if (r.type === 'once') {
+        if (r.type === 'once') {
+          if (r.nagMode && r.nagIntervalMin) {
+            r.nextTrigger = now + r.nagIntervalMin * 60000;
+            if (r.remindBefore.length > 0) {
+              r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+            }
+          } else {
             r.checked = true;
             r.completedAt = now;
             r.nextTrigger = null;
             r.remindBefore.forEach((e) => {
               e.trigger = null;
             });
-          } else {
-            r.nextTrigger = advanceTrigger(r, now);
-            if (r.remindBefore.length > 0) {
-              r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
-            }
           }
-          changed = true;
+        } else {
+          r.nextTrigger = advanceTrigger(r, now);
+          if (r.remindBefore.length > 0) {
+            r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+          }
         }
+        changed = true;
       }
 
       if (changed) {
@@ -273,15 +226,7 @@ export default class SimpleReminderPlugin extends Plugin {
         const notif = new Notification(prefix, { body: r.title, silent: false });
         notif.onclick = (): void => {
           window.focus();
-          if (r.file && r.line !== undefined) {
-            const file = this.app.vault.getAbstractFileByPath(r.file);
-            if (file instanceof TFile) {
-              const leaf = this.app.workspace.getLeaf('tab');
-              leaf.openFile(file, { eState: { line: r.line } });
-            }
-          } else {
-            new ReminderViewModal(this.app, r, this.t).open();
-          }
+          new ReminderViewModal(this.app, r, this.t).open();
         };
         return;
       } catch {
