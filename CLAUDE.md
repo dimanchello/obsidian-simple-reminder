@@ -1,10 +1,18 @@
-# CLAUDE.md — Obsidian Simple Reminder
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project overview
 
 Obsidian plugin that manages a reminder list with system notifications. Supports one-shot, daily/weekly/monthly/yearly recurring reminders with intra-day single-time or interval modes.
 
 Completed one-shot reminders are auto-deleted after 3 days unless re-opened. Each reminder can have a custom emoji icon and an optional "remind before" pre-alert. Reminders can be grouped by time period (minute/hour/day/week/month/year) in the sidebar.
+
+**Key features:**
+- Nag Mode — repeat one-shot reminders every N minutes until manually checked
+- Inline markdown reminders — `@remind(YYYY-MM-DD HH:mm)` syntax in notes
+- Mobile-first design — works on iOS/Android (while app is active)
+- Bilingual UI — English and Russian with auto-detection
 
 ## Tech stack
 
@@ -62,6 +70,7 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - DOM manipulation stays in views/modals — use Obsidian's `createEl`/`createDiv` API
 - **Mobile compatibility** — all changes must work correctly on mobile devices (iOS/Android): touch events, no hover-only interactions, responsive layout
 - **IMPORTANT RULE**: Any changes to existing logic, addition of new features, or removal of mechanics MUST be documented in `README.md` as well. This is a strict requirement to keep documentation in sync with the codebase.
+- **IMPORTANT RULE**: When changing documentation in README.md, always update BOTH the Russian sections (top) and English sections (bottom) to maintain bilingual consistency.
 
 ## Important implementation details
 
@@ -117,6 +126,13 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - `reminder-added` / `reminder-removed` / `reminder-updated` — CRUD operations
 - Access via `app.plugins.plugins['simple-reminder'].api`
 
+### Nag Mode
+- Optional feature for one-shot reminders that repeats the notification every N minutes until manually checked
+- Stored as `nagIntervalMin` and `isNagging` fields on the reminder
+- When enabled, reminder stays active after firing and re-triggers at intervals
+- User must explicitly check the reminder to stop nagging notifications
+- Does not apply to repeat-type reminders
+
 ### Migration
 - `migrateLegacyReminder` converts old reminder formats (`specific`, `flexible`, `scheduled`, `periodic`) to the current `once`/`repeat` schema
 - `migrateRemindBefore` converts old single-entry `remindBeforeValue`/`remindBeforeUnit` fields to `remindBefore[]` array
@@ -126,7 +142,7 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 
 Tests cover the critical scheduling logic in `utils.ts` and i18n dictionaries. **All business logic (pure functions in utils.ts) must be covered by unit tests.**
 
-**`tests/utils.test.ts`** (107 tests):
+**`tests/utils.test.ts`**:
 - `generateId` — uniqueness, format
 - `mondayOf` — all edge cases (Mon-Sun, time reset, immutability)
 - `calcNextTrigger` — once (future/past/null/equal), daily/weekly/monthly/yearly with step > 1, interval mode, overnight windows, end dates, malformed inputs, null fields
@@ -140,13 +156,13 @@ Tests cover the critical scheduling logic in `utils.ts` and i18n dictionaries. *
 - `formatGroupLabel` — all modes, EN/RU localization, no-trigger key
 - `groupReminders` — none mode, empty list, multi-group, null-trigger, completedAt, ordering
 
-**`tests/i18n.test.ts`** (41 tests):
+**`tests/i18n.test.ts`**:
 - `resolveLanguage` — explicit en/ru, auto fallback
 - English strings — all UI text, plural/singular forms, rule formatters, groupBy strings
 - Russian strings — all UI text, plural forms, rule formatters, groupBy strings
 - EN/RU consistency — same key count, array lengths, non-empty strings
 
-Run with `npm test`. Add tests for any new scheduling logic or language strings.
+Run with `npm test`. Watch mode with `npm run test:watch`. Add tests for any new scheduling logic or language strings.
 
 ## Linting
 
