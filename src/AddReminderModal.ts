@@ -6,7 +6,7 @@ import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
-type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay' | 'useDescription' | 'useNagMode';
+type BoolFormDataKey = 'useStart' | 'useEnd' | 'isIntraDay' | 'useDescription' | 'useUrl' | 'useNagMode';
 
 interface RemindBeforeFormItem {
   value: number;
@@ -17,6 +17,8 @@ interface FormData {
   title: string;
   useDescription: boolean;
   description: string;
+  useUrl: boolean;
+  url: string;
   mode: ReminderMode;
   specificDate: string;
   useNagMode: boolean;
@@ -64,6 +66,8 @@ function reminderToFD(r: Reminder): FormData {
     title: r.title,
     useDescription: !!r.description,
     description: r.description || '',
+    useUrl: !!r.url,
+    url: r.url || '',
     mode: isRepeat ? 'repeat' : 'once',
     specificDate: r.specificTs ? tsToLocal(r.specificTs) : '',
     useNagMode: r.nagMode ?? false,
@@ -106,6 +110,8 @@ function defaultFD(initialDate?: Date): FormData {
     title: '',
     useDescription: false,
     description: '',
+    useUrl: false,
+    url: '',
     mode: 'once',
     specificDate,
     useNagMode: false,
@@ -190,6 +196,39 @@ export class AddReminderModal extends Modal {
       ta.addEventListener('input', (e) => {
         this.fd.description = (e.target as HTMLTextAreaElement).value;
       });
+    });
+
+    this.addToggle(form, t.urlLabel, 'useUrl', (c) => {
+      const urlInp = c.createEl('input', { cls: 'sr-input', type: 'text', placeholder: t.urlPlaceholder });
+      urlInp.value = this.fd.url;
+
+      const datalistId = 'sr-note-suggestions-' + Date.now();
+      const datalist = c.createEl('datalist', { attr: { id: datalistId } });
+      urlInp.setAttribute('list', datalistId);
+      urlInp.setAttribute('autocomplete', 'off');
+
+      urlInp.addEventListener('input', (e) => {
+        const val = (e.target as HTMLInputElement).value;
+        this.fd.url = val;
+
+        if (val.includes('[[') && !val.endsWith(']]')) {
+          const afterBrackets = val.substring(val.lastIndexOf('[[') + 2);
+          datalist.empty();
+
+          const files = this.app.vault.getMarkdownFiles();
+          const filtered = files.filter((f) => f.path.toLowerCase().includes(afterBrackets.toLowerCase())).slice(0, 20);
+
+          filtered.forEach((f) => {
+            const option = datalist.createEl('option');
+            option.value = val.substring(0, val.lastIndexOf('[[')) + `[[${f.path}]]`;
+            option.setAttribute('label', f.path);
+          });
+        } else {
+          datalist.empty();
+        }
+      });
+
+      c.createEl('span', { cls: 'sr-hint', text: t.urlHint });
     });
 
     const g2 = form.createDiv('sr-field-group');
@@ -285,6 +324,19 @@ export class AddReminderModal extends Modal {
     });
 
     this.buildRepeatDynamic(dynArea, t);
+
+    this.addToggle(card, t.toggleNagMode, 'useNagMode', (c) => {
+      c.createEl('span', { cls: 'sr-hint', text: t.hintNagModeRepeat });
+      const nRow = c.createDiv('sr-interval-row');
+      nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.fieldNagInterval });
+      const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
+      nInp.min = '1';
+      nInp.value = String(this.fd.nagIntervalMin);
+      nInp.addEventListener('input', (e) => {
+        const v = parseInt((e.target as HTMLInputElement).value, 10);
+        this.fd.nagIntervalMin = Math.max(1, isNaN(v) ? 15 : v);
+      });
+    });
 
     // Время срабатывания (всегда видно)
     const timeG = card.createDiv('sr-field-group');
@@ -654,10 +706,12 @@ export class AddReminderModal extends Modal {
             emoji: DEFAULT_EMOJI,
             nextTrigger: null,
             completedAt: null,
+            nagSilencedUntil: null,
           };
 
     r.title = d.title.trim();
     r.description = d.useDescription ? d.description.trim() : '';
+    r.url = d.useUrl ? d.url.trim() : undefined;
     r.specificTs = null;
     r.repUnit = null;
     r.repStep = null;
@@ -711,6 +765,11 @@ export class AddReminderModal extends Modal {
       r.repStep = d.repStep;
       r.repDayOfMonth = d.repUnit === 'month' || d.repUnit === 'year' ? d.repDayOfMonth : null;
       r.repMonth = d.repUnit === 'year' ? d.repMonth : null;
+
+      if (d.useNagMode) {
+        r.nagMode = true;
+        r.nagIntervalMin = d.nagIntervalMin;
+      }
 
       if (d.useStart && d.startDate) {
         const parts = d.startDate.split('-').map(Number);

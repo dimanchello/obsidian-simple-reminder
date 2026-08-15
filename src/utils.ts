@@ -183,6 +183,7 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     emoji: DEFAULT_EMOJI,
     nextTrigger: null,
     completedAt: null,
+    nagSilencedUntil: null,
   };
 
   if (r.type === 'specific') {

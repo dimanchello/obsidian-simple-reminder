@@ -70,7 +70,7 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - DOM manipulation stays in views/modals — use Obsidian's `createEl`/`createDiv` API
 - **Mobile compatibility** — all changes must work correctly on mobile devices (iOS/Android): touch events, no hover-only interactions, responsive layout
 - **IMPORTANT RULE**: Any changes to existing logic, addition of new features, or removal of mechanics MUST be documented in `README.md` as well. This is a strict requirement to keep documentation in sync with the codebase.
-- **IMPORTANT RULE**: When changing documentation in README.md, always update BOTH the Russian sections (top) and English sections (bottom) to maintain bilingual consistency.
+- **IMPORTANT RULE**: README.md is currently Russian-only. When adding features, document them in the Russian sections at the top.
 
 ## Important implementation details
 
@@ -86,6 +86,17 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - Each reminder has an `emoji` field (string, default `'⏰'`)
 - Shown in the sidebar list and used in OS notifications
 - User can type/paste any emoji in the modal form
+
+### URL Links
+- Optional `url` field (string, undefined if empty)
+- Supports two types:
+  - **External links** — any URL with protocol (http://, https://, ftp://, ssh://, etc.)
+  - **Note links** — Obsidian wikilink format `[[Note name]]`
+- When notification is clicked:
+  - External links open in default browser via `window.open(url, '_blank')`
+  - Note links open in new Obsidian tab via `app.workspace.getLeaf(true).openFile()`
+  - If no URL set, shows reminder detail modal (existing behavior)
+- Detection logic in main.ts: `isWikiLink()` checks for `[[...]]`, `isExternalUrl()` checks for protocol scheme
 
 ### Remind before ("Напомнить за")
 - Optional pre-alert that fires X minutes/hours/days/weeks/months/years before the main trigger
@@ -127,11 +138,30 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - Access via `app.plugins.plugins['simple-reminder'].api`
 
 ### Nag Mode
-- Optional feature for one-shot reminders that repeats the notification every N minutes until manually checked
-- Stored as `nagIntervalMin` and `isNagging` fields on the reminder
-- When enabled, reminder stays active after firing and re-triggers at intervals
-- User must explicitly check the reminder to stop nagging notifications
-- Does not apply to repeat-type reminders
+- Optional feature that repeats notifications every N minutes until user interaction
+- **For one-shot reminders (`type: 'once'`)**:
+  - Stored as `nagMode: boolean` and `nagIntervalMin: number` on the reminder
+  - After first trigger, reminder stays active and re-triggers at intervals
+  - User must explicitly check the reminder (via checkbox or edit modal) to stop nagging
+  - Checking sets `checked = true` and stops further notifications
+- **For repeat reminders (`type: 'repeat'`)**:
+  - Same `nagMode` and `nagIntervalMin` fields
+  - After trigger, nag repeats every N minutes until:
+    - User clicks the reminder notification (silences until next real trigger)
+    - Next scheduled trigger arrives (resets nag cycle)
+  - `nagSilencedUntil: number | null` tracks silence period
+  - Click handler sets `nagSilencedUntil = nextTrigger`, advances trigger, recalculates `remindBefore`
+  - Check loop skips nagging if `now < nagSilencedUntil`
+
+### URL Links
+- Optional `url?: string` field on reminders
+- Displayed as a toggleable field in `AddReminderModal` (hidden by default, like description)
+- Smart link handling in `main.ts`:
+  - **Wiki links** (`[[Note Name]]`): opens note in new Obsidian tab via `app.workspace.getLeaf(true).openFile()`
+  - **External URLs** (http://, https://, ftp://, ssh://, etc.): opens in default browser via `window.open(url, '_blank')`
+  - **No URL**: shows `ReminderViewModal` with reminder details (default behavior)
+- Autocomplete for wiki links: when user types `[[` in URL field, `datalist` shows matching note names from vault
+- Click handler: `handleReminderClick(r)` checks URL presence and type, then routes accordingly
 
 ### Migration
 - `migrateLegacyReminder` converts old reminder formats (`specific`, `flexible`, `scheduled`, `periodic`) to the current `once`/`repeat` schema

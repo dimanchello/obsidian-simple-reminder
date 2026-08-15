@@ -147,6 +147,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       emoji: DEFAULT_EMOJI,
       nextTrigger: null,
       completedAt: null,
+      nagSilencedUntil: null,
     };
 
     if (options.type === 'once') {

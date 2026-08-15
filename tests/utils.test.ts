@@ -43,6 +43,7 @@ function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
     remindBefore: [],
     completedAt: null,
     emoji: '⏰',
+    nagSilencedUntil: null,
     ...overrides,
   };
 }

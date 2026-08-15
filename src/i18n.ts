@@ -57,9 +57,15 @@ export interface Strings {
   fieldTimeTo: string;
   toggleNagMode: string;
   hintNagMode: string;
+  hintNagModeRepeat: string;
   fieldNagInterval: string;
 
   fieldEmoji: string;
+  urlLabel: string;
+  urlPlaceholder: string;
+  urlTypeExternal: string;
+  urlTypeNote: string;
+  urlHint: string;
   remindBeforeLabel: string;
   formatRemindBefore: (value: number, unit: string) => string;
   remindBeforeUnitLabels: string[];
@@ -216,9 +222,15 @@ const en: Strings = {
   fieldTimeTo: 'to',
   toggleNagMode: '🔔 Persistent notification',
   hintNagMode: 'Repeat notification until marked as done',
+  hintNagModeRepeat: 'Repeat notification until clicked (silences until next trigger)',
   fieldNagInterval: 'Repeat every (mins)',
 
   fieldEmoji: 'Icon',
+  urlLabel: '🔗 Add link',
+  urlPlaceholder: 'https://example.com or [[Note name]]',
+  urlTypeExternal: 'External link (http://, ftp://, ssh://, etc.)',
+  urlTypeNote: 'Note link ([[Note name]])',
+  urlHint: 'Opens when you click on the notification',
   remindBeforeLabel: 'Remind before',
   formatRemindBefore: (v, u) => {
     const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);
@@ -379,9 +391,15 @@ const ru: Strings = {
   fieldTimeTo: 'до',
   toggleNagMode: '🔔 Настойчивое уведомление',
   hintNagMode: 'Повторять уведомление, пока вы его не отметите',
+  hintNagModeRepeat: 'Повторять уведомление, пока не нажмёте (отключает спам до следующего триггера)',
   fieldNagInterval: 'Повторять каждые (мин)',
 
   fieldEmoji: 'Иконка',
+  urlLabel: '🔗 Добавить ссылку',
+  urlPlaceholder: 'https://example.com или [[Название заметки]]',
+  urlTypeExternal: 'Внешняя ссылка (http://, ftp://, ssh:// и т.д.)',
+  urlTypeNote: 'Ссылка на заметку ([[Название заметки]])',
+  urlHint: 'Откроется при нажатии на уведомление',
   remindBeforeLabel: 'Напомнить за',
   formatRemindBefore: (v, u) => {
     const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);

@@ -161,6 +161,9 @@ export default class SimpleReminderPlugin extends Plugin {
         if (r.nextTrigger == null) {
           continue;
         }
+        if (r.nagSilencedUntil != null && now < r.nagSilencedUntil) {
+          continue;
+        }
         if (now < r.nextTrigger) {
           continue;
         }
@@ -183,9 +186,13 @@ export default class SimpleReminderPlugin extends Plugin {
             });
           }
         } else {
-          r.nextTrigger = advanceTrigger(r, now);
-          if (r.remindBefore.length > 0) {
-            r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+          const nextT = advanceTrigger(r, now);
+          r.nextTrigger = nextT;
+          if (r.nagMode && r.nagIntervalMin) {
+            r.nagSilencedUntil = nextT;
+          }
+          if (nextT && r.remindBefore.length > 0) {
+            r.remindBefore = calcRemindBeforeTriggers(nextT, r.remindBefore);
           }
         }
         changed = true;
@@ -226,7 +233,7 @@ export default class SimpleReminderPlugin extends Plugin {
         const notif = new Notification(prefix, { body: r.title, silent: false });
         notif.onclick = (): void => {
           window.focus();
-          new ReminderViewModal(this.app, r, this.t).open();
+          this.handleReminderClick(r);
         };
         return;
       } catch {
@@ -234,6 +241,60 @@ export default class SimpleReminderPlugin extends Plugin {
       }
     }
     new Notice(`${emoji} ${r.title}`, 8000);
+  }
+
+  private handleReminderClick(r: Reminder): void {
+    if (r.type === 'once') {
+      r.checked = true;
+      r.completedAt = Date.now();
+      r.nextTrigger = null;
+      r.remindBefore.forEach((e) => {
+        e.trigger = null;
+      });
+      this.saveSettings();
+      this.refreshView();
+    }
+
+    if (r.type === 'repeat' && r.nagMode && r.nagSilencedUntil != null) {
+      r.nextTrigger = advanceTrigger(r, Date.now());
+      r.nagSilencedUntil = null;
+      if (r.remindBefore.length > 0) {
+        r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
+      }
+      this.saveSettings();
+      this.refreshView();
+    }
+
+    if (r.url) {
+      const url = r.url.trim();
+      if (this.isWikiLink(url)) {
+        this.openNote(url);
+      } else if (this.isExternalUrl(url)) {
+        window.open(url, '_blank');
+      } else {
+        new ReminderViewModal(this.app, r, this.t).open();
+      }
+    } else {
+      new ReminderViewModal(this.app, r, this.t).open();
+    }
+  }
+
+  private isWikiLink(url: string): boolean {
+    return /^\[\[.+\]\]$/.test(url);
+  }
+
+  private isExternalUrl(url: string): boolean {
+    return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
+  }
+
+  private openNote(wikiLink: string): void {
+    const notePath = wikiLink.slice(2, -2);
+    const file = this.app.metadataCache.getFirstLinkpathDest(notePath, '');
+    if (file) {
+      this.app.workspace.getLeaf(true).openFile(file);
+    } else {
+      new Notice(`Note not found: ${notePath}`);
+    }
   }
 
   fireTestNotification(): void {

@@ -45,10 +45,12 @@ export interface Reminder {
   // ── Эмодзи и описание напоминания ──────────────────────────────────────────
   emoji: string;
   description?: string;
+  url?: string;
 
   // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;
   completedAt: number | null;
+  nagSilencedUntil: number | null;
 }
 
 export interface PluginSettings {
