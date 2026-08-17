@@ -47,11 +47,12 @@ src/
   MarkdownSuggest.ts   — EditorSuggest for autocompleting `@remind`
   api.ts               — Public API for other plugins (add/remove/get reminders, event system)
   i18n.ts              — EN/RU string dictionaries, language resolution
+  ReminderWidget.ts    — Reusable interactive reminder list/widget UI
+  ReminderCodeBlock.ts — Markdown code block processor (MarkdownRenderChild)
   ReminderView.ts      — Obsidian ItemView (sidebar panel) with tab/group rendering
   AddReminderModal.ts  — Modal for creating/editing reminders
   CalendarModal.ts     — Calendar view modal
   ReminderViewModal.ts — Read-only reminder detail modal
-  CustomDateModal.ts   — Modal with native datetime-local picker for custom dates
   SettingsTab.ts       — Obsidian PluginSettingTab
   emojis.ts            — Emoji picker data
 tests/

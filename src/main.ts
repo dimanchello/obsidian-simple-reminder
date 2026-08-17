@@ -1,6 +1,7 @@
-import { Notice, Plugin } from 'obsidian';
+import { Editor, Notice, Plugin } from 'obsidian';
 import { PluginSettings, Reminder, DEFAULT_SETTINGS, DEFAULT_EMOJI, RemindBeforeEntry } from './types';
 import { ReminderView, VIEW_TYPE_REMINDER } from './ReminderView';
+import { ReminderCodeBlockChild } from './ReminderCodeBlock';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderViewModal } from './ReminderViewModal';
 import { ReminderSettingTab } from './SettingsTab';
@@ -17,9 +18,17 @@ export default class SimpleReminderPlugin extends Plugin {
   private checkTimer: number | null = null;
   private lastPruneTime: number = 0;
   private isChecking: boolean = false;
+  private activeCodeBlocks: Set<() => void> = new Set();
 
   get allReminders(): Reminder[] {
     return this.reminders;
+  }
+
+  registerCodeBlock(refresh: () => void): () => void {
+    this.activeCodeBlocks.add(refresh);
+    return () => {
+      this.activeCodeBlocks.delete(refresh);
+    };
   }
 
   async onload(): Promise<void> {
@@ -29,6 +38,11 @@ export default class SimpleReminderPlugin extends Plugin {
     this.api = new SimpleReminderAPIImpl(this);
 
     this.registerView(VIEW_TYPE_REMINDER, (leaf) => new ReminderView(leaf, this));
+
+    this.registerMarkdownCodeBlockProcessor('simple-reminder', (source, el, ctx) => {
+      const child = new ReminderCodeBlockChild(el, this, source);
+      ctx.addChild(child);
+    });
 
     this.addRibbonIcon('bell', this.t.pluginName, () => this.activateView());
 
@@ -46,6 +60,17 @@ export default class SimpleReminderPlugin extends Plugin {
           this.refreshView();
           this.checkReminders();
         }).open(),
+    });
+
+    this.addCommand({
+      id: 'insert-widget',
+      name: 'Insert reminder widget',
+      editorCallback: (editor: Editor) => {
+        const cursor = editor.getCursor();
+        const line = editor.getLine(cursor.line);
+        const snippet = line.trim().length > 0 ? '\n```simple-reminder\n```\n' : '```simple-reminder\n```\n';
+        editor.replaceSelection(snippet);
+      },
     });
 
     this.addSettingTab(new ReminderSettingTab(this.app, this));
@@ -91,9 +116,14 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   refreshView(): void {
-    const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_REMINDER)[0];
-    if (leaf && leaf.view instanceof ReminderView) {
-      (leaf.view as ReminderView).refresh();
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_REMINDER);
+    for (const leaf of leaves) {
+      if (leaf && leaf.view instanceof ReminderView) {
+        (leaf.view as ReminderView).refresh();
+      }
+    }
+    for (const refresh of this.activeCodeBlocks) {
+      refresh();
     }
   }
 

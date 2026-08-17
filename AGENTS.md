@@ -32,17 +32,21 @@ npm run format       # format code with Prettier
 
 ```
 src/
-  main.ts              — Plugin entry: lifecycle, check loop, notifications, view management, pruning
-  types.ts             — Reminder, PluginSettings, LegacyReminder interfaces + defaults
-  utils.ts             — Pure functions: generateId, fmtDate, calcNextTrigger, advanceTrigger, migrateLegacyReminder, pruneOldCompleted, remindBeforeToMs, calcRemindBeforeTrigger
+  main.ts              — Plugin entry: lifecycle, check loop, notifications, view management, pruning, code block processor
+  types.ts             — Reminder, PluginSettings, LegacyReminder, CodeBlockConfig interfaces + defaults
+  utils.ts             — Pure functions: generateId, fmtDate, calcNextTrigger, advanceTrigger, migrateLegacyReminder, pruneOldCompleted, parseCodeBlockConfig
   api.ts               — Public API for other plugins (add/remove/get reminders, event system)
   i18n.ts              — EN/RU string dictionaries, language resolution
+  ReminderWidget.ts    — Reusable interactive reminder list/widget UI
+  ReminderCodeBlock.ts — Markdown code block processor (MarkdownRenderChild)
   ReminderView.ts      — Obsidian ItemView (sidebar panel)
+  ReminderViewModal.ts — Reminder detail view modal
   AddReminderModal.ts  — Modal for creating/editing reminders
+  CalendarModal.ts     — Calendar overview modal
   SettingsTab.ts       — Obsidian PluginSettingTab
-  SettingsTab.ts       — Obsidian PluginSettingTab
+  emojis.ts            — Emoji categories and selection list
 tests/
-  utils.test.ts        — Tests for calcNextTrigger, advanceTrigger, migration, helpers, remindBefore
+  utils.test.ts        — Tests for scheduling, migration, helpers, remindBefore, parseCodeBlockConfig
   i18n.test.ts         — Tests for i18n strings, EN/RU consistency
 dist/                  — Build output (main.js, manifest.json, styles.css) — gitignored
 ```

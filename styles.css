@@ -15,6 +15,17 @@
   font-size: var(--font-ui-small);
 }
 
+.sr-root.sr-embedded {
+  height: auto;
+  overflow-y: visible;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m, 8px);
+  background: var(--background-primary-alt);
+  margin: 10px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
 /* ── Header ──────────────────────────────────────────────────────── */
 .sr-header {
   display: flex;

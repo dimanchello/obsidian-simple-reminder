@@ -1,4 +1,12 @@
-import { Reminder, LegacyReminder, RemindBeforeUnit, RemindBeforeEntry, GroupBy, DEFAULT_EMOJI } from './types';
+import {
+  Reminder,
+  LegacyReminder,
+  RemindBeforeUnit,
+  RemindBeforeEntry,
+  GroupBy,
+  CodeBlockConfig,
+  DEFAULT_EMOJI,
+} from './types';
 import { Strings } from './i18n';
 
 export const DAY_MS = 86400_000;
@@ -478,4 +486,58 @@ export function groupReminders(items: Reminder[], groupBy: GroupBy, t: Strings):
   }
 
   return groups;
+}
+
+export function parseCodeBlockConfig(source: string): CodeBlockConfig {
+  const config: CodeBlockConfig = {};
+  if (!source || !source.trim()) {
+    return config;
+  }
+
+  const lines = source.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) {
+      continue;
+    }
+
+    const colonIdx = trimmed.indexOf(':');
+    if (colonIdx === -1) {
+      continue;
+    }
+
+    const key = trimmed.slice(0, colonIdx).trim().toLowerCase();
+    const val = trimmed.slice(colonIdx + 1).trim();
+
+    if (key === 'tab') {
+      const lowerVal = val.toLowerCase();
+      if (lowerVal === 'all' || lowerVal === 'active' || lowerVal === 'done') {
+        config.tab = lowerVal;
+      }
+    } else if (key === 'group' || key === 'groupby') {
+      const lowerVal = val.toLowerCase();
+      const validGroups: GroupBy[] = ['none', 'minute', 'hour', 'day', 'week', 'month', 'year'];
+      if (validGroups.includes(lowerVal as GroupBy)) {
+        config.groupBy = lowerVal as GroupBy;
+      }
+    } else if (key === 'header' || key === 'showheader') {
+      const lowerVal = val.toLowerCase();
+      if (lowerVal === 'false' || lowerVal === 'no' || lowerVal === '0' || lowerVal === 'off') {
+        config.showHeader = false;
+      } else if (lowerVal === 'true' || lowerVal === 'yes' || lowerVal === '1' || lowerVal === 'on') {
+        config.showHeader = true;
+      }
+    } else if (key === 'tabs' || key === 'showtabs') {
+      const lowerVal = val.toLowerCase();
+      if (lowerVal === 'false' || lowerVal === 'no' || lowerVal === '0' || lowerVal === 'off') {
+        config.showTabs = false;
+      } else if (lowerVal === 'true' || lowerVal === 'yes' || lowerVal === '1' || lowerVal === 'on') {
+        config.showTabs = true;
+      }
+    } else if (key === 'title') {
+      config.title = val;
+    }
+  }
+
+  return config;
 }

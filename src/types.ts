@@ -62,6 +62,14 @@ export interface PluginSettings {
   pruneCompletedDays: number;
 }
 
+export interface CodeBlockConfig {
+  tab?: 'all' | 'active' | 'done';
+  groupBy?: GroupBy;
+  showHeader?: boolean;
+  showTabs?: boolean;
+  title?: string;
+}
+
 export const DEFAULT_EMOJI = '⏰';
 
 export const DEFAULT_SETTINGS: PluginSettings = {

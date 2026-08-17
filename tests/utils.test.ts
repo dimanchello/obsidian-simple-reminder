@@ -14,6 +14,7 @@ import {
   getGroupKey,
   formatGroupLabel,
   groupReminders,
+  parseCodeBlockConfig,
 } from '../src/utils';
 import { Reminder } from '../src/types';
 import { getStrings } from '../src/i18n';
@@ -1103,5 +1104,86 @@ describe('groupReminders', () => {
     const groups = groupReminders(items, 'day', tEn);
     expect(groups[0].items[0].id).toBe('first');
     expect(groups[0].items[1].id).toBe('second');
+  });
+});
+
+// ── parseCodeBlockConfig ───────────────────────────────────────────────────
+
+describe('parseCodeBlockConfig', () => {
+  it('returns empty object for empty or whitespace source', () => {
+    expect(parseCodeBlockConfig('')).toEqual({});
+    expect(parseCodeBlockConfig('   \n  \n  ')).toEqual({});
+  });
+
+  it('parses valid tab options', () => {
+    expect(parseCodeBlockConfig('tab: all')).toEqual({ tab: 'all' });
+    expect(parseCodeBlockConfig('tab: active')).toEqual({ tab: 'active' });
+    expect(parseCodeBlockConfig('tab: done')).toEqual({ tab: 'done' });
+    expect(parseCodeBlockConfig('TAB: Active')).toEqual({ tab: 'active' });
+  });
+
+  it('ignores invalid tab options', () => {
+    expect(parseCodeBlockConfig('tab: invalid')).toEqual({});
+  });
+
+  it('parses valid group / groupby options', () => {
+    expect(parseCodeBlockConfig('group: day')).toEqual({ groupBy: 'day' });
+    expect(parseCodeBlockConfig('groupBy: week')).toEqual({ groupBy: 'week' });
+    expect(parseCodeBlockConfig('group: month')).toEqual({ groupBy: 'month' });
+    expect(parseCodeBlockConfig('group: year')).toEqual({ groupBy: 'year' });
+    expect(parseCodeBlockConfig('group: hour')).toEqual({ groupBy: 'hour' });
+    expect(parseCodeBlockConfig('group: minute')).toEqual({ groupBy: 'minute' });
+    expect(parseCodeBlockConfig('group: none')).toEqual({ groupBy: 'none' });
+  });
+
+  it('ignores invalid group options', () => {
+    expect(parseCodeBlockConfig('group: decade')).toEqual({});
+  });
+
+  it('parses header / showheader options', () => {
+    expect(parseCodeBlockConfig('header: false')).toEqual({ showHeader: false });
+    expect(parseCodeBlockConfig('header: no')).toEqual({ showHeader: false });
+    expect(parseCodeBlockConfig('header: 0')).toEqual({ showHeader: false });
+    expect(parseCodeBlockConfig('header: off')).toEqual({ showHeader: false });
+    expect(parseCodeBlockConfig('showHeader: true')).toEqual({ showHeader: true });
+    expect(parseCodeBlockConfig('header: yes')).toEqual({ showHeader: true });
+    expect(parseCodeBlockConfig('header: 1')).toEqual({ showHeader: true });
+    expect(parseCodeBlockConfig('header: on')).toEqual({ showHeader: true });
+  });
+
+  it('parses tabs / showtabs options', () => {
+    expect(parseCodeBlockConfig('tabs: false')).toEqual({ showTabs: false });
+    expect(parseCodeBlockConfig('tabs: no')).toEqual({ showTabs: false });
+    expect(parseCodeBlockConfig('tabs: 0')).toEqual({ showTabs: false });
+    expect(parseCodeBlockConfig('tabs: off')).toEqual({ showTabs: false });
+    expect(parseCodeBlockConfig('showTabs: true')).toEqual({ showTabs: true });
+    expect(parseCodeBlockConfig('tabs: yes')).toEqual({ showTabs: true });
+  });
+
+  it('parses custom title', () => {
+    expect(parseCodeBlockConfig('title: My Custom Reminders')).toEqual({ title: 'My Custom Reminders' });
+  });
+
+  it('parses complex multi-line configuration with comments and empty lines', () => {
+    const source = `
+      # This is a comment
+      // Another comment
+      tab: active
+      group: day
+      header: false
+      tabs: true
+      title: Project Deadlines
+    `;
+    expect(parseCodeBlockConfig(source)).toEqual({
+      tab: 'active',
+      groupBy: 'day',
+      showHeader: false,
+      showTabs: true,
+      title: 'Project Deadlines',
+    });
+  });
+
+  it('ignores malformed lines without colons', () => {
+    expect(parseCodeBlockConfig('some random text\nanother line')).toEqual({});
   });
 });
