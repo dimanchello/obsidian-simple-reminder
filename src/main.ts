@@ -203,7 +203,7 @@ export default class SimpleReminderPlugin extends Plugin {
 
         if (r.type === 'once') {
           if (r.nagMode && r.nagIntervalMin) {
-            r.nextTrigger = now + r.nagIntervalMin * 60000;
+            r.nextTrigger = advanceTrigger(r, now);
             if (r.remindBefore.length > 0) {
               r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
             }

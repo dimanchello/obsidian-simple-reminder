@@ -215,10 +215,10 @@ describe('calcNextTrigger — once', () => {
     expect(calcNextTrigger(r, now)).toBe(future);
   });
 
-  it('returns null when specificTs is in the past', () => {
+  it('returns null when specificTs is in the past and nagMode is false', () => {
     const now = Date.now();
     const past = now - 3600_000;
-    const r = makeReminder({ type: 'once', specificTs: past });
+    const r = makeReminder({ type: 'once', specificTs: past, nagMode: false });
     expect(calcNextTrigger(r, now)).toBeNull();
   });
 
@@ -227,10 +227,87 @@ describe('calcNextTrigger — once', () => {
     expect(calcNextTrigger(r, Date.now())).toBeNull();
   });
 
-  it('returns null when specificTs equals now', () => {
+  it('returns null when specificTs equals now and nagMode is false', () => {
     const now = Date.now();
-    const r = makeReminder({ type: 'once', specificTs: now });
+    const r = makeReminder({ type: 'once', specificTs: now, nagMode: false });
     expect(calcNextTrigger(r, now)).toBeNull();
+  });
+
+  it('returns next nag trigger when specificTs is in the past and nagMode is active', () => {
+    const now = Date.now();
+    const specificTs = now - 15 * 60_000;
+    const r = makeReminder({
+      type: 'once',
+      specificTs,
+      nagMode: true,
+      nagIntervalMin: 5,
+      checked: false,
+    });
+    const next = calcNextTrigger(r, now);
+    expect(next).toBe(now + 5 * 60_000);
+  });
+
+  it('returns next nag trigger with correct step when multiple intervals passed', () => {
+    const now = Date.now();
+    const specificTs = now - 12 * 60_000;
+    const r = makeReminder({
+      type: 'once',
+      specificTs,
+      nagMode: true,
+      nagIntervalMin: 5,
+      checked: false,
+    });
+    const next = calcNextTrigger(r, now);
+    expect(next).toBe(specificTs + 3 * 5 * 60_000);
+    expect(next).toBe(now + 3 * 60_000);
+  });
+
+  it('returns next nag trigger when specificTs equals now and nagMode is active', () => {
+    const now = Date.now();
+    const r = makeReminder({
+      type: 'once',
+      specificTs: now,
+      nagMode: true,
+      nagIntervalMin: 10,
+      checked: false,
+    });
+    const next = calcNextTrigger(r, now);
+    expect(next).toBe(now + 10 * 60_000);
+  });
+
+  it('returns null when nagMode is enabled but checked is true', () => {
+    const now = Date.now();
+    const past = now - 3600_000;
+    const r = makeReminder({
+      type: 'once',
+      specificTs: past,
+      nagMode: true,
+      nagIntervalMin: 5,
+      checked: true,
+    });
+    expect(calcNextTrigger(r, now)).toBeNull();
+  });
+
+  it('returns null when nagMode is enabled but nagIntervalMin is null or 0', () => {
+    const now = Date.now();
+    const past = now - 3600_000;
+    const rNull = makeReminder({
+      type: 'once',
+      specificTs: past,
+      nagMode: true,
+      nagIntervalMin: null,
+      checked: false,
+    });
+    expect(calcNextTrigger(rNull, now)).toBeNull();
+
+    const rZero = makeReminder({
+      type: 'once',
+      specificTs: past,
+      nagMode: true,
+      nagIntervalMin: 0,
+      checked: false,
+    });
+    expect(calcNextTrigger(rZero, now)).toBeNull();
   });
 });
 
@@ -627,9 +704,54 @@ describe('calcNextTrigger — edge cases', () => {
 // ── advanceTrigger ──────────────────────────────────────────────────────────
 
 describe('advanceTrigger', () => {
-  it('returns null for once reminders', () => {
-    const r = makeReminder({ type: 'once' });
+  it('returns null for once reminders without nagMode', () => {
+    const r = makeReminder({ type: 'once', nagMode: false });
     expect(advanceTrigger(r, Date.now())).toBeNull();
+  });
+
+  it('advances once reminders with nagMode to next interval', () => {
+    const now = Date.now();
+    const specificTs = now - 10 * 60_000;
+    const r = makeReminder({
+      type: 'once',
+      specificTs,
+      nagMode: true,
+      nagIntervalMin: 5,
+      checked: false,
+      nextTrigger: now,
+    });
+    const next = advanceTrigger(r, now);
+    expect(next).toBe(now + 5 * 60_000);
+  });
+
+  it('advances once reminders with nagMode when nextTrigger is ahead of now', () => {
+    const now = Date.now();
+    const specificTs = now - 20 * 60_000;
+    const nextTrigger = now + 5 * 60_000;
+    const r = makeReminder({
+      type: 'once',
+      specificTs,
+      nagMode: true,
+      nagIntervalMin: 10,
+      checked: false,
+      nextTrigger,
+    });
+    const next = advanceTrigger(r, now);
+    expect(next).toBe(specificTs + 3 * 10 * 60_000);
+    expect(next).toBe(now + 10 * 60_000);
+  });
+
+  it('returns null for once reminders with nagMode when checked is true', () => {
+    const now = Date.now();
+    const r = makeReminder({
+      type: 'once',
+      specificTs: now - 10 * 60_000,
+      nagMode: true,
+      nagIntervalMin: 5,
+      checked: true,
+      nextTrigger: now,
+    });
+    expect(advanceTrigger(r, now)).toBeNull();
   });
 
   it('finds next trigger after current one fires', () => {

@@ -129,7 +129,16 @@ function findNextTimeOnDay(candDay: Date, r: Reminder, now: number, startTs: num
 
 export function calcNextTrigger(r: Reminder, now: number): number | null {
   if (r.type === 'once') {
-    return r.specificTs && r.specificTs > now ? r.specificTs : null;
+    if (r.specificTs && r.specificTs > now) {
+      return r.specificTs;
+    }
+    if (r.specificTs && r.nagMode && r.nagIntervalMin && !r.checked) {
+      const stepMs = Math.max(1, r.nagIntervalMin) * MINUTE_MS;
+      const elapsed = now - r.specificTs;
+      const steps = Math.floor(elapsed / stepMs) + 1;
+      return r.specificTs + steps * stepMs;
+    }
+    return null;
   }
   if (r.type !== 'repeat') {
     return null;
@@ -159,7 +168,13 @@ export function calcNextTrigger(r: Reminder, now: number): number | null {
 }
 
 export function advanceTrigger(r: Reminder, now: number): number | null {
-  if (r.type === 'once') return null;
+  if (r.type === 'once') {
+    if (r.nagMode && r.nagIntervalMin && !r.checked) {
+      const nextNow = Math.max(now, r.nextTrigger ?? now);
+      return calcNextTrigger(r, nextNow);
+    }
+    return null;
+  }
   const nextNow = Math.max(now, r.nextTrigger ?? now);
   return calcNextTrigger(r, nextNow + MINUTE_MS);
 }

@@ -136,9 +136,14 @@ export class ReminderWidget {
       empty.createDiv({ cls: 'sr-empty-hint', text: t.noRemindersHint });
       return;
     }
+    const getSortTs = (r: Reminder): number => {
+      if (r.checked) return r.completedAt ?? Infinity;
+      return r.nextTrigger ?? r.specificTs ?? Infinity;
+    };
+
     const sorted = [...items].sort((a, b) => {
       if (a.checked !== b.checked) return a.checked ? 1 : -1;
-      return (a.nextTrigger ?? Infinity) - (b.nextTrigger ?? Infinity);
+      return getSortTs(a) - getSortTs(b);
     });
 
     const groupBy = this.groupBy ?? this.plugin.settings.groupBy;
