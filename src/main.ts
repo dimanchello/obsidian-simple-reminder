@@ -99,7 +99,7 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   refreshStrings(): void {
-    this.t = getStrings(this.settings.language);
+    this.t = getStrings();
   }
 
   async activateView(): Promise<void> {

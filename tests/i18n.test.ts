@@ -14,9 +14,34 @@ describe('resolveLanguage', () => {
   });
 
   it('returns "en" for "auto" when navigator is not Russian', () => {
-    // This depends on the environment, but the function should not throw
     const result = resolveLanguage('auto');
     expect(['en', 'ru']).toContain(result);
+  });
+
+  it('returns language when called without arguments', () => {
+    const result = resolveLanguage();
+    expect(['en', 'ru']).toContain(result);
+  });
+
+  it('detects language from localStorage when available', () => {
+    const origWindow = globalThis.window;
+    try {
+      (globalThis as any).window = {
+        localStorage: {
+          getItem: (key: string) => (key === 'language' ? 'ru' : null),
+        },
+      };
+      expect(resolveLanguage()).toBe('ru');
+
+      (globalThis as any).window = {
+        localStorage: {
+          getItem: (key: string) => (key === 'language' ? 'en' : null),
+        },
+      };
+      expect(resolveLanguage()).toBe('en');
+    } finally {
+      (globalThis as any).window = origWindow;
+    }
   });
 });
 

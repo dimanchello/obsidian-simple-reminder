@@ -523,13 +523,21 @@ const ru: Strings = {
 
 const STRINGS: Record<'en' | 'ru', Strings> = { en, ru };
 
-export function resolveLanguage(setting: Language): 'en' | 'ru' {
+export function resolveLanguage(setting?: Language | string): 'en' | 'ru' {
   if (setting === 'en') return 'en';
   if (setting === 'ru') return 'ru';
+  if (setting && setting !== 'auto') {
+    return setting.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  }
+  const obsLang =
+    typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem('language') : undefined;
+  if (obsLang) {
+    return obsLang.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  }
   const nav = (typeof navigator !== 'undefined' ? navigator.language : 'en') ?? 'en';
   return nav.toLowerCase().startsWith('ru') ? 'ru' : 'en';
 }
 
-export function getStrings(setting: Language): Strings {
+export function getStrings(setting?: Language | string): Strings {
   return STRINGS[resolveLanguage(setting)];
 }

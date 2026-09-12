@@ -26,7 +26,7 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
   - Attach external URLs (http, https, ftp, ssh) or internal note links (`[[Note Name]]`)
   - Clicking notification opens external URLs in your browser and note links directly in Obsidian
 - **Markdown Code Block Widget** (`simple-reminder`) — embed interactive reminder lists inside any note with custom filtering, grouping, and headers
-- **Bilingual Interface** — English and Russian with automatic locale detection or manual selection
+- **Bilingual Interface** — English and Russian with automatic detection based on Obsidian's language setting
 - **Full Theme Compatibility** — built using Obsidian CSS variables to seamlessly match any theme
 
 ---
@@ -181,9 +181,10 @@ Click **+ Add** in the panel or widget header and fill in the form:
 
 | Option | Default | Description |
 |---|---|---|
-| Language | Auto | `Auto` (system locale), `English`, `Russian` |
-| Check Interval | 30s | Frequency of checking due reminders (minimum 2s) |
 | Open Reminder Panel | — | Quick button to open the sidebar panel |
+| Check Interval | 30s | Frequency of checking due reminders (minimum 2s) |
+| Group reminders by | No grouping | Grouping separators for panel reminders (`minute`, `hour`, `day`, `week`, `month`, `year`) |
+| Auto-prune completed after | 3 days | How many days to retain completed reminders (set to `0` to keep forever) |
 | Test Notification | — | Send a test system notification |
 | Request Permission | — | Request notification permission from the OS |
 | Delete All Reminders | — | Permanently delete all stored reminders |
@@ -239,7 +240,7 @@ See [API.md](./API.md) for full API documentation.
 - **Чекбокс задачи** — отключает уведомления без удаления напоминания
 - **Редактирование любого напоминания** — название, тип, даты, интервалы
 - **Публичный API** для других плагинов — добавление/удаление/получение напоминаний, подписка на события
-- **Два языка:** английский и русский (автоопределение по локали системы или ручной выбор)
+- **Два языка:** английский и русский (автоматическое определение по языку интерфейса Obsidian)
 - **Настойчивые уведомления (Nag Mode)**:
   - **Для разовых напоминаний**: включите эту опцию, чтобы они повторялись каждые N минут, пока вы вручную не отметите их как выполненные. Если время напоминания уже наступило, цикл уведомлений продолжается, и даже при редактировании параметров напоминания плагин автоматически вычисляет ближайший следующий интервал повторов без прерывания и сброса расписания
   - **Для повторяющихся напоминаний**: уведомление будет повторяться каждые N минут до момента клика на него или до наступления следующего триггера. После клика "наг" останавливается до следующего срабатывания
@@ -420,9 +421,10 @@ title: Мои напоминания
 
 | Параметр | По умолчанию | Описание |
 |---|---|---|
-| Язык | Авто | `Авто` (системная локаль), `English`, `Русский` |
-| Интервал проверки | 30с | Как часто плагин проверяет наступившие напоминания. Минимум: 2с |
 | Открыть панель | — | Кнопка для открытия боковой панели |
+| Интервал проверки | 30с | Как часто плагин проверяет наступившие напоминания. Минимум: 2с |
+| Группировать напоминания по | Без группировки | Разделители между группами в панели (`минута`, `час`, `день`, `неделя`, `месяц`, `год`) |
+| Авто-удаление завершенных через (дней) | 3 | Сколько дней хранить завершенные напоминания (установите `0`, чтобы хранить вечно) |
 | Тестовое уведомление | — | Отправляет тестовое системное уведомление |
 | Запросить разрешение | — | Повторный запрос разрешения ОС на уведомления |
 | Удалить все | — | Безвозвратно удаляет все напоминания |

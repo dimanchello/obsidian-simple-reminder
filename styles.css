@@ -366,20 +366,6 @@
 .sr-settings-notice h3 { margin: 0 0 8px; font-size: .95em; }
 .sr-settings-notice p  { margin: 0; font-size: .84em; line-height: 1.55; color: var(--text-normal); }
 
-.sr-settings-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 14px;
-  background: var(--background-secondary);
-  border-radius: 8px;
-  margin-bottom: 16px;
-}
-
-.sr-stats-row { display: flex; justify-content: space-between; font-size: .85em; }
-.sr-stats-label { color: var(--text-muted); }
-.sr-stats-val   { font-weight: 600; color: var(--text-normal); }
-
 .sr-settings-info { font-size: .82em; color: var(--text-faint); line-height: 1.5; }
 .sr-number-input { width: 80px; }
 
