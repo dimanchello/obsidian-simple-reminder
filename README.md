@@ -1,5 +1,224 @@
 # Obsidian Simple Reminder
 
+[English](#features) | [Русский](#возможности)
+
+An Obsidian plugin for managing a reminder list with system notifications. Create tasks, schedule recurring reminders, embed interactive widgets directly in your notes, and never miss a deadline.
+
+---
+
+## Features
+
+- **Two Reminder Types:**
+  - **Once** — single notification at a specific date and time
+  - **Repeat** — recurring reminders (daily, weekly, monthly, yearly) with customizable intervals
+- **Intra-Day Modes for Recurring Reminders:**
+  - **Single** — triggers at a specific time (HH:MM) on scheduled days
+  - **Interval** — triggers every N minutes within an active time window
+- **Desktop System Notifications** via the Web Notification API with automatic fallback to Obsidian Notice on mobile devices or when system permissions are denied
+- **Configurable Check Interval** — from 2 seconds upwards (default: 30s)
+- **Automatic Pruning** — completed one-shot reminders are automatically deleted after 3 days (customizable)
+- **Pre-Alert Notifications ("Remind Before")** — receive heads-up notifications minutes, hours, days, weeks, months, or years before the event
+- **Reopen Completed Reminders** — easily uncheck completed reminders before they are pruned
+- **Nag Mode (Persistent Notifications):**
+  - **For one-shot reminders**: repeats every N minutes until manually checked off. If the trigger time has passed, the cycle continues without interruption even after editing
+  - **For recurring reminders**: repeats every N minutes until clicked or until the next trigger
+- **URL & Note Links:**
+  - Attach external URLs (http, https, ftp, ssh) or internal note links (`[[Note Name]]`)
+  - Clicking notification opens external URLs in your browser and note links directly in Obsidian
+- **Markdown Code Block Widget** (`simple-reminder`) — embed interactive reminder lists inside any note with custom filtering, grouping, and headers
+- **Bilingual Interface** — English and Russian with automatic locale detection or manual selection
+- **Full Theme Compatibility** — built using Obsidian CSS variables to seamlessly match any theme
+
+---
+
+## Mobile Devices
+
+> On **iOS and Android**, notifications only fire **while Obsidian is open and active on screen**. If the app is closed, minimized, or the device is locked, notifications will not appear due to OS platform restrictions.
+
+---
+
+## Installation
+
+### Community Plugins *(coming soon)*
+
+1. In Obsidian, go to **Settings → Community plugins → Browse**
+2. Search for **Obsidian Simple Reminder**
+3. Click **Install**, then **Enable**
+
+### Manual Installation
+
+1. Download the latest release from [Releases](../../releases)
+2. Extract the archive containing `main.js`, `manifest.json`, and `styles.css`
+3. Copy these files into `<vault-path>/.obsidian/plugins/simple-reminder/`
+4. In Obsidian: **Settings → Community plugins** → enable **Obsidian Simple Reminder**
+
+### Via BRAT (Beta Reviewer Auto-update Tool)
+
+1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from Community Plugins
+2. In BRAT settings, choose **BRAT: Add a beta plugin for testing**
+3. Enter the repository URL: `https://github.com/dimanchello/obsidian-simple-reminder`
+4. Click **Add Plugin**, then enable it in Obsidian settings
+
+---
+
+## Building from Source
+
+**Requirements:** Node.js >= 18, npm >= 9
+
+```bash
+git clone https://github.com/dimanchello/obsidian-simple-reminder.git
+cd obsidian-simple-reminder
+npm install
+
+# Development watch mode
+npm run dev
+
+# Production build
+npm run build
+
+# Run unit tests
+npm test
+
+# Linting and formatting
+npm run lint
+npm run format
+```
+
+Copy the build output from `dist/` (`main.js`, `manifest.json`, `styles.css`) to your vault's plugin directory.
+
+### Project Structure
+
+```
+simple-reminder/
+├── dist/                    # Build output (copy to your Obsidian vault)
+│   ├── main.js
+│   ├── manifest.json
+│   └── styles.css
+├── src/
+│   ├── main.ts              # Entry point, check loop, notification dispatcher
+│   ├── types.ts             # TypeScript interfaces and defaults
+│   ├── utils.ts             # Pure functions: scheduling, migration, pruning, parsing
+│   ├── api.ts               # Public API for third-party plugins
+│   ├── i18n.ts              # Localization dictionaries and language resolver
+│   ├── ReminderWidget.ts    # Reusable interactive reminder list UI
+│   ├── ReminderCodeBlock.ts # Markdown code block processor (MarkdownRenderChild)
+│   ├── ReminderView.ts      # Obsidian ItemView (sidebar panel)
+│   ├── AddReminderModal.ts  # Modal for creating/editing reminders
+│   └── SettingsTab.ts       # Plugin settings page
+├── tests/
+│   ├── utils.test.ts        # Unit tests for scheduling, parsing, and migration
+│   └── i18n.test.ts         # Unit tests for translation dictionaries
+├── styles.css               # Plugin stylesheet
+├── manifest.json            # Obsidian plugin manifest
+├── package.json
+├── tsconfig.json
+└── esbuild.config.mjs
+```
+
+---
+
+## Usage
+
+### Opening the Sidebar Panel
+
+Click the **bell icon** in the left ribbon or run the command **Simple Reminder: Open reminder panel** from the command palette (`Ctrl/Cmd + P`).
+
+### Embedding Widgets in Notes (Code Block)
+
+You can render an interactive reminder list in any markdown file using the `simple-reminder` code block:
+
+````markdown
+```simple-reminder
+```
+````
+
+> **Tip:** Use the command **Simple Reminder: Insert reminder widget** (`Ctrl/Cmd + P`) to insert the snippet at your current cursor position.
+
+The widget supports interactive checkboxes, adding and editing reminders, viewing details, and opening the calendar. All actions instantly sync across all open notes and the sidebar panel.
+
+#### Code Block Parameters:
+
+| Parameter | Options | Default | Description |
+|---|---|---|---|
+| `tab` | `all`, `active`, `done` | `all` | Filter reminders by completion status |
+| `group` / `groupBy` | `none`, `minute`, `hour`, `day`, `week`, `month`, `year` | From settings | Group reminders by timeframe |
+| `header` | `true`, `false` | `true` | Show or hide the top header |
+| `tabs` | `true`, `false` | `true` | Show or hide status tabs |
+| `title` | Text | `Simple Reminder` | Custom widget header title |
+
+#### Examples:
+
+Compact list of active reminders only:
+````markdown
+```simple-reminder
+tab: active
+header: false
+tabs: false
+```
+````
+
+Reminders grouped by day with a custom title:
+````markdown
+```simple-reminder
+tab: all
+group: day
+title: Today's Tasks
+```
+````
+
+### Adding a Reminder
+
+Click **+ Add** in the panel or widget header and fill in the form:
+- **Title**: text shown in the notification and list
+- **Type**: One-shot or Recurring
+- **Schedule**: set specific date/time, recurring frequency, or intra-day intervals
+- **Remind before**: optional pre-alert before the main trigger
+- **Nag Mode**: keep notifying until manually completed
+
+---
+
+## Settings
+
+| Option | Default | Description |
+|---|---|---|
+| Language | Auto | `Auto` (system locale), `English`, `Russian` |
+| Check Interval | 30s | Frequency of checking due reminders (minimum 2s) |
+| Open Reminder Panel | — | Quick button to open the sidebar panel |
+| Test Notification | — | Send a test system notification |
+| Request Permission | — | Request notification permission from the OS |
+| Delete All Reminders | — | Permanently delete all stored reminders |
+
+---
+
+## Public API
+
+Other plugins can integrate with Simple Reminder using the exposed API:
+
+```typescript
+const api = app.plugins.plugins['simple-reminder'].api;
+
+// Add a reminder
+const id = api.addReminder({
+  title: 'Meeting with team',
+  type: 'once',
+  date: new Date('2026-10-01T10:00:00'),
+});
+
+// Retrieve reminders
+const reminders = api.getReminders();
+
+// Subscribe to events
+api.on('reminder-fired', (info) => {
+  console.log('Reminder triggered:', info.title);
+});
+```
+
+See [API.md](./API.md) for full API documentation.
+
+---
+
+# Obsidian Simple Reminder (на русском)
+
 Плагин для Obsidian — список напоминаний с системными уведомлениями. Создавайте задачи, задавайте расписание и получайте уведомления вовремя.
 
 ---
@@ -72,7 +291,7 @@
 
 ```bash
 git clone https://github.com/dimanchello/obsidian-simple-reminder.git
-cd simple-reminder
+cd obsidian-simple-reminder
 npm install
 
 # Режим разработки (watch + source maps)

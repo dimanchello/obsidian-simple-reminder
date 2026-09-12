@@ -188,7 +188,7 @@ export class AddReminderModal extends Modal {
     ti.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.submit(isEdit);
     });
-    setTimeout(() => ti.focus(), 50);
+    window.setTimeout(() => ti.focus(), 50);
 
     this.addToggle(form, t.descriptionLabel, 'useDescription', (c) => {
       const ta = c.createEl('textarea', { cls: 'sr-input sr-textarea', placeholder: t.descriptionPlaceholder });
@@ -228,7 +228,7 @@ export class AddReminderModal extends Modal {
         }
       });
 
-      c.createEl('span', { cls: 'sr-hint', text: t.urlHint });
+      c.createSpan({ cls: 'sr-hint', text: t.urlHint });
     });
 
     const g2 = form.createDiv('sr-field-group');
@@ -282,7 +282,7 @@ export class AddReminderModal extends Modal {
     });
 
     this.addToggle(body, t.toggleNagMode, 'useNagMode', (c) => {
-      c.createEl('span', { cls: 'sr-hint', text: t.hintNagMode });
+      c.createSpan({ cls: 'sr-hint', text: t.hintNagMode });
       const nRow = c.createDiv('sr-interval-row');
       nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.fieldNagInterval });
       const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
@@ -326,7 +326,7 @@ export class AddReminderModal extends Modal {
     this.buildRepeatDynamic(dynArea, t);
 
     this.addToggle(card, t.toggleNagMode, 'useNagMode', (c) => {
-      c.createEl('span', { cls: 'sr-hint', text: t.hintNagModeRepeat });
+      c.createSpan({ cls: 'sr-hint', text: t.hintNagModeRepeat });
       const nRow = c.createDiv('sr-interval-row');
       nRow.createEl('label', { cls: 'sr-label sr-label--inline', text: t.fieldNagInterval });
       const nInp = nRow.createEl('input', { cls: 'sr-input sr-input--short', type: 'number' });
@@ -371,7 +371,7 @@ export class AddReminderModal extends Modal {
       const v = parseInt((e.target as HTMLInputElement).value, 10);
       this.fd.repStep = Math.max(1, isNaN(v) ? 1 : v);
     });
-    nRow.createEl('span', { cls: 'sr-interval-unit', text: t.periodicUnitLabels[unitIdx] });
+    nRow.createSpan({ cls: 'sr-interval-unit', text: t.periodicUnitLabels[unitIdx] });
 
     if (unit === 'week') {
       const g = area.createDiv('sr-field-group');
@@ -437,7 +437,7 @@ export class AddReminderModal extends Modal {
 
     // Старт / Стоп даты
     this.addToggle(container, t.toggleStartDate, 'useStart', (c) => {
-      c.createEl('span', { cls: 'sr-hint', text: t.hintStartDate });
+      c.createSpan({ cls: 'sr-hint', text: t.hintStartDate });
       const inp = c.createEl('input', { cls: 'sr-input', type: 'date' });
       if (this.fd.startDate) inp.value = this.fd.startDate;
       inp.addEventListener('change', (e) => {
@@ -446,7 +446,7 @@ export class AddReminderModal extends Modal {
     });
 
     this.addToggle(container, t.toggleEndDate, 'useEnd', (c) => {
-      c.createEl('span', { cls: 'sr-hint', text: t.hintEndDate });
+      c.createSpan({ cls: 'sr-hint', text: t.hintEndDate });
       const inp = c.createEl('input', { cls: 'sr-input', type: 'date' });
       if (this.fd.endDate) inp.value = this.fd.endDate;
       inp.addEventListener('change', (e) => {
@@ -456,7 +456,7 @@ export class AddReminderModal extends Modal {
 
     // Внутри-дневные настройки (интервальный режим)
     this.addToggle(container, t.toggleIntraDay, 'isIntraDay', (c) => {
-      c.createEl('span', { cls: 'sr-hint', text: t.hintIntraDay });
+      c.createSpan({ cls: 'sr-hint', text: t.hintIntraDay });
       this.buildIntraInterval(c, t);
     });
   }
@@ -471,7 +471,7 @@ export class AddReminderModal extends Modal {
       const v = parseInt((e.target as HTMLInputElement).value, 10);
       this.fd.intraStepMin = Math.max(1, isNaN(v) ? 1 : v);
     });
-    nRow.createEl('span', { cls: 'sr-interval-unit', text: t.fieldIntervalUnit });
+    nRow.createSpan({ cls: 'sr-interval-unit', text: t.fieldIntervalUnit });
 
     const tw = c.createDiv('sr-time-row');
     const gF = tw.createDiv('sr-field-group');
@@ -827,7 +827,7 @@ export class AddReminderModal extends Modal {
     }
 
     if (!isEdit) this.plugin.reminders.push(r);
-    this.plugin.saveSettings();
+    void this.plugin.saveSettings();
     new Notice(isEdit ? t.okUpdated : t.okAdded);
     this.onSave();
     this.close();

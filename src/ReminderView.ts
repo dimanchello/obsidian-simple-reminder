@@ -16,9 +16,9 @@ export class ReminderView extends ItemView {
       plugin: this.plugin,
       initialTab: this.plugin.settings.activeTab || 'all',
       isEmbedded: false,
-      onTabChange: async (tab) => {
+      onTabChange: (tab) => {
         this.plugin.settings.activeTab = tab;
-        await this.plugin.saveSettings();
+        void this.plugin.saveSettings();
       },
     });
   }

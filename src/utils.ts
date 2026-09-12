@@ -335,7 +335,7 @@ export function migrateRemindBefore(r: Reminder): Reminder {
       if (broken && rb.trigger === null) {
         const target = r.nextTrigger ?? r.specificTs;
         if (target) {
-          const result = calcRemindBeforeTarget(target, rb.value, rb.unit as RemindBeforeUnit);
+          const result = calcRemindBeforeTarget(target, rb.value, rb.unit);
           if (result > Date.now()) {
             rb.trigger = result;
           }
@@ -522,8 +522,8 @@ export function parseCodeBlockConfig(source: string): CodeBlockConfig {
       }
     } else if (key === 'group' || key === 'groupby') {
       const lowerVal = val.toLowerCase();
-      const validGroups: GroupBy[] = ['none', 'minute', 'hour', 'day', 'week', 'month', 'year'];
-      if (validGroups.includes(lowerVal as GroupBy)) {
+      const validGroups = ['none', 'minute', 'hour', 'day', 'week', 'month', 'year'];
+      if (validGroups.includes(lowerVal)) {
         config.groupBy = lowerVal as GroupBy;
       }
     } else if (key === 'header' || key === 'showheader') {

@@ -58,7 +58,7 @@ export default class SimpleReminderPlugin extends Plugin {
       callback: () =>
         new AddReminderModal(this.app, this, () => {
           this.refreshView();
-          this.checkReminders();
+          void this.checkReminders();
         }).open(),
     });
 
@@ -77,7 +77,7 @@ export default class SimpleReminderPlugin extends Plugin {
     this.requestNotificationPermission(false);
 
     this.app.workspace.onLayoutReady(async () => {
-      this.checkReminders();
+      await this.checkReminders();
       this.startCheckLoop();
     });
   }
@@ -87,7 +87,7 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const saved = (await this.loadData()) ?? {};
+    const saved = ((await this.loadData()) as Partial<PluginSettings> | null) ?? {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
     this.reminders = (Array.isArray(this.settings.reminders) ? this.settings.reminders : []).map(migrateLegacyReminder);
     this.pruneOldCompleted();
@@ -112,14 +112,14 @@ export default class SimpleReminderPlugin extends Plugin {
         leaf = right;
       }
     }
-    if (leaf) workspace.revealLeaf(leaf);
+    if (leaf) await workspace.revealLeaf(leaf);
   }
 
   refreshView(): void {
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_REMINDER);
     for (const leaf of leaves) {
       if (leaf && leaf.view instanceof ReminderView) {
-        (leaf.view as ReminderView).refresh();
+        leaf.view.refresh();
       }
     }
     for (const refresh of this.activeCodeBlocks) {
@@ -130,7 +130,9 @@ export default class SimpleReminderPlugin extends Plugin {
   startCheckLoop(): void {
     this.stopCheckLoop();
     const ms = Math.max(2, this.settings.checkIntervalSec) * 1000;
-    this.checkTimer = window.setInterval(() => this.checkReminders(), ms);
+    this.checkTimer = window.setInterval(() => {
+      void this.checkReminders();
+    }, ms);
   }
 
   stopCheckLoop(): void {
@@ -148,7 +150,7 @@ export default class SimpleReminderPlugin extends Plugin {
     const before = this.reminders.length;
     this.reminders = pruneOldCompleted(this.reminders, this.settings.pruneCompletedDays);
     if (this.reminders.length !== before) {
-      this.saveSettings();
+      void this.saveSettings();
       this.refreshView();
     }
   }
@@ -283,7 +285,7 @@ export default class SimpleReminderPlugin extends Plugin {
       r.remindBefore.forEach((e) => {
         e.trigger = null;
       });
-      this.saveSettings();
+      void this.saveSettings();
       this.refreshView();
     }
 
@@ -293,7 +295,7 @@ export default class SimpleReminderPlugin extends Plugin {
       if (r.remindBefore.length > 0) {
         r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
       }
-      this.saveSettings();
+      void this.saveSettings();
       this.refreshView();
     }
 
@@ -323,7 +325,7 @@ export default class SimpleReminderPlugin extends Plugin {
     const notePath = wikiLink.slice(2, -2);
     const file = this.app.metadataCache.getFirstLinkpathDest(notePath, '');
     if (file) {
-      this.app.workspace.getLeaf(true).openFile(file);
+      void this.app.workspace.getLeaf(true).openFile(file);
     } else {
       new Notice(`Note not found: ${notePath}`);
     }
@@ -340,7 +342,7 @@ export default class SimpleReminderPlugin extends Plugin {
     if (Notification.permission === 'granted') {
       fire();
     } else if (Notification.permission === 'default') {
-      Notification.requestPermission().then((p) => {
+      void Notification.requestPermission().then((p) => {
         if (p === 'granted') {
           fire();
         } else {

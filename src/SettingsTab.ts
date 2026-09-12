@@ -15,15 +15,15 @@ export class ReminderSettingTab extends PluginSettingTab {
     const t = this.plugin.t;
 
     el.empty();
-    el.createEl('h2', { text: t.settingsH2 });
+    new Setting(el).setName(t.settingsH2).setHeading();
 
     // ── Mobile warning ──────────────────────────────────────────────────────
     const notice = el.createDiv('sr-settings-notice');
-    notice.createEl('h3', { text: t.mobileH3 });
+    new Setting(notice).setName(t.mobileH3).setHeading();
     notice.createEl('p', { text: t.mobileBody });
 
     // ── Management ──────────────────────────────────────────────────────────
-    el.createEl('h3', { text: t.secManagement });
+    new Setting(el).setName(t.secManagement).setHeading();
 
     new Setting(el)
       .setName(t.openPanelName)
@@ -53,7 +53,7 @@ export class ReminderSettingTab extends PluginSettingTab {
           });
         text.inputEl.type = 'number';
         text.inputEl.min = '2';
-        text.inputEl.style.width = '80px';
+        text.inputEl.addClass('sr-number-input');
       });
 
     // Language
@@ -114,7 +114,7 @@ export class ReminderSettingTab extends PluginSettingTab {
           });
         text.inputEl.type = 'number';
         text.inputEl.min = '0';
-        text.inputEl.style.width = '80px';
+        text.inputEl.addClass('sr-number-input');
       });
 
     // Test notification
@@ -146,7 +146,7 @@ export class ReminderSettingTab extends PluginSettingTab {
       );
 
     // ── Statistics ──────────────────────────────────────────────────────────
-    el.createEl('h3', { text: t.secStats });
+    new Setting(el).setName(t.secStats).setHeading();
 
     const total = this.plugin.reminders.length;
     const active = this.plugin.reminders.filter((r) => !r.checked).length;
@@ -164,7 +164,7 @@ export class ReminderSettingTab extends PluginSettingTab {
     }
 
     // ── About ───────────────────────────────────────────────────────────────
-    el.createEl('h3', { text: t.secAbout });
+    new Setting(el).setName(t.secAbout).setHeading();
     el.createEl('p', {
       cls: 'sr-settings-info',
       text: t.aboutText(this.plugin.settings.checkIntervalSec),

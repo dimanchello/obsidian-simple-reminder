@@ -107,10 +107,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     this.listeners.get(event)?.forEach((cb) => {
       try {
         cb(payload);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('[SimpleReminder API] error:', e);
-      }
+      } catch {}
     });
   }
 
@@ -185,7 +182,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     r.nextTrigger = calcNextTrigger(r, now);
     r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, entries);
     this.plugin.reminders.push(r);
-    this.plugin.saveSettings();
+    void this.plugin.saveSettings();
     this._emitAdded(r);
     this.plugin.refreshView();
     return r.id;
@@ -197,7 +194,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       return false;
     }
     this.plugin.reminders.splice(idx, 1);
-    this.plugin.saveSettings();
+    void this.plugin.saveSettings();
     this._emitRemoved(id);
     this.plugin.refreshView();
     return true;
@@ -222,7 +219,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
         r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, r.remindBefore);
       }
     }
-    this.plugin.saveSettings();
+    void this.plugin.saveSettings();
     this._emitUpdated(r);
     this.plugin.refreshView();
     return true;

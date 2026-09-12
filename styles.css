@@ -381,6 +381,7 @@
 .sr-stats-val   { font-weight: 600; color: var(--text-normal); }
 
 .sr-settings-info { font-size: .82em; color: var(--text-faint); line-height: 1.5; }
+.sr-number-input { width: 80px; }
 
 /* ═══════════════════════════════════════════════════════════════════
    Flexible reminder builder — additional styles

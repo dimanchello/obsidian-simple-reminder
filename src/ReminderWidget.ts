@@ -195,7 +195,7 @@ export class ReminderWidget {
         this.plugin,
         () => {
           this.plugin.refreshView();
-          this.plugin.checkReminders();
+          void this.plugin.checkReminders();
         },
         r,
       ).open(),
@@ -232,7 +232,7 @@ export class ReminderWidget {
   private openAddModal(): void {
     new AddReminderModal(this.plugin.app, this.plugin, () => {
       this.plugin.refreshView();
-      this.plugin.checkReminders();
+      void this.plugin.checkReminders();
     }).open();
   }
 
