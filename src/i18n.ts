@@ -1,4 +1,4 @@
-import { Language } from './types';
+import { getLanguage } from 'obsidian';
 
 export interface Strings {
   pluginName: string;
@@ -523,21 +523,25 @@ const ru: Strings = {
 
 const STRINGS: Record<'en' | 'ru', Strings> = { en, ru };
 
-export function resolveLanguage(setting?: Language | string): 'en' | 'ru' {
-  if (setting === 'en') return 'en';
-  if (setting === 'ru') return 'ru';
-  if (setting && setting !== 'auto') {
-    return setting.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+export function resolveLanguage(lang?: string): 'en' | 'ru' {
+  if (lang === 'en') return 'en';
+  if (lang === 'ru') return 'ru';
+  if (lang && lang !== 'auto') {
+    return lang.toLowerCase().startsWith('ru') ? 'ru' : 'en';
   }
-  const obsLang =
-    typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem('language') : undefined;
-  if (obsLang) {
-    return obsLang.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  let currentLang: string | undefined;
+  try {
+    currentLang = typeof getLanguage === 'function' ? getLanguage() : undefined;
+  } catch {
+    currentLang = undefined;
+  }
+  if (currentLang) {
+    return currentLang.toLowerCase().startsWith('ru') ? 'ru' : 'en';
   }
   const nav = (typeof navigator !== 'undefined' ? navigator.language : 'en') ?? 'en';
   return nav.toLowerCase().startsWith('ru') ? 'ru' : 'en';
 }
 
-export function getStrings(setting?: Language | string): Strings {
-  return STRINGS[resolveLanguage(setting)];
+export function getStrings(lang?: string): Strings {
+  return STRINGS[resolveLanguage(lang)];
 }

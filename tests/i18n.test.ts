@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import * as obsidian from 'obsidian';
 import { getStrings, resolveLanguage } from '../src/i18n';
-import type { Language } from '../src/types';
 
 // ── resolveLanguage ──────────────────────────────────────────────────────────
 
@@ -23,25 +23,16 @@ describe('resolveLanguage', () => {
     expect(['en', 'ru']).toContain(result);
   });
 
-  it('detects language from localStorage when available', () => {
-    const origWindow = globalThis.window;
-    try {
-      (globalThis as any).window = {
-        localStorage: {
-          getItem: (key: string) => (key === 'language' ? 'ru' : null),
-        },
-      };
-      expect(resolveLanguage()).toBe('ru');
+  it('detects language from getLanguage()', () => {
+    const spy = vi.spyOn(obsidian, 'getLanguage').mockReturnValue('ru');
+    expect(resolveLanguage()).toBe('ru');
+    spy.mockRestore();
+  });
 
-      (globalThis as any).window = {
-        localStorage: {
-          getItem: (key: string) => (key === 'language' ? 'en' : null),
-        },
-      };
-      expect(resolveLanguage()).toBe('en');
-    } finally {
-      (globalThis as any).window = origWindow;
-    }
+  it('handles regional locale codes', () => {
+    expect(resolveLanguage('ru-RU')).toBe('ru');
+    expect(resolveLanguage('en-US')).toBe('en');
+    expect(resolveLanguage('fr-FR')).toBe('en');
   });
 });
 
