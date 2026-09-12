@@ -205,6 +205,11 @@ describe('EN/RU consistency', () => {
     expect(typeof getStrings('ru').periodicEverySingular).toBe('string');
   });
 
+  it('both languages have formatEvery function', () => {
+    expect(typeof getStrings('en').formatEvery).toBe('function');
+    expect(typeof getStrings('ru').formatEvery).toBe('function');
+  });
+
   it('both languages have non-empty strings', () => {
     const en = getStrings('en');
     const ru = getStrings('ru');

@@ -368,16 +368,7 @@ export function formatScheduleSummary(r: Reminder, t: Strings): ScheduleSummary 
   const parts: string[] = [];
   const n = r.repStep ?? 1;
   const unitIdx = ['day', 'week', 'month', 'year'].indexOf(r.repUnit ?? 'day');
-  const prefix = n === 1 ? t.periodicEverySingular : t.periodicEvery;
-  let unitLabel: string;
-  if (n === 1) {
-    unitLabel = t.periodicUnitSingular[unitIdx];
-  } else if (n >= 2 && n <= 4) {
-    unitLabel = t.periodicUnitFew[unitIdx];
-  } else {
-    unitLabel = t.periodicUnitLabels[unitIdx];
-  }
-  parts.push(`${prefix} ${n} ${unitLabel}`);
+  parts.push(t.formatEvery(n, unitIdx));
 
   if (r.repUnit === 'week' && r.repDaysOfWeek) {
     parts.push(`(${r.repDaysOfWeek.map((d) => t.daysShort[d]).join(', ')})`);

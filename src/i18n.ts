@@ -87,6 +87,7 @@ export interface Strings {
   // Описание правила
   ruleAt: (time: string) => string;
   ruleInterval: (mins: number, from: string, to: string) => string;
+  formatEvery: (n: number, unitIdx: number) => string;
 
   // Настройки
   settingsH2: string;
@@ -257,6 +258,12 @@ const en: Strings = {
 
   ruleAt: (time) => `at ${time}`,
   ruleInterval: (mins, f, t) => `every ${mins}m (${f}-${t})`,
+  formatEvery: (n, idx) => {
+    const singular = ['day', 'week', 'month', 'year'];
+    const plural = ['days', 'weeks', 'months', 'years'];
+    if (n === 1) return `Every ${singular[idx]}`;
+    return `Every ${n} ${plural[idx]}`;
+  },
 
   settingsH2: '⏰ Simple Reminder',
   mobileH3: '📱 Mobile devices (iOS / Android)',
@@ -435,6 +442,21 @@ const ru: Strings = {
 
   ruleAt: (time) => `в ${time}`,
   ruleInterval: (mins, f, t) => `каждые ${mins} мин (${f}-${t})`,
+  formatEvery: (n, idx) => {
+    const singular = ['день', 'неделю', 'месяц', 'год'];
+    const few = ['дня', 'недели', 'месяца', 'года'];
+    const many = ['дней', 'недель', 'месяцев', 'лет'];
+    const everySingular = ['Каждый', 'Каждую', 'Каждый', 'Каждый'];
+    if (n === 1) return `${everySingular[idx]} ${singular[idx]}`;
+    const m10 = n % 10;
+    const m100 = n % 100;
+    let form: string;
+    if (m10 === 1 && m100 !== 11) form = singular[idx];
+    else if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) form = few[idx];
+    else form = many[idx];
+    const prefix = m10 === 1 && m100 !== 11 ? everySingular[idx] : 'Каждые';
+    return `${prefix} ${n} ${form}`;
+  },
 
   settingsH2: '⏰ Simple Reminder',
   mobileH3: '📱 Мобильные устройства (iOS / Android)',

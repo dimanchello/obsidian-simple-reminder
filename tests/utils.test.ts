@@ -1040,7 +1040,7 @@ describe('formatScheduleSummary', () => {
     expect(summary.mainText).not.toBe('—');
   });
 
-  it('formats repeat reminder summary correctly', () => {
+  it('formats repeat reminder with step=1 without number', () => {
     const r = makeReminder({
       type: 'repeat',
       repUnit: 'day',
@@ -1051,8 +1051,21 @@ describe('formatScheduleSummary', () => {
     const summary = formatScheduleSummary(r, tEn);
     expect(summary.isOnce).toBe(false);
     expect(summary.tagCls).toBe('sr-tag sr-tag--repeat');
-    expect(summary.mainText).toContain('Every 1 day');
+    expect(summary.mainText).toContain('Every day');
+    expect(summary.mainText).not.toContain('Every 1');
     expect(summary.mainText).toContain('at 09:00');
+  });
+
+  it('formats repeat reminder with step>1 with number', () => {
+    const r = makeReminder({
+      type: 'repeat',
+      repUnit: 'day',
+      repStep: 3,
+      intraDayMode: 'single',
+      intraDayTime: '09:00',
+    });
+    const summary = formatScheduleSummary(r, tEn);
+    expect(summary.mainText).toContain('Every 3 days');
   });
 
   it('includes end date badge if endDate is set', () => {
@@ -1067,6 +1080,95 @@ describe('formatScheduleSummary', () => {
     const summary = formatScheduleSummary(r, tEn);
     expect(summary.endBadgeText).toBeDefined();
     expect(summary.endBadgeText).toContain(tEn.endsLabel);
+  });
+});
+
+// ── formatEvery — English ────────────────────────────────────────────────────
+
+describe('formatEvery — English', () => {
+  it('n=1 day: "Every day" (no number)', () => {
+    expect(tEn.formatEvery(1, 0)).toBe('Every day');
+  });
+
+  it('n=1 week: "Every week"', () => {
+    expect(tEn.formatEvery(1, 1)).toBe('Every week');
+  });
+
+  it('n=1 month: "Every month"', () => {
+    expect(tEn.formatEvery(1, 2)).toBe('Every month');
+  });
+
+  it('n=1 year: "Every year"', () => {
+    expect(tEn.formatEvery(1, 3)).toBe('Every year');
+  });
+
+  it('n=2 days: "Every 2 days"', () => {
+    expect(tEn.formatEvery(2, 0)).toBe('Every 2 days');
+  });
+
+  it('n=5 weeks: "Every 5 weeks"', () => {
+    expect(tEn.formatEvery(5, 1)).toBe('Every 5 weeks');
+  });
+
+  it('n=12 months: "Every 12 months"', () => {
+    expect(tEn.formatEvery(12, 2)).toBe('Every 12 months');
+  });
+});
+
+// ── formatEvery — Russian ────────────────────────────────────────────────────
+
+describe('formatEvery — Russian', () => {
+  const tRu = getStrings('ru');
+
+  it('n=1: singular without number', () => {
+    expect(tRu.formatEvery(1, 0)).toBe('Каждый день');
+    expect(tRu.formatEvery(1, 1)).toBe('Каждую неделю');
+    expect(tRu.formatEvery(1, 2)).toBe('Каждый месяц');
+    expect(tRu.formatEvery(1, 3)).toBe('Каждый год');
+  });
+
+  it('n=2-4: few form', () => {
+    expect(tRu.formatEvery(2, 0)).toBe('Каждые 2 дня');
+    expect(tRu.formatEvery(3, 1)).toBe('Каждые 3 недели');
+    expect(tRu.formatEvery(4, 2)).toBe('Каждые 4 месяца');
+    expect(tRu.formatEvery(2, 3)).toBe('Каждые 2 года');
+  });
+
+  it('n=5-20: many form', () => {
+    expect(tRu.formatEvery(5, 0)).toBe('Каждые 5 дней');
+    expect(tRu.formatEvery(10, 1)).toBe('Каждые 10 недель');
+    expect(tRu.formatEvery(11, 2)).toBe('Каждые 11 месяцев');
+    expect(tRu.formatEvery(14, 3)).toBe('Каждые 14 лет');
+    expect(tRu.formatEvery(20, 0)).toBe('Каждые 20 дней');
+  });
+
+  it('n=11-14: many form (exception)', () => {
+    expect(tRu.formatEvery(11, 0)).toBe('Каждые 11 дней');
+    expect(tRu.formatEvery(12, 0)).toBe('Каждые 12 дней');
+    expect(tRu.formatEvery(13, 0)).toBe('Каждые 13 дней');
+    expect(tRu.formatEvery(14, 0)).toBe('Каждые 14 дней');
+  });
+
+  it('n=21: singular form with correct prefix', () => {
+    expect(tRu.formatEvery(21, 0)).toBe('Каждый 21 день');
+    expect(tRu.formatEvery(21, 1)).toBe('Каждую 21 неделю');
+    expect(tRu.formatEvery(21, 2)).toBe('Каждый 21 месяц');
+    expect(tRu.formatEvery(21, 3)).toBe('Каждый 21 год');
+  });
+
+  it('n=22-24: few form', () => {
+    expect(tRu.formatEvery(22, 0)).toBe('Каждые 22 дня');
+    expect(tRu.formatEvery(23, 1)).toBe('Каждые 23 недели');
+    expect(tRu.formatEvery(24, 2)).toBe('Каждые 24 месяца');
+  });
+
+  it('n=25-30: many form', () => {
+    expect(tRu.formatEvery(25, 0)).toBe('Каждые 25 дней');
+    expect(tRu.formatEvery(30, 0)).toBe('Каждые 30 дней');
+  });
+
+  it('n=111: many form (11x exception)', () => {
+    expect(tRu.formatEvery(111, 0)).toBe('Каждые 111 дней');
   });
 });
 

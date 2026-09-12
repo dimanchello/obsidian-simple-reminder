@@ -274,7 +274,9 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   private handleReminderClick(r: Reminder): void {
-    if (r.type === 'once') {
+    const isPreAlert = r.type === 'once' && r.nextTrigger != null && Date.now() < r.nextTrigger;
+
+    if (r.type === 'once' && !isPreAlert) {
       r.checked = true;
       r.completedAt = Date.now();
       r.nextTrigger = null;
