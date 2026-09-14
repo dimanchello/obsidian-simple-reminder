@@ -5,7 +5,13 @@ import { ReminderCodeBlockChild } from './ReminderCodeBlock';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderViewModal } from './ReminderViewModal';
 import { ReminderSettingTab } from './SettingsTab';
-import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTriggers } from './utils';
+import {
+  advanceTrigger,
+  migrateLegacyReminder,
+  pruneOldCompleted,
+  calcRemindBeforeTriggers,
+  shouldCompleteReminderOnClick,
+} from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
 
@@ -256,6 +262,7 @@ export default class SimpleReminderPlugin extends Plugin {
   fireNotification(r: Reminder, preAlertEntry?: RemindBeforeEntry): void {
     const emoji = r.emoji || DEFAULT_EMOJI;
     let prefix = `${emoji} ${this.t.pluginName}`;
+    const isPreAlert = !!preAlertEntry;
     if (preAlertEntry) {
       const formattedTime = this.t.formatRemindBefore(preAlertEntry.value, preAlertEntry.unit);
       prefix = `${emoji} ${this.t.remindBeforePrefix(formattedTime)}`;
@@ -265,7 +272,7 @@ export default class SimpleReminderPlugin extends Plugin {
         const notif = new Notification(prefix, { body: r.title, silent: false });
         notif.onclick = (): void => {
           window.focus();
-          this.handleReminderClick(r);
+          this.handleReminderClick(r, isPreAlert);
         };
         return;
       } catch {
@@ -275,10 +282,8 @@ export default class SimpleReminderPlugin extends Plugin {
     new Notice(`${emoji} ${r.title}`, 8000);
   }
 
-  private handleReminderClick(r: Reminder): void {
-    const isPreAlert = r.type === 'once' && r.nextTrigger != null && Date.now() < r.nextTrigger;
-
-    if (r.type === 'once' && !isPreAlert) {
+  private handleReminderClick(r: Reminder, isPreAlert = false): void {
+    if (shouldCompleteReminderOnClick(r, Date.now(), isPreAlert)) {
       r.checked = true;
       r.completedAt = Date.now();
       r.nextTrigger = null;
@@ -289,7 +294,7 @@ export default class SimpleReminderPlugin extends Plugin {
       this.refreshView();
     }
 
-    if (r.type === 'repeat' && r.nagMode && r.nagSilencedUntil != null) {
+    if (r.type === 'repeat' && r.nagMode && r.nagSilencedUntil != null && !isPreAlert) {
       r.nextTrigger = advanceTrigger(r, Date.now());
       r.nagSilencedUntil = null;
       if (r.remindBefore.length > 0) {

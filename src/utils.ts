@@ -289,6 +289,18 @@ export function calcRemindBeforeTriggers(
   });
 }
 
+export function shouldCompleteReminderOnClick(r: Reminder, now: number, isPreAlert = false): boolean {
+  if (r.type !== 'once') return false;
+  if (r.checked) return false;
+  if (r.nagMode) return false;
+  if (isPreAlert) return false;
+
+  const eventDate = r.specificTs ?? r.nextTrigger;
+  if (eventDate == null) return false;
+
+  return now >= eventDate;
+}
+
 export function migrateRemindBefore(r: Reminder): Reminder {
   const raw = r as unknown as Record<string, unknown>;
   if (!Array.isArray(raw.remindBefore)) {

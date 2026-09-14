@@ -111,6 +111,12 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - Instead, `nextTrigger` is advanced by `nagIntervalMin` minutes.
 - It will keep firing and advancing until the user manually checks it off in the UI.
 
+### Notification Click Handling
+- Logic handled via `shouldCompleteReminderOnClick(r, now, isPreAlert)` pure function in `utils.ts`
+- If notification clicked and event date has not arrived yet (`now < eventDate` or `isPreAlert`), or if `nagMode` is enabled: reminder is not completed; opens modal/URL
+- If notification clicked, event date has arrived (`now >= eventDate`), and `nagMode` is false: marked as completed (`checked = true`, `completedAt = now`, clears triggers)
+- For repeat reminders with `nagMode`: silences nag until next trigger
+
 ### Migration
 - `migrateLegacyReminder` converts old reminder formats (`specific`, `flexible`, `scheduled`, `periodic`) to the current `once`/`repeat` schema
 - Already-migrated reminders pass through unchanged

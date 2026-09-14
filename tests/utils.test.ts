@@ -15,6 +15,7 @@ import {
   formatGroupLabel,
   groupReminders,
   parseCodeBlockConfig,
+  shouldCompleteReminderOnClick,
 } from '../src/utils';
 import { Reminder } from '../src/types';
 import { getStrings } from '../src/i18n';
@@ -1409,5 +1410,51 @@ describe('parseCodeBlockConfig', () => {
 
   it('ignores malformed lines without colons', () => {
     expect(parseCodeBlockConfig('some random text\nanother line')).toEqual({});
+  });
+});
+
+describe('shouldCompleteReminderOnClick', () => {
+  it('returns false if reminder is not once type', () => {
+    const r = makeReminder({ type: 'repeat', specificTs: 1000, nextTrigger: 1000 });
+    expect(shouldCompleteReminderOnClick(r, 2000, false)).toBe(false);
+  });
+
+  it('returns false if reminder is already checked', () => {
+    const r = makeReminder({ type: 'once', checked: true, specificTs: 1000 });
+    expect(shouldCompleteReminderOnClick(r, 2000, false)).toBe(false);
+  });
+
+  it('returns false if nagMode is true even if event time has passed', () => {
+    const r = makeReminder({ type: 'once', nagMode: true, specificTs: 1000 });
+    expect(shouldCompleteReminderOnClick(r, 2000, false)).toBe(false);
+  });
+
+  it('returns false if isPreAlert is true even if event time has passed', () => {
+    const r = makeReminder({ type: 'once', specificTs: 1000 });
+    expect(shouldCompleteReminderOnClick(r, 2000, true)).toBe(false);
+  });
+
+  it('returns false if event date has not arrived yet', () => {
+    const r = makeReminder({ type: 'once', specificTs: 2000 });
+    expect(shouldCompleteReminderOnClick(r, 1000, false)).toBe(false);
+  });
+
+  it('returns true if event date has arrived and nagMode is false', () => {
+    const r = makeReminder({ type: 'once', specificTs: 1000 });
+    expect(shouldCompleteReminderOnClick(r, 1000, false)).toBe(true);
+    expect(shouldCompleteReminderOnClick(r, 1500, false)).toBe(true);
+  });
+
+  it('falls back to nextTrigger when specificTs is null', () => {
+    const rFuture = makeReminder({ type: 'once', specificTs: null, nextTrigger: 2000 });
+    expect(shouldCompleteReminderOnClick(rFuture, 1000, false)).toBe(false);
+
+    const rPast = makeReminder({ type: 'once', specificTs: null, nextTrigger: 1000 });
+    expect(shouldCompleteReminderOnClick(rPast, 2000, false)).toBe(true);
+  });
+
+  it('returns false when both specificTs and nextTrigger are null', () => {
+    const r = makeReminder({ type: 'once', specificTs: null, nextTrigger: null });
+    expect(shouldCompleteReminderOnClick(r, 1000, false)).toBe(false);
   });
 });

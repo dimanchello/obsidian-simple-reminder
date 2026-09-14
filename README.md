@@ -1,8 +1,10 @@
-# Obsidian Simple Reminder
+# Simple Reminder
 
 [English](#features) | [Русский](#возможности)
 
 An Obsidian plugin for managing a reminder list with system notifications. Create tasks, schedule recurring reminders, embed interactive widgets directly in your notes, and never miss a deadline.
+
+![Simple Reminder Widget](docs/images/embedded-widget.png)
 
 ---
 
@@ -25,6 +27,10 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
 - **URL & Note Links:**
   - Attach external URLs (http, https, ftp, ssh) or internal note links (`[[Note Name]]`)
   - Clicking notification opens external URLs in your browser and note links directly in Obsidian
+- **Smart Notification Click Handling:**
+  - If the event date has not yet arrived (e.g. a pre-alert notification) and nag mode is not enabled: clicking opens the event details modal (or linked URL) without marking it as done
+  - If the event date has arrived and nag mode is disabled: clicking marks a one-shot reminder as completed
+  - If persistent notification (Nag Mode) is enabled: clicking does not complete the reminder; it keeps notifying until manually checked off in the list
 - **Markdown Code Block Widget** (`simple-reminder`) — embed interactive reminder lists inside any note with custom filtering, grouping, and headers
 - **Bilingual Interface** — English and Russian with automatic detection based on Obsidian's language setting
 - **Full Theme Compatibility** — built using Obsidian CSS variables to seamlessly match any theme
@@ -39,10 +45,10 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
 
 ## Installation
 
-### Community Plugins *(coming soon)*
+### Community Plugins
 
 1. In Obsidian, go to **Settings → Community plugins → Browse**
-2. Search for **Obsidian Simple Reminder**
+2. Search for **Simple Reminder**
 3. Click **Install**, then **Enable**
 
 ### Manual Installation
@@ -50,14 +56,7 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
 1. Download the latest release from [Releases](../../releases)
 2. Extract the archive containing `main.js`, `manifest.json`, and `styles.css`
 3. Copy these files into `<vault-path>/.obsidian/plugins/simple-reminder/`
-4. In Obsidian: **Settings → Community plugins** → enable **Obsidian Simple Reminder**
-
-### Via BRAT (Beta Reviewer Auto-update Tool)
-
-1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from Community Plugins
-2. In BRAT settings, choose **BRAT: Add a beta plugin for testing**
-3. Enter the repository URL: `https://github.com/dimanchello/obsidian-simple-reminder`
-4. Click **Add Plugin**, then enable it in Obsidian settings
+4. In Obsidian: **Settings → Community plugins** → enable **Simple Reminder**
 
 ---
 
@@ -123,6 +122,8 @@ simple-reminder/
 
 Click the **bell icon** in the left ribbon or run the command **Simple Reminder: Open reminder panel** from the command palette (`Ctrl/Cmd + P`).
 
+![Sidebar Panel](docs/images/sidebar-panel.png)
+
 ### Embedding Widgets in Notes (Code Block)
 
 You can render an interactive reminder list in any markdown file using the `simple-reminder` code block:
@@ -175,6 +176,20 @@ Click **+ Add** in the panel or widget header and fill in the form:
 - **Remind before**: optional pre-alert before the main trigger
 - **Nag Mode**: keep notifying until manually completed
 
+![Add Reminder Modal](docs/images/add-reminder-modal.png)
+
+### Viewing Reminder Details & Pre-Alerts
+
+Click on any reminder in the list to open its details modal showing scheduled time, pre-alerts, description, and attached links:
+
+![Reminder Details](docs/images/reminder-details.png)
+
+### Annual Calendar Overview
+
+Click the **calendar icon** in the panel or widget header to view all scheduled reminders on a monthly and yearly calendar with date markers:
+
+![Calendar Overview](docs/images/calendar-modal.png)
+
 ---
 
 ## Settings
@@ -218,9 +233,11 @@ See [API.md](./API.md) for full API documentation.
 
 ---
 
-# Obsidian Simple Reminder (на русском)
+# Simple Reminder (на русском)
 
 Плагин для Obsidian — список напоминаний с системными уведомлениями. Создавайте задачи, задавайте расписание и получайте уведомления вовремя.
+
+![Виджет Simple Reminder в заметке](docs/images/embedded-widget.png)
 
 ---
 
@@ -249,6 +266,10 @@ See [API.md](./API.md) for full API documentation.
   - Добавьте URL в напоминание — внешнюю ссылку (http://, ftp://, ssh:// и т.д.) или ссылку на заметку ([[Название заметки]])
   - При нажатии на уведомление: внешние ссылки открываются в браузере, заметки — в новой вкладке Obsidian
   - Если ссылка не указана, показываются подробности напоминания
+- **Умная обработка клика по уведомлению**:
+  - Если дата события ещё не наступила (например, сработало предварительное напоминание «Напомнить за») и не включен настойчивый режим: клик открывает карточку события (или прикреплённую ссылку) без перевода в выполненные
+  - Если дата события уже наступила и настойчивый режим выключен: клик переводит разовое напоминание в выполненные
+  - При включенном настойчивом режиме (Nag Mode): клик не завершает напоминание, оно продолжает напоминать до ручной отметки в списке
 - **Встраивание в заметки через кодовый блок** (````simple-reminder````) — интерактивный виджет напоминаний прямо внутри заметок с гибкой настройкой фильтрации, группировки и внешнего вида
 - **Полная совместимость** с любой темой Obsidian — все стили через CSS-переменные
 
@@ -262,10 +283,10 @@ See [API.md](./API.md) for full API documentation.
 
 ## Установка
 
-### Через Community Plugins *(скоро)*
+### Через Community Plugins
 
 1. Откройте **Settings → Community plugins → Browse**
-2. Найдите **Obsidian Simple Reminder**
+2. Найдите **Simple Reminder**
 3. Нажмите **Install**, затем **Enable**
 
 ### Ручная установка
@@ -273,16 +294,7 @@ See [API.md](./API.md) for full API documentation.
 1. Скачайте последний релиз из [Releases](../../releases)
 2. Распакуйте архив — он должен содержать `main.js`, `manifest.json` и `styles.css`
 3. Скопируйте папку в `<vault-path>/.obsidian/plugins/simple-reminder/`
-4. В Obsidian: **Settings → Community plugins** → включите **Obsidian Simple Reminder**
-
-### Через BRAT (Beta Reviewer Auto-update Tool)
-
-1. Установите плагин [BRAT](https://github.com/TfTHacker/obsidian42-brat) из Community Plugins
-2. Включите BRAT в настройках
-3. Откройте команду **BRAT: Add a beta plugin for testing**
-4. Вставьте URL репозитория: `https://github.com/dimanchello/obsidian-simple-reminder`
-5. Нажмите **Add Plugin**
-6. Перезагрузите Obsidian и включите **Obsidian Simple Reminder** в настройках
+4. В Obsidian: **Settings → Community plugins** → включите **Simple Reminder**
 
 ---
 
@@ -346,7 +358,9 @@ simple-reminder/
 
 ### Открыть панель
 
-Нажмите на **значок колокольчика** на боковой панели или выполните команду **Obsidian Simple Reminder: Open reminder panel**.
+Нажмите на **значок колокольчика** на боковой панели или выполните команду **Simple Reminder: Open reminder panel**.
+
+![Боковая панель](docs/images/sidebar-panel.png)
 
 ### Встраивание в заметки (Code Block)
 
@@ -402,6 +416,20 @@ title: Мои напоминания
 | Единица повтора | День, Неделя, Месяц, Год |
 | Интервал | Повторять каждые N единиц |
 | Время | Для одиночного режима — конкретное ЧЧ:ММ; для интервального — шаг и временное окно |
+
+![Окно создания напоминания](docs/images/add-reminder-modal.png)
+
+### Подробности напоминания и предварительные уведомления
+
+Нажмите на любое напоминание в списке, чтобы открыть карточку с подробным описанием, временем срабатывания, предварительными напоминаниями и ссылками:
+
+![Подробности напоминания](docs/images/reminder-details.png)
+
+### Календарный обзор
+
+Нажмите на **значок календаря** в заголовке панели или виджета, чтобы открыть годовой и месячный календарь с метками запланированных напоминаний:
+
+![Календарный обзор](docs/images/calendar-modal.png)
 
 ### Редактировать напоминание
 
