@@ -1,5 +1,5 @@
 import { Reminder, RepeatUnit, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
-import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
+import { generateId, calcNextTrigger, calcRemindBeforeTriggers, shouldAutoCompleteOnceReminder } from './utils';
 import type SimpleReminderPlugin from './main';
 
 export interface OnceOptions {
@@ -183,6 +183,10 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
 
     r.nextTrigger = calcNextTrigger(r, now);
     r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, entries);
+    if (shouldAutoCompleteOnceReminder(r, now)) {
+      r.checked = true;
+      r.completedAt = now;
+    }
     this.plugin.reminders.push(r);
     void this.plugin.saveSettings();
     this._emitAdded(r);

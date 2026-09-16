@@ -301,6 +301,15 @@ export function shouldCompleteReminderOnClick(r: Reminder, now: number, isPreAle
   return now >= eventDate;
 }
 
+export function shouldAutoCompleteOnceReminder(r: Reminder, now: number): boolean {
+  if (r.type !== 'once') return false;
+  if (r.checked) return false;
+  if (r.nagMode) return false;
+  if (r.nextTrigger != null) return false;
+  if (r.specificTs == null) return false;
+  return r.specificTs <= now;
+}
+
 export function migrateRemindBefore(r: Reminder): Reminder {
   const raw = r as unknown as Record<string, unknown>;
   if (!Array.isArray(raw.remindBefore)) {

@@ -144,6 +144,7 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
   - Stored as `nagMode: boolean` and `nagIntervalMin: number` on the reminder
   - After first trigger, reminder stays active and re-triggers at intervals
   - User must explicitly check the reminder (via checkbox or edit modal) to stop nagging
+  - If nag mode is disabled for an overdue reminder, it transitions to completed on save and on the nearest check tick
   - Checking sets `checked = true` and stops further notifications
 - **For repeat reminders (`type: 'repeat'`)**:
   - Same `nagMode` and `nagIntervalMin` fields

@@ -110,6 +110,7 @@ dist/                  — Build output (main.js, manifest.json, styles.css) —
 - If enabled (`nagMode = true`), the reminder does not auto-complete on trigger.
 - Instead, `nextTrigger` is advanced by `nagIntervalMin` minutes.
 - It will keep firing and advancing until the user manually checks it off in the UI.
+- If nag mode is disabled for an overdue one-shot reminder, `shouldAutoCompleteOnceReminder` marks it as completed (`checked = true`, `completedAt = now`) on save and on the nearest check loop tick.
 
 ### Notification Click Handling
 - Logic handled via `shouldCompleteReminderOnClick(r, now, isPreAlert)` pure function in `utils.ts`

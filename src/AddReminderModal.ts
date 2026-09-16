@@ -2,7 +2,13 @@ import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
 import { EMOJIS } from './emojis';
-import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs } from './utils';
+import {
+  generateId,
+  calcNextTrigger,
+  calcRemindBeforeTriggers,
+  remindBeforeToMs,
+  shouldAutoCompleteOnceReminder,
+} from './utils';
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
@@ -728,6 +734,7 @@ export class AddReminderModal extends Modal {
     r.remindBefore = [];
     r.nagMode = false;
     r.nagIntervalMin = null;
+    r.nagSilencedUntil = null;
     r.emoji = d.emoji || DEFAULT_EMOJI;
 
     if (d.mode === 'once') {
@@ -824,6 +831,15 @@ export class AddReminderModal extends Modal {
     if (isEdit && r.nextTrigger != null && r.nextTrigger > now) {
       r.checked = false;
       r.completedAt = null;
+    } else if (shouldAutoCompleteOnceReminder(r, now)) {
+      r.checked = true;
+      r.completedAt = now;
+      r.nagSilencedUntil = null;
+      if (Array.isArray(r.remindBefore)) {
+        r.remindBefore.forEach((e) => {
+          e.trigger = null;
+        });
+      }
     }
 
     if (!isEdit) this.plugin.reminders.push(r);

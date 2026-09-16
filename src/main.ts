@@ -11,6 +11,7 @@ import {
   pruneOldCompleted,
   calcRemindBeforeTriggers,
   shouldCompleteReminderOnClick,
+  shouldAutoCompleteOnceReminder,
 } from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
@@ -197,6 +198,17 @@ export default class SimpleReminderPlugin extends Plugin {
           continue;
         }
         if (r.nextTrigger == null) {
+          if (shouldAutoCompleteOnceReminder(r, now)) {
+            r.checked = true;
+            r.completedAt = now;
+            r.nagSilencedUntil = null;
+            if (Array.isArray(r.remindBefore)) {
+              r.remindBefore.forEach((e) => {
+                e.trigger = null;
+              });
+            }
+            changed = true;
+          }
           continue;
         }
         if (r.nagSilencedUntil != null && now < r.nagSilencedUntil) {
