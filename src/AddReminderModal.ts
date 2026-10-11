@@ -2,7 +2,14 @@ import { App, Modal, Notice } from 'obsidian';
 import type SimpleReminderPlugin from './main';
 import { RepeatUnit, Reminder, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
 import { EMOJIS } from './emojis';
-import { generateId, calcNextTrigger, calcRemindBeforeTriggers, remindBeforeToMs } from './utils';
+import {
+  generateId,
+  calcNextTrigger,
+  calcRemindBeforeTriggers,
+  remindBeforeToMs,
+  isWikiLink,
+  isExternalUrl,
+} from './utils';
 import { Strings } from './i18n';
 
 type ReminderMode = 'once' | 'repeat';
@@ -13,12 +20,17 @@ interface RemindBeforeFormItem {
   unit: RemindBeforeUnit;
 }
 
+export interface FormUrlItem {
+  type: 'note' | 'external';
+  url: string;
+}
+
 interface FormData {
   title: string;
   useDescription: boolean;
   description: string;
   useUrl: boolean;
-  url: string;
+  urls: FormUrlItem[];
   mode: ReminderMode;
   specificDate: string;
   useNagMode: boolean;
@@ -62,12 +74,25 @@ function reminderToFD(r: Reminder): FormData {
   const rb = [...r.remindBefore]
     .filter((e) => e.value > 0)
     .sort((a, b) => remindBeforeToMs(b.value, b.unit) - remindBeforeToMs(a.value, a.unit));
+
+  const rawUrls: string[] = (r.urls && r.urls.length > 0 ? r.urls : r.url ? [r.url] : [])
+    .map((u) => u.trim())
+    .filter(Boolean);
+  const urlsList: FormUrlItem[] = rawUrls.map((u) => ({
+    type: isWikiLink(u) ? 'note' : 'external',
+    url: u,
+  }));
+  const useUrl = urlsList.length > 0;
+  if (urlsList.length === 0) {
+    urlsList.push({ type: 'external', url: '' });
+  }
+
   return {
     title: r.title,
     useDescription: !!r.description,
     description: r.description || '',
-    useUrl: !!r.url,
-    url: r.url || '',
+    useUrl,
+    urls: urlsList,
     mode: isRepeat ? 'repeat' : 'once',
     specificDate: r.specificTs ? tsToLocal(r.specificTs) : '',
     useNagMode: r.nagMode ?? false,
@@ -111,7 +136,7 @@ function defaultFD(initialDate?: Date): FormData {
     useDescription: false,
     description: '',
     useUrl: false,
-    url: '',
+    urls: [{ type: 'external', url: '' }],
     mode: 'once',
     specificDate,
     useNagMode: false,
@@ -199,36 +224,7 @@ export class AddReminderModal extends Modal {
     });
 
     this.addToggle(form, t.urlLabel, 'useUrl', (c) => {
-      const urlInp = c.createEl('input', { cls: 'sr-input', type: 'text', placeholder: t.urlPlaceholder });
-      urlInp.value = this.fd.url;
-
-      const datalistId = 'sr-note-suggestions-' + Date.now();
-      const datalist = c.createEl('datalist', { attr: { id: datalistId } });
-      urlInp.setAttribute('list', datalistId);
-      urlInp.setAttribute('autocomplete', 'off');
-
-      urlInp.addEventListener('input', (e) => {
-        const val = (e.target as HTMLInputElement).value;
-        this.fd.url = val;
-
-        if (val.includes('[[') && !val.endsWith(']]')) {
-          const afterBrackets = val.substring(val.lastIndexOf('[[') + 2);
-          datalist.empty();
-
-          const files = this.app.vault.getMarkdownFiles();
-          const filtered = files.filter((f) => f.path.toLowerCase().includes(afterBrackets.toLowerCase())).slice(0, 20);
-
-          filtered.forEach((f) => {
-            const option = datalist.createEl('option');
-            option.value = val.substring(0, val.lastIndexOf('[[')) + `[[${f.path}]]`;
-            option.setAttribute('label', f.path);
-          });
-        } else {
-          datalist.empty();
-        }
-      });
-
-      c.createSpan({ cls: 'sr-hint', text: t.urlHint });
+      this.buildUrlsSection(c);
     });
 
     const g2 = form.createDiv('sr-field-group');
@@ -614,6 +610,130 @@ export class AddReminderModal extends Modal {
     });
   }
 
+  private buildUrlsSection(container: HTMLElement): void {
+    const t = this.plugin.t;
+
+    const renderList = (): void => {
+      container.empty();
+
+      if (this.fd.urls.length === 0) {
+        this.fd.urls.push({ type: 'external', url: '' });
+      }
+
+      const listWrap = container.createDiv('sr-url-list');
+      const hasNote = this.fd.urls.some((item) => item.type === 'note');
+
+      this.fd.urls.forEach((entry, idx) => {
+        const row = listWrap.createDiv('sr-url-row');
+
+        const typeSel = row.createEl('select', { cls: 'sr-select sr-url-type-select' });
+
+        const extOpt = typeSel.createEl('option', { value: 'external', text: t.urlTypeExternal });
+        if (entry.type === 'external') {
+          extOpt.selected = true;
+        }
+
+        const noteOpt = typeSel.createEl('option', { value: 'note', text: t.urlTypeNote });
+        const isOtherNote = this.fd.urls.some((item, i) => i !== idx && item.type === 'note');
+        if (isOtherNote) {
+          noteOpt.disabled = true;
+        }
+        if (entry.type === 'note') {
+          noteOpt.selected = true;
+        }
+
+        const inp = row.createEl('input', {
+          cls: 'sr-input sr-url-input',
+          type: 'text',
+          placeholder: entry.type === 'note' ? t.urlPlaceholderNote : t.urlPlaceholderExternal,
+        });
+        inp.value = entry.url;
+
+        if (entry.type === 'note') {
+          const datalistId = `sr-note-suggestions-${Date.now()}-${idx}`;
+          const datalist = row.createEl('datalist', { attr: { id: datalistId } });
+          inp.setAttribute('list', datalistId);
+          inp.setAttribute('autocomplete', 'off');
+
+          inp.addEventListener('input', (e) => {
+            const val = (e.target as HTMLInputElement).value;
+            entry.url = val;
+
+            const query =
+              val.includes('[[') && !val.endsWith(']]')
+                ? val.substring(val.lastIndexOf('[[') + 2)
+                : val.replace(/^\[+|\]+$/g, '');
+
+            datalist.empty();
+            if (query.trim().length > 0) {
+              const files = this.app.vault.getMarkdownFiles();
+              const filtered = files.filter((f) => f.path.toLowerCase().includes(query.toLowerCase())).slice(0, 20);
+
+              filtered.forEach((f) => {
+                const opt = datalist.createEl('option');
+                if (val.includes('[[')) {
+                  opt.value = val.substring(0, val.lastIndexOf('[[')) + `[[${f.path}]]`;
+                } else {
+                  opt.value = `[[${f.path}]]`;
+                }
+                opt.setAttribute('label', f.path);
+              });
+            }
+          });
+        } else {
+          inp.addEventListener('input', (e) => {
+            entry.url = (e.target as HTMLInputElement).value;
+          });
+        }
+
+        typeSel.addEventListener('change', () => {
+          entry.type = typeSel.value as 'note' | 'external';
+          renderList();
+        });
+
+        const delBtn = row.createEl('button', { cls: 'sr-url-del-btn', text: '✕' });
+        delBtn.setAttribute('type', 'button');
+        delBtn.setAttribute('aria-label', t.deleteAriaLabel);
+        delBtn.addEventListener('click', () => {
+          this.fd.urls.splice(idx, 1);
+          renderList();
+        });
+      });
+
+      const btnRow = container.createDiv('sr-url-btn-row');
+
+      const addExtBtn = btnRow.createEl('button', {
+        cls: 'sr-url-add-btn',
+        text: t.urlAddExternalBtn,
+      });
+      addExtBtn.setAttribute('type', 'button');
+      addExtBtn.addEventListener('click', () => {
+        this.fd.urls.push({ type: 'external', url: '' });
+        renderList();
+      });
+
+      const addNoteBtn = btnRow.createEl('button', {
+        cls: 'sr-url-add-btn',
+        text: t.urlAddNoteBtn,
+      });
+      addNoteBtn.setAttribute('type', 'button');
+      if (hasNote) {
+        addNoteBtn.disabled = true;
+        addNoteBtn.addClass('sr-btn-disabled');
+      }
+      addNoteBtn.addEventListener('click', () => {
+        if (!this.fd.urls.some((item) => item.type === 'note')) {
+          this.fd.urls.push({ type: 'note', url: '' });
+          renderList();
+        }
+      });
+
+      container.createSpan({ cls: 'sr-hint', text: t.urlHint });
+    };
+
+    renderList();
+  }
+
   private addAdvToggle(parent: HTMLElement, label: string, buildContent: (c: HTMLElement) => void): void {
     let isOpen = this.fd.useStart || this.fd.useEnd || this.fd.isIntraDay;
     const block = parent.createDiv('sr-toggle-block sr-toggle-adv' + (isOpen ? ' sr-toggle-block--open' : ''));
@@ -704,6 +824,7 @@ export class AddReminderModal extends Modal {
             timeWindowEnd: null,
             remindBefore: [],
             emoji: DEFAULT_EMOJI,
+            urls: [],
             nextTrigger: null,
             completedAt: null,
             nagSilencedUntil: null,
@@ -711,7 +832,36 @@ export class AddReminderModal extends Modal {
 
     r.title = d.title.trim();
     r.description = d.useDescription ? d.description.trim() : '';
-    r.url = d.useUrl ? d.url.trim() : undefined;
+
+    if (d.useUrl) {
+      const urls: string[] = [];
+      let noteFound = false;
+      for (const item of d.urls) {
+        let val = item.url.trim();
+        if (!val) continue;
+        if (item.type === 'note') {
+          if (noteFound) {
+            new Notice(t.errMultipleNoteLinks);
+            return;
+          }
+          noteFound = true;
+          if (!isWikiLink(val)) {
+            val = `[[${val.replace(/^\[+|\]+$/g, '')}]]`;
+          }
+        } else {
+          if (!isExternalUrl(val) && !isWikiLink(val)) {
+            val = 'https://' + val;
+          }
+        }
+        urls.push(val);
+      }
+      r.urls = urls;
+      r.url = urls[0] ?? undefined;
+    } else {
+      r.urls = [];
+      r.url = undefined;
+    }
+
     r.specificTs = null;
     r.repUnit = null;
     r.repStep = null;

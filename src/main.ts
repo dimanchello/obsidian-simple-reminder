@@ -5,7 +5,14 @@ import { ReminderCodeBlockChild } from './ReminderCodeBlock';
 import { AddReminderModal } from './AddReminderModal';
 import { ReminderViewModal } from './ReminderViewModal';
 import { ReminderSettingTab } from './SettingsTab';
-import { advanceTrigger, migrateLegacyReminder, pruneOldCompleted, calcRemindBeforeTriggers } from './utils';
+import {
+  advanceTrigger,
+  migrateLegacyReminder,
+  pruneOldCompleted,
+  calcRemindBeforeTriggers,
+  isWikiLink,
+  isExternalUrl,
+} from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
 
@@ -299,13 +306,25 @@ export default class SimpleReminderPlugin extends Plugin {
       this.refreshView();
     }
 
-    if (r.url) {
-      const url = r.url.trim();
-      if (this.isWikiLink(url)) {
-        this.openNote(url);
-      } else if (this.isExternalUrl(url)) {
-        window.open(url, '_blank');
-      } else {
+    const urls = (r.urls && r.urls.length > 0 ? r.urls : r.url ? [r.url] : []).map((u) => u.trim()).filter(Boolean);
+
+    if (urls.length > 0) {
+      let openedAny = false;
+      const noteUrls = urls.filter((u) => this.isWikiLink(u));
+      const extUrls = urls.filter((u) => this.isExternalUrl(u) || (!this.isWikiLink(u) && u.includes('.')));
+
+      for (const extUrl of extUrls) {
+        const targetUrl = this.isExternalUrl(extUrl) ? extUrl : `https://${extUrl}`;
+        window.open(targetUrl, '_blank');
+        openedAny = true;
+      }
+
+      for (const noteUrl of noteUrls) {
+        this.openNote(noteUrl);
+        openedAny = true;
+      }
+
+      if (!openedAny) {
         new ReminderViewModal(this.app, r, this.t).open();
       }
     } else {
@@ -314,11 +333,11 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   private isWikiLink(url: string): boolean {
-    return /^\[\[.+\]\]$/.test(url);
+    return isWikiLink(url);
   }
 
   private isExternalUrl(url: string): boolean {
-    return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
+    return isExternalUrl(url);
   }
 
   private openNote(wikiLink: string): void {

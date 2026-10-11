@@ -204,6 +204,7 @@ export function migrateLegacyReminder(r: LegacyReminder): Reminder {
     timeWindowEnd: null,
     remindBefore: [],
     emoji: DEFAULT_EMOJI,
+    urls: [],
     nextTrigger: null,
     completedAt: null,
     nagSilencedUntil: null,
@@ -344,7 +345,19 @@ export function migrateRemindBefore(r: Reminder): Reminder {
     });
   }
 
+  if (!r.urls) {
+    r.urls = r.url ? [r.url] : [];
+  }
+
   return r;
+}
+
+export function isWikiLink(url: string): boolean {
+  return /^\[\[.+\]\]$/.test(url.trim());
+}
+
+export function isExternalUrl(url: string): boolean {
+  return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url.trim());
 }
 
 export interface ScheduleSummary {

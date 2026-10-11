@@ -23,8 +23,12 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
   - **For one-shot reminders**: repeats every N minutes until manually checked off. If the trigger time has passed, the cycle continues without interruption even after editing
   - **For recurring reminders**: repeats every N minutes until clicked or until the next trigger
 - **URL & Note Links:**
-  - Attach external URLs (http, https, ftp, ssh) or internal note links (`[[Note Name]]`)
-  - Clicking notification opens external URLs in your browser and note links directly in Obsidian
+  - Attach multiple links: up to one internal note link (`[[Note Name]]`) and any number of external web links (http, https, ftp, ssh, etc.)
+  - Clicking a notification triggers all links: opens all external URLs in your browser and navigates to the note in Obsidian
+- **Calendar Overview:**
+  - Annual and monthly calendar modal with quick navigation, reminder indicators, and day schedule
+  - Add reminders directly from the month view with the compact `+` button
+  - Click any reminder in the calendar list to edit it directly
 - **Markdown Code Block Widget** (`simple-reminder`) — embed interactive reminder lists inside any note with custom filtering, grouping, and headers
 - **Bilingual Interface** — English and Russian with automatic locale detection or manual selection
 - **Full Theme Compatibility** — built using Obsidian CSS variables to seamlessly match any theme
@@ -245,9 +249,13 @@ See [API.md](./API.md) for full API documentation.
   - **Для повторяющихся напоминаний**: уведомление будет повторяться каждые N минут до момента клика на него или до наступления следующего триггера. После клика "наг" останавливается до следующего срабатывания
   - Идеально для важных задач, которые нельзя пропустить!
 - **Ссылки в напоминаниях**:
-  - Добавьте URL в напоминание — внешнюю ссылку (http://, ftp://, ssh:// и т.д.) или ссылку на заметку ([[Название заметки]])
-  - При нажатии на уведомление: внешние ссылки открываются в браузере, заметки — в новой вкладке Obsidian
-  - Если ссылка не указана, показываются подробности напоминания
+  - Прикрепляйте несколько ссылок: максимум одну ссылку на заметку (`[[Название заметки]]`) и сколько угодно ссылок на веб-сайты (http://, https://, ftp://, ssh:// и т.д.)
+  - При нажатии на уведомление отрабатывают все ссылки: ссылки на сайты открываются в браузере, а ссылка на заметку — в Obsidian
+  - Если ссылки не указаны, открывается окно с подробностями напоминания
+- **Календарный обзор**:
+  - Годовой и месячный календарь с индикаторами напоминаний и списком задач на выбранный день
+  - Быстрое добавление напоминаний в режиме месяца через компактную кнопку `+`
+  - Редактирование напоминаний по клику прямо из списка календаря
 - **Встраивание в заметки через кодовый блок** (````simple-reminder````) — интерактивный виджет напоминаний прямо внутри заметок с гибкой настройкой фильтрации, группировки и внешнего вида
 - **Полная совместимость** с любой темой Obsidian — все стили через CSS-переменные
 

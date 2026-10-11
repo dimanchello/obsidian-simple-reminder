@@ -1,7 +1,14 @@
-import { App, Modal } from 'obsidian';
+import { App, Modal, Notice } from 'obsidian';
 import { Reminder, DEFAULT_EMOJI } from './types';
 import { Strings } from './i18n';
-import { fmtDate, remindBeforeToMs, calcRemindBeforeTarget, formatScheduleSummary } from './utils';
+import {
+  fmtDate,
+  remindBeforeToMs,
+  calcRemindBeforeTarget,
+  formatScheduleSummary,
+  isWikiLink,
+  isExternalUrl,
+} from './utils';
 
 export class ReminderViewModal extends Modal {
   private reminder: Reminder;
@@ -70,6 +77,36 @@ export class ReminderViewModal extends Modal {
       const nextWrap = contentEl.createDiv('sr-view-next-wrap');
       nextWrap.createSpan({ cls: 'sr-view-next-label', text: t.nextLabel });
       nextWrap.createSpan({ cls: 'sr-view-next-val', text: fmtDate(reminder.nextTrigger) });
+    }
+
+    const urls = (reminder.urls && reminder.urls.length > 0 ? reminder.urls : reminder.url ? [reminder.url] : [])
+      .map((u) => u.trim())
+      .filter(Boolean);
+    if (urls.length > 0) {
+      const linksWrap = contentEl.createDiv('sr-view-links-wrap');
+      linksWrap.createEl('h4', { text: t.urlLabel });
+      const ul = linksWrap.createEl('ul', { cls: 'sr-view-links-list' });
+      urls.forEach((url) => {
+        const li = ul.createEl('li', { cls: 'sr-view-link-item' });
+        const a = li.createEl('a', { text: url, cls: 'sr-view-link' });
+        a.href = '#';
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (isWikiLink(url)) {
+            const notePath = url.slice(2, -2);
+            const file = this.app.metadataCache.getFirstLinkpathDest(notePath, '');
+            if (file) {
+              void this.app.workspace.getLeaf(true).openFile(file);
+              this.close();
+            } else {
+              new Notice(`Note not found: ${notePath}`);
+            }
+          } else {
+            const targetUrl = isExternalUrl(url) ? url : `https://${url}`;
+            window.open(targetUrl, '_blank');
+          }
+        });
+      });
     }
   }
 

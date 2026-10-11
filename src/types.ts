@@ -46,6 +46,7 @@ export interface Reminder {
   emoji: string;
   description?: string;
   url?: string;
+  urls?: string[];
 
   // ── Runtime ─────────────────────────────────────────────────────────────────
   nextTrigger: number | null;

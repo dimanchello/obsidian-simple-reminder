@@ -33,6 +33,8 @@ export type AddReminderOptions = {
   remindBeforeValue?: number;
   remindBeforeUnit?: RemindBeforeUnit;
   remindBefore?: { value: number; unit: RemindBeforeUnit }[];
+  url?: string;
+  urls?: string[];
 } & (OnceOptions | RepeatOptions);
 
 export interface ReminderInfo {
@@ -142,6 +144,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       timeWindowEnd: null,
       remindBefore: [],
       emoji: DEFAULT_EMOJI,
+      urls: [],
       nextTrigger: null,
       completedAt: null,
       nagSilencedUntil: null,
@@ -170,6 +173,14 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
 
     if (options.emoji) {
       r.emoji = options.emoji;
+    }
+
+    if (options.urls) {
+      r.urls = options.urls;
+      r.url = options.urls[0];
+    } else if (options.url) {
+      r.url = options.url;
+      r.urls = [options.url];
     }
 
     const rawEntries =

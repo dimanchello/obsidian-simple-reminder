@@ -6,6 +6,7 @@ import {
   mondayOf,
   isValidDay,
   migrateLegacyReminder,
+  migrateRemindBefore,
   pruneOldCompleted,
   remindBeforeToMs,
   calcRemindBeforeTriggers,
@@ -15,6 +16,8 @@ import {
   formatGroupLabel,
   groupReminders,
   parseCodeBlockConfig,
+  isWikiLink,
+  isExternalUrl,
 } from '../src/utils';
 import { Reminder } from '../src/types';
 import { getStrings } from '../src/i18n';
@@ -1409,5 +1412,59 @@ describe('parseCodeBlockConfig', () => {
 
   it('ignores malformed lines without colons', () => {
     expect(parseCodeBlockConfig('some random text\nanother line')).toEqual({});
+  });
+});
+
+describe('isWikiLink', () => {
+  it('identifies wiki links correctly', () => {
+    expect(isWikiLink('[[Note]]')).toBe(true);
+    expect(isWikiLink('[[Folder/Note.md]]')).toBe(true);
+    expect(isWikiLink('  [[Note with spaces]]  ')).toBe(true);
+  });
+
+  it('rejects non-wiki links', () => {
+    expect(isWikiLink('https://example.com')).toBe(false);
+    expect(isWikiLink('Note')).toBe(false);
+    expect(isWikiLink('[Note]')).toBe(false);
+    expect(isWikiLink('[[Note')).toBe(false);
+    expect(isWikiLink('Note]]')).toBe(false);
+    expect(isWikiLink('')).toBe(false);
+  });
+});
+
+describe('isExternalUrl', () => {
+  it('identifies external URLs with various schemes', () => {
+    expect(isExternalUrl('https://example.com')).toBe(true);
+    expect(isExternalUrl('http://localhost:3000')).toBe(true);
+    expect(isExternalUrl('ftp://files.example.org')).toBe(true);
+    expect(isExternalUrl('ssh://user@host')).toBe(true);
+    expect(isExternalUrl('mailto:user@example.com')).toBe(true);
+  });
+
+  it('rejects non-external URLs', () => {
+    expect(isExternalUrl('[[Note]]')).toBe(false);
+    expect(isExternalUrl('example.com')).toBe(false);
+    expect(isExternalUrl('note/path.md')).toBe(false);
+    expect(isExternalUrl('')).toBe(false);
+  });
+});
+
+describe('urls migration', () => {
+  it('initializes urls array in migrateLegacyReminder', () => {
+    const res = migrateLegacyReminder({ id: '1', title: 'Test', type: 'specific', specificTs: 1000 });
+    expect(res.urls).toEqual([]);
+  });
+
+  it('migrates legacy single url to urls array in migrateRemindBefore', () => {
+    const r = makeReminder({ url: 'https://example.com' });
+    delete (r as any).urls;
+    const res = migrateRemindBefore(r);
+    expect(res.urls).toEqual(['https://example.com']);
+  });
+
+  it('preserves existing urls array in migrateRemindBefore', () => {
+    const r = makeReminder({ urls: ['https://example.com', '[[Note]]'] });
+    const res = migrateRemindBefore(r);
+    expect(res.urls).toEqual(['https://example.com', '[[Note]]']);
   });
 });

@@ -126,7 +126,8 @@ export class CalendarModal extends Modal {
       this.render();
     });
 
-    const addBtn = navGroup.createEl('button', { cls: 'sr-cal-add-btn', text: t.calendarAddReminder });
+    const addBtn = navGroup.createEl('button', { cls: 'sr-cal-btn', text: '➕' });
+    addBtn.setAttribute('aria-label', t.calendarAddReminder);
     addBtn.addEventListener('click', () => {
       const day = this.selDay ?? 1;
       const now = new Date();
@@ -143,6 +144,7 @@ export class CalendarModal extends Modal {
         () => {
           this.render();
           this.plugin.refreshView();
+          void this.plugin.checkReminders();
         },
         null,
         targetDate,
@@ -233,6 +235,19 @@ export class CalendarModal extends Modal {
         const tm = r.intraDayTime ? r.intraDayTime : `${r.timeWindowStart || '00:00'}-${r.timeWindowEnd || '23:59'}`;
         body.createDiv({ cls: 'sr-cal-day-item-time', text: tm });
       }
+
+      item.addEventListener('click', () => {
+        new AddReminderModal(
+          this.app,
+          this.plugin,
+          () => {
+            this.render();
+            this.plugin.refreshView();
+            void this.plugin.checkReminders();
+          },
+          r,
+        ).open();
+      });
     }
   }
 
