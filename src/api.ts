@@ -109,7 +109,9 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     this.listeners.get(event)?.forEach((cb) => {
       try {
         cb(payload);
-      } catch {}
+      } catch (e) {
+        void e;
+      }
     });
   }
 
