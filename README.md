@@ -1,10 +1,8 @@
-# Simple Reminder
+# Obsidian Simple Reminder
 
 [English](#features) | [Русский](#возможности)
 
 An Obsidian plugin for managing a reminder list with system notifications. Create tasks, schedule recurring reminders, embed interactive widgets directly in your notes, and never miss a deadline.
-
-![Simple Reminder Widget](docs/images/embedded-widget.png)
 
 ---
 
@@ -22,17 +20,17 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
 - **Pre-Alert Notifications ("Remind Before")** — receive heads-up notifications minutes, hours, days, weeks, months, or years before the event
 - **Reopen Completed Reminders** — easily uncheck completed reminders before they are pruned
 - **Nag Mode (Persistent Notifications):**
-  - **For one-shot reminders**: repeats every N minutes until manually checked off. If the trigger time has passed, the cycle continues without interruption even after editing. If Nag Mode is disabled for an overdue reminder, it automatically transitions to completed on the nearest check tick or save
+  - **For one-shot reminders**: repeats every N minutes until manually checked off. If the trigger time has passed, the cycle continues without interruption even after editing
   - **For recurring reminders**: repeats every N minutes until clicked or until the next trigger
 - **URL & Note Links:**
-  - Attach external URLs (http, https, ftp, ssh) or internal note links (`[[Note Name]]`)
-  - Clicking notification opens external URLs in your browser and note links directly in Obsidian
-- **Smart Notification Click Handling:**
-  - If the event date has not yet arrived (e.g. a pre-alert notification) and nag mode is not enabled: clicking opens the event details modal (or linked URL) without marking it as done
-  - If the event date has arrived and nag mode is disabled: clicking marks a one-shot reminder as completed
-  - If persistent notification (Nag Mode) is enabled: clicking does not complete the reminder; it keeps notifying until manually checked off in the list
+  - Attach multiple links: up to one internal note link (`[[Note Name]]`) and any number of external web links (http, https, ftp, ssh, etc.)
+  - Clicking a notification triggers all links: opens all external URLs in your browser and navigates to the note in Obsidian
+- **Calendar Overview:**
+  - Annual and monthly calendar modal with quick navigation, reminder indicators, and day schedule
+  - Add reminders directly from the month view with the compact `+` button
+  - Click any reminder in the calendar list to edit it directly
 - **Markdown Code Block Widget** (`simple-reminder`) — embed interactive reminder lists inside any note with custom filtering, grouping, and headers
-- **Bilingual Interface** — English and Russian with automatic detection based on Obsidian's language setting
+- **Bilingual Interface** — English and Russian with automatic locale detection or manual selection
 - **Full Theme Compatibility** — built using Obsidian CSS variables to seamlessly match any theme
 
 ---
@@ -45,10 +43,10 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
 
 ## Installation
 
-### Community Plugins
+### Community Plugins *(coming soon)*
 
 1. In Obsidian, go to **Settings → Community plugins → Browse**
-2. Search for **Simple Reminder**
+2. Search for **Obsidian Simple Reminder**
 3. Click **Install**, then **Enable**
 
 ### Manual Installation
@@ -56,7 +54,14 @@ An Obsidian plugin for managing a reminder list with system notifications. Creat
 1. Download the latest release from [Releases](../../releases)
 2. Extract the archive containing `main.js`, `manifest.json`, and `styles.css`
 3. Copy these files into `<vault-path>/.obsidian/plugins/simple-reminder/`
-4. In Obsidian: **Settings → Community plugins** → enable **Simple Reminder**
+4. In Obsidian: **Settings → Community plugins** → enable **Obsidian Simple Reminder**
+
+### Via BRAT (Beta Reviewer Auto-update Tool)
+
+1. Install the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin from Community Plugins
+2. In BRAT settings, choose **BRAT: Add a beta plugin for testing**
+3. Enter the repository URL: `https://github.com/dimanchello/obsidian-simple-reminder`
+4. Click **Add Plugin**, then enable it in Obsidian settings
 
 ---
 
@@ -122,8 +127,6 @@ simple-reminder/
 
 Click the **bell icon** in the left ribbon or run the command **Simple Reminder: Open reminder panel** from the command palette (`Ctrl/Cmd + P`).
 
-![Sidebar Panel](docs/images/sidebar-panel.png)
-
 ### Embedding Widgets in Notes (Code Block)
 
 You can render an interactive reminder list in any markdown file using the `simple-reminder` code block:
@@ -176,30 +179,15 @@ Click **+ Add** in the panel or widget header and fill in the form:
 - **Remind before**: optional pre-alert before the main trigger
 - **Nag Mode**: keep notifying until manually completed
 
-![Add Reminder Modal](docs/images/add-reminder-modal.png)
-
-### Viewing Reminder Details & Pre-Alerts
-
-Click on any reminder in the list to open its details modal showing scheduled time, pre-alerts, description, and attached links:
-
-![Reminder Details](docs/images/reminder-details.png)
-
-### Annual Calendar Overview
-
-Click the **calendar icon** in the panel or widget header to view all scheduled reminders on a monthly and yearly calendar with date markers:
-
-![Calendar Overview](docs/images/calendar-modal.png)
-
 ---
 
 ## Settings
 
 | Option | Default | Description |
 |---|---|---|
-| Open Reminder Panel | — | Quick button to open the sidebar panel |
+| Language | Auto | `Auto` (system locale), `English`, `Russian` |
 | Check Interval | 30s | Frequency of checking due reminders (minimum 2s) |
-| Group reminders by | No grouping | Grouping separators for panel reminders (`minute`, `hour`, `day`, `week`, `month`, `year`) |
-| Auto-prune completed after | 3 days | How many days to retain completed reminders (set to `0` to keep forever) |
+| Open Reminder Panel | — | Quick button to open the sidebar panel |
 | Test Notification | — | Send a test system notification |
 | Request Permission | — | Request notification permission from the OS |
 | Delete All Reminders | — | Permanently delete all stored reminders |
@@ -233,11 +221,9 @@ See [API.md](./API.md) for full API documentation.
 
 ---
 
-# Simple Reminder (на русском)
+# Obsidian Simple Reminder (на русском)
 
 Плагин для Obsidian — список напоминаний с системными уведомлениями. Создавайте задачи, задавайте расписание и получайте уведомления вовремя.
-
-![Виджет Simple Reminder в заметке](docs/images/embedded-widget.png)
 
 ---
 
@@ -257,19 +243,19 @@ See [API.md](./API.md) for full API documentation.
 - **Чекбокс задачи** — отключает уведомления без удаления напоминания
 - **Редактирование любого напоминания** — название, тип, даты, интервалы
 - **Публичный API** для других плагинов — добавление/удаление/получение напоминаний, подписка на события
-- **Два языка:** английский и русский (автоматическое определение по языку интерфейса Obsidian)
+- **Два языка:** английский и русский (автоопределение по локали системы или ручной выбор)
 - **Настойчивые уведомления (Nag Mode)**:
-  - **Для разовых напоминаний**: включите эту опцию, чтобы они повторялись каждые N минут, пока вы вручную не отметите их как выполненные. Если время напоминания уже наступило, цикл уведомлений продолжается, и даже при редактировании параметров напоминания плагин автоматически вычисляет ближайший следующий интервал повторов без прерывания и сброса расписания. Если отключить настойчивый режим у напоминания, время которого уже прошло, оно автоматически переходит в выполненные на ближайшем тике проверки или при сохранении
+  - **Для разовых напоминаний**: включите эту опцию, чтобы они повторялись каждые N минут, пока вы вручную не отметите их как выполненные. Если время напоминания уже наступило, цикл уведомлений продолжается, и даже при редактировании параметров напоминания плагин автоматически вычисляет ближайший следующий интервал повторов без прерывания и сброса расписания
   - **Для повторяющихся напоминаний**: уведомление будет повторяться каждые N минут до момента клика на него или до наступления следующего триггера. После клика "наг" останавливается до следующего срабатывания
   - Идеально для важных задач, которые нельзя пропустить!
 - **Ссылки в напоминаниях**:
-  - Добавьте URL в напоминание — внешнюю ссылку (http://, ftp://, ssh:// и т.д.) или ссылку на заметку ([[Название заметки]])
-  - При нажатии на уведомление: внешние ссылки открываются в браузере, заметки — в новой вкладке Obsidian
-  - Если ссылка не указана, показываются подробности напоминания
-- **Умная обработка клика по уведомлению**:
-  - Если дата события ещё не наступила (например, сработало предварительное напоминание «Напомнить за») и не включен настойчивый режим: клик открывает карточку события (или прикреплённую ссылку) без перевода в выполненные
-  - Если дата события уже наступила и настойчивый режим выключен: клик переводит разовое напоминание в выполненные
-  - При включенном настойчивом режиме (Nag Mode): клик не завершает напоминание, оно продолжает напоминать до ручной отметки в списке
+  - Прикрепляйте несколько ссылок: максимум одну ссылку на заметку (`[[Название заметки]]`) и сколько угодно ссылок на веб-сайты (http://, https://, ftp://, ssh:// и т.д.)
+  - При нажатии на уведомление отрабатывают все ссылки: ссылки на сайты открываются в браузере, а ссылка на заметку — в Obsidian
+  - Если ссылки не указаны, открывается окно с подробностями напоминания
+- **Календарный обзор**:
+  - Годовой и месячный календарь с индикаторами напоминаний и списком задач на выбранный день
+  - Быстрое добавление напоминаний в режиме месяца через компактную кнопку `+`
+  - Редактирование напоминаний по клику прямо из списка календаря
 - **Встраивание в заметки через кодовый блок** (````simple-reminder````) — интерактивный виджет напоминаний прямо внутри заметок с гибкой настройкой фильтрации, группировки и внешнего вида
 - **Полная совместимость** с любой темой Obsidian — все стили через CSS-переменные
 
@@ -283,10 +269,10 @@ See [API.md](./API.md) for full API documentation.
 
 ## Установка
 
-### Через Community Plugins
+### Через Community Plugins *(скоро)*
 
 1. Откройте **Settings → Community plugins → Browse**
-2. Найдите **Simple Reminder**
+2. Найдите **Obsidian Simple Reminder**
 3. Нажмите **Install**, затем **Enable**
 
 ### Ручная установка
@@ -294,7 +280,16 @@ See [API.md](./API.md) for full API documentation.
 1. Скачайте последний релиз из [Releases](../../releases)
 2. Распакуйте архив — он должен содержать `main.js`, `manifest.json` и `styles.css`
 3. Скопируйте папку в `<vault-path>/.obsidian/plugins/simple-reminder/`
-4. В Obsidian: **Settings → Community plugins** → включите **Simple Reminder**
+4. В Obsidian: **Settings → Community plugins** → включите **Obsidian Simple Reminder**
+
+### Через BRAT (Beta Reviewer Auto-update Tool)
+
+1. Установите плагин [BRAT](https://github.com/TfTHacker/obsidian42-brat) из Community Plugins
+2. Включите BRAT в настройках
+3. Откройте команду **BRAT: Add a beta plugin for testing**
+4. Вставьте URL репозитория: `https://github.com/dimanchello/obsidian-simple-reminder`
+5. Нажмите **Add Plugin**
+6. Перезагрузите Obsidian и включите **Obsidian Simple Reminder** в настройках
 
 ---
 
@@ -358,9 +353,7 @@ simple-reminder/
 
 ### Открыть панель
 
-Нажмите на **значок колокольчика** на боковой панели или выполните команду **Simple Reminder: Open reminder panel**.
-
-![Боковая панель](docs/images/sidebar-panel.png)
+Нажмите на **значок колокольчика** на боковой панели или выполните команду **Obsidian Simple Reminder: Open reminder panel**.
 
 ### Встраивание в заметки (Code Block)
 
@@ -417,23 +410,9 @@ title: Мои напоминания
 | Интервал | Повторять каждые N единиц |
 | Время | Для одиночного режима — конкретное ЧЧ:ММ; для интервального — шаг и временное окно |
 
-![Окно создания напоминания](docs/images/add-reminder-modal.png)
-
-### Подробности напоминания и предварительные уведомления
-
-Нажмите на любое напоминание в списке, чтобы открыть карточку с подробным описанием, временем срабатывания, предварительными напоминаниями и ссылками:
-
-![Подробности напоминания](docs/images/reminder-details.png)
-
-### Календарный обзор
-
-Нажмите на **значок календаря** в заголовке панели или виджета, чтобы открыть годовой и месячный календарь с метками запланированных напоминаний:
-
-![Календарный обзор](docs/images/calendar-modal.png)
-
 ### Редактировать напоминание
 
-Нажмите на **значок карандаша** у любого напоминания — форма откроется с предзаполненными данными. Через редактирование можно переоткрыть выполненное напоминание, сняв галочку «Выполнено». При редактировании активных разовых напоминаний с настойчивыми уведомлениями (Nag Mode), время которых уже наступило, расписание и цикл повторов сохраняются — плагин автоматически рассчитывает ближайший будущий интервал. Если отключить настойчивый режим у напоминания, время которого уже прошло, оно автоматически переходит в выполненные.
+Нажмите на **значок карандаша** у любого напоминания — форма откроется с предзаполненными данными. Через редактирование можно переоткрыть выполненное напоминание, сняв галочку «Выполнено». При редактировании активных разовых напоминаний с настойчивыми уведомлениями (Nag Mode), время которых уже наступило, расписание и цикл повторов сохраняются — плагин автоматически рассчитывает ближайший будущий интервал.
 
 ### Выполнить напоминание
 
@@ -449,10 +428,9 @@ title: Мои напоминания
 
 | Параметр | По умолчанию | Описание |
 |---|---|---|
-| Открыть панель | — | Кнопка для открытия боковой панели |
+| Язык | Авто | `Авто` (системная локаль), `English`, `Русский` |
 | Интервал проверки | 30с | Как часто плагин проверяет наступившие напоминания. Минимум: 2с |
-| Группировать напоминания по | Без группировки | Разделители между группами в панели (`минута`, `час`, `день`, `неделя`, `месяц`, `год`) |
-| Авто-удаление завершенных через (дней) | 3 | Сколько дней хранить завершенные напоминания (установите `0`, чтобы хранить вечно) |
+| Открыть панель | — | Кнопка для открытия боковой панели |
 | Тестовое уведомление | — | Отправляет тестовое системное уведомление |
 | Запросить разрешение | — | Повторный запрос разрешения ОС на уведомления |
 | Удалить все | — | Безвозвратно удаляет все напоминания |
@@ -464,7 +442,7 @@ title: Мои напоминания
 1. Плагин запускает таймер (настраиваемый интервал, по умолчанию 30с), который проходит по всем активным напоминаниям
 2. Если `now >= nextTrigger` — срабатывает уведомление
 3. `nextTrigger` сдвигается на один период, пропуская прошедшие интервалы — длительный простой Obsidian не вызывает спам уведомлениями
-4. Разовые напоминания (`once`) после срабатывания помечаются как выполненные (`checked = true`, `completedAt = now`) и `nextTrigger` становится null (если включён Nag Mode — `nextTrigger` сдвигается на заданный интервал и продолжает повторяться до ручной отметки выполнения, в том числе при редактировании прошедшей задачи; при отключении Nag Mode у прошедшего напоминания оно автоматически переходит в выполненное на ближайшем тике)
+4. Разовые напоминания (`once`) после срабатывания помечаются как выполненные (`checked = true`, `completedAt = now`) и `nextTrigger` становится null (если включён Nag Mode — `nextTrigger` сдвигается на заданный интервал и продолжает повторяться до ручной отметки выполнения, в том числе при редактировании прошедшей задачи)
 5. Выполненные напоминания автоматически удаляются через 3 дня
 6. Предварительные уведомления ("Напомнить за") срабатывают до основного события и отображают оставшееся время прямо в заголовке уведомления (например, "Скоро (через 1 неделю):")
 7. При нажатии на предварительное уведомление (текущее время раньше основного срабатывания) — открывается модалка с подробностями **без** пометки напоминания как выполненного. Напоминание помечается выполненным только при нажатии на основное уведомление (когда время наступило)

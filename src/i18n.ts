@@ -63,9 +63,14 @@ export interface Strings {
   fieldEmoji: string;
   urlLabel: string;
   urlPlaceholder: string;
+  urlPlaceholderExternal: string;
+  urlPlaceholderNote: string;
   urlTypeExternal: string;
   urlTypeNote: string;
   urlHint: string;
+  urlAddExternalBtn: string;
+  urlAddNoteBtn: string;
+  errMultipleNoteLinks: string;
   remindBeforeLabel: string;
   formatRemindBefore: (value: number, unit: string) => string;
   remindBeforeUnitLabels: string[];
@@ -227,11 +232,16 @@ const en: Strings = {
   fieldNagInterval: 'Repeat every (mins)',
 
   fieldEmoji: 'Icon',
-  urlLabel: '🔗 Add link',
+  urlLabel: '🔗 Links',
   urlPlaceholder: 'https://example.com or [[Note name]]',
-  urlTypeExternal: 'External link (http://, ftp://, ssh://, etc.)',
-  urlTypeNote: 'Note link ([[Note name]])',
+  urlPlaceholderExternal: 'https://example.com',
+  urlPlaceholderNote: '[[Note name]]',
+  urlTypeExternal: 'Web link',
+  urlTypeNote: 'Note link',
   urlHint: 'Opens when you click on the notification',
+  urlAddExternalBtn: '+ Web link',
+  urlAddNoteBtn: '+ Note link',
+  errMultipleNoteLinks: 'Only one note link is allowed',
   remindBeforeLabel: 'Remind before',
   formatRemindBefore: (v, u) => {
     const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);
@@ -402,11 +412,16 @@ const ru: Strings = {
   fieldNagInterval: 'Повторять каждые (мин)',
 
   fieldEmoji: 'Иконка',
-  urlLabel: '🔗 Добавить ссылку',
+  urlLabel: '🔗 Ссылки',
   urlPlaceholder: 'https://example.com или [[Название заметки]]',
-  urlTypeExternal: 'Внешняя ссылка (http://, ftp://, ssh:// и т.д.)',
-  urlTypeNote: 'Ссылка на заметку ([[Название заметки]])',
+  urlPlaceholderExternal: 'https://example.com',
+  urlPlaceholderNote: '[[Название заметки]]',
+  urlTypeExternal: 'Ссылка на сайт',
+  urlTypeNote: 'Ссылка на заметку',
   urlHint: 'Откроется при нажатии на уведомление',
+  urlAddExternalBtn: '+ Ссылка на сайт',
+  urlAddNoteBtn: '+ Ссылка на заметку',
+  errMultipleNoteLinks: 'Разрешена только одна ссылка на заметку',
   remindBeforeLabel: 'Напомнить за',
   formatRemindBefore: (v, u) => {
     const idx = ['minute', 'hour', 'day', 'week', 'month', 'year'].indexOf(u);

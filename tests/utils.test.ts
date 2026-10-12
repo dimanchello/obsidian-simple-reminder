@@ -6,6 +6,7 @@ import {
   mondayOf,
   isValidDay,
   migrateLegacyReminder,
+  migrateRemindBefore,
   pruneOldCompleted,
   remindBeforeToMs,
   calcRemindBeforeTriggers,
@@ -15,8 +16,8 @@ import {
   formatGroupLabel,
   groupReminders,
   parseCodeBlockConfig,
-  shouldCompleteReminderOnClick,
-  shouldAutoCompleteOnceReminder,
+  isWikiLink,
+  isExternalUrl,
 } from '../src/utils';
 import { Reminder } from '../src/types';
 import { getStrings } from '../src/i18n';
@@ -1414,100 +1415,56 @@ describe('parseCodeBlockConfig', () => {
   });
 });
 
-describe('shouldCompleteReminderOnClick', () => {
-  it('returns false if reminder is not once type', () => {
-    const r = makeReminder({ type: 'repeat', specificTs: 1000, nextTrigger: 1000 });
-    expect(shouldCompleteReminderOnClick(r, 2000, false)).toBe(false);
+describe('isWikiLink', () => {
+  it('identifies wiki links correctly', () => {
+    expect(isWikiLink('[[Note]]')).toBe(true);
+    expect(isWikiLink('[[Folder/Note.md]]')).toBe(true);
+    expect(isWikiLink('  [[Note with spaces]]  ')).toBe(true);
   });
 
-  it('returns false if reminder is already checked', () => {
-    const r = makeReminder({ type: 'once', checked: true, specificTs: 1000 });
-    expect(shouldCompleteReminderOnClick(r, 2000, false)).toBe(false);
-  });
-
-  it('returns false if nagMode is true even if event time has passed', () => {
-    const r = makeReminder({ type: 'once', nagMode: true, specificTs: 1000 });
-    expect(shouldCompleteReminderOnClick(r, 2000, false)).toBe(false);
-  });
-
-  it('returns false if isPreAlert is true even if event time has passed', () => {
-    const r = makeReminder({ type: 'once', specificTs: 1000 });
-    expect(shouldCompleteReminderOnClick(r, 2000, true)).toBe(false);
-  });
-
-  it('returns false if event date has not arrived yet', () => {
-    const r = makeReminder({ type: 'once', specificTs: 2000 });
-    expect(shouldCompleteReminderOnClick(r, 1000, false)).toBe(false);
-  });
-
-  it('returns true if event date has arrived and nagMode is false', () => {
-    const r = makeReminder({ type: 'once', specificTs: 1000 });
-    expect(shouldCompleteReminderOnClick(r, 1000, false)).toBe(true);
-    expect(shouldCompleteReminderOnClick(r, 1500, false)).toBe(true);
-  });
-
-  it('falls back to nextTrigger when specificTs is null', () => {
-    const rFuture = makeReminder({ type: 'once', specificTs: null, nextTrigger: 2000 });
-    expect(shouldCompleteReminderOnClick(rFuture, 1000, false)).toBe(false);
-
-    const rPast = makeReminder({ type: 'once', specificTs: null, nextTrigger: 1000 });
-    expect(shouldCompleteReminderOnClick(rPast, 2000, false)).toBe(true);
-  });
-
-  it('returns false when both specificTs and nextTrigger are null', () => {
-    const r = makeReminder({ type: 'once', specificTs: null, nextTrigger: null });
-    expect(shouldCompleteReminderOnClick(r, 1000, false)).toBe(false);
+  it('rejects non-wiki links', () => {
+    expect(isWikiLink('https://example.com')).toBe(false);
+    expect(isWikiLink('Note')).toBe(false);
+    expect(isWikiLink('[Note]')).toBe(false);
+    expect(isWikiLink('[[Note')).toBe(false);
+    expect(isWikiLink('Note]]')).toBe(false);
+    expect(isWikiLink('')).toBe(false);
   });
 });
 
-describe('shouldAutoCompleteOnceReminder', () => {
-  it('returns false if reminder is not once type', () => {
-    const r = makeReminder({ type: 'repeat', specificTs: 1000, nextTrigger: null });
-    expect(shouldAutoCompleteOnceReminder(r, 2000)).toBe(false);
+describe('isExternalUrl', () => {
+  it('identifies external URLs with various schemes', () => {
+    expect(isExternalUrl('https://example.com')).toBe(true);
+    expect(isExternalUrl('http://localhost:3000')).toBe(true);
+    expect(isExternalUrl('ftp://files.example.org')).toBe(true);
+    expect(isExternalUrl('ssh://user@host')).toBe(true);
+    expect(isExternalUrl('mailto:user@example.com')).toBe(true);
   });
 
-  it('returns false if reminder is already checked', () => {
-    const r = makeReminder({ type: 'once', checked: true, specificTs: 1000, nextTrigger: null });
-    expect(shouldAutoCompleteOnceReminder(r, 2000)).toBe(false);
+  it('rejects non-external URLs', () => {
+    expect(isExternalUrl('[[Note]]')).toBe(false);
+    expect(isExternalUrl('example.com')).toBe(false);
+    expect(isExternalUrl('note/path.md')).toBe(false);
+    expect(isExternalUrl('')).toBe(false);
+  });
+});
+
+describe('urls migration', () => {
+  it('initializes urls array in migrateLegacyReminder', () => {
+    const res = migrateLegacyReminder({ id: '1', title: 'Test', type: 'specific', specificTs: 1000 });
+    expect(res.urls).toEqual([]);
   });
 
-  it('returns false if nagMode is true', () => {
-    const r = makeReminder({ type: 'once', nagMode: true, nagIntervalMin: 15, specificTs: 1000, nextTrigger: null });
-    expect(shouldAutoCompleteOnceReminder(r, 2000)).toBe(false);
+  it('migrates legacy single url to urls array in migrateRemindBefore', () => {
+    const r = makeReminder({ url: 'https://example.com' });
+    delete (r as any).urls;
+    const res = migrateRemindBefore(r);
+    expect(res.urls).toEqual(['https://example.com']);
   });
 
-  it('returns false if nextTrigger is not null', () => {
-    const r = makeReminder({ type: 'once', specificTs: 1000, nextTrigger: 1000 });
-    expect(shouldAutoCompleteOnceReminder(r, 2000)).toBe(false);
-  });
-
-  it('returns false if specificTs is null', () => {
-    const r = makeReminder({ type: 'once', specificTs: null, nextTrigger: null });
-    expect(shouldAutoCompleteOnceReminder(r, 2000)).toBe(false);
-  });
-
-  it('returns false if specificTs is in the future', () => {
-    const r = makeReminder({ type: 'once', specificTs: 2000, nextTrigger: null });
-    expect(shouldAutoCompleteOnceReminder(r, 1000)).toBe(false);
-  });
-
-  it('returns true if once reminder with specificTs in the past, nagMode false, nextTrigger null, and unchecked', () => {
-    const r = makeReminder({ type: 'once', specificTs: 1000, nextTrigger: null, nagMode: false, checked: false });
-    expect(shouldAutoCompleteOnceReminder(r, 1500)).toBe(true);
-    expect(shouldAutoCompleteOnceReminder(r, 1000)).toBe(true);
-  });
-
-  it('returns true when nagMode is null or undefined', () => {
-    const rNull = makeReminder({ type: 'once', specificTs: 1000, nextTrigger: null, nagMode: null, checked: false });
-    expect(shouldAutoCompleteOnceReminder(rNull, 1500)).toBe(true);
-
-    const rUndef = makeReminder({
-      type: 'once',
-      specificTs: 1000,
-      nextTrigger: null,
-      nagMode: undefined,
-      checked: false,
-    });
-    expect(shouldAutoCompleteOnceReminder(rUndef, 1500)).toBe(true);
+  it('preserves existing urls array in migrateRemindBefore', () => {
+    const r = makeReminder({ urls: ['https://example.com', '[[Note]]'] });
+    const res = migrateRemindBefore(r);
+    expect(res.urls).toEqual(['https://example.com', '[[Note]]']);
   });
 });

@@ -10,8 +10,8 @@ import {
   migrateLegacyReminder,
   pruneOldCompleted,
   calcRemindBeforeTriggers,
-  shouldCompleteReminderOnClick,
-  shouldAutoCompleteOnceReminder,
+  isWikiLink,
+  isExternalUrl,
 } from './utils';
 import { getStrings, Strings } from './i18n';
 import { SimpleReminderAPIImpl } from './api';
@@ -106,7 +106,7 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   refreshStrings(): void {
-    this.t = getStrings();
+    this.t = getStrings(this.settings.language);
   }
 
   async activateView(): Promise<void> {
@@ -198,17 +198,6 @@ export default class SimpleReminderPlugin extends Plugin {
           continue;
         }
         if (r.nextTrigger == null) {
-          if (shouldAutoCompleteOnceReminder(r, now)) {
-            r.checked = true;
-            r.completedAt = now;
-            r.nagSilencedUntil = null;
-            if (Array.isArray(r.remindBefore)) {
-              r.remindBefore.forEach((e) => {
-                e.trigger = null;
-              });
-            }
-            changed = true;
-          }
           continue;
         }
         if (r.nagSilencedUntil != null && now < r.nagSilencedUntil) {
@@ -274,7 +263,6 @@ export default class SimpleReminderPlugin extends Plugin {
   fireNotification(r: Reminder, preAlertEntry?: RemindBeforeEntry): void {
     const emoji = r.emoji || DEFAULT_EMOJI;
     let prefix = `${emoji} ${this.t.pluginName}`;
-    const isPreAlert = !!preAlertEntry;
     if (preAlertEntry) {
       const formattedTime = this.t.formatRemindBefore(preAlertEntry.value, preAlertEntry.unit);
       prefix = `${emoji} ${this.t.remindBeforePrefix(formattedTime)}`;
@@ -284,7 +272,7 @@ export default class SimpleReminderPlugin extends Plugin {
         const notif = new Notification(prefix, { body: r.title, silent: false });
         notif.onclick = (): void => {
           window.focus();
-          this.handleReminderClick(r, isPreAlert);
+          this.handleReminderClick(r);
         };
         return;
       } catch {
@@ -294,8 +282,10 @@ export default class SimpleReminderPlugin extends Plugin {
     new Notice(`${emoji} ${r.title}`, 8000);
   }
 
-  private handleReminderClick(r: Reminder, isPreAlert = false): void {
-    if (shouldCompleteReminderOnClick(r, Date.now(), isPreAlert)) {
+  private handleReminderClick(r: Reminder): void {
+    const isPreAlert = r.type === 'once' && r.nextTrigger != null && Date.now() < r.nextTrigger;
+
+    if (r.type === 'once' && !isPreAlert) {
       r.checked = true;
       r.completedAt = Date.now();
       r.nextTrigger = null;
@@ -306,7 +296,7 @@ export default class SimpleReminderPlugin extends Plugin {
       this.refreshView();
     }
 
-    if (r.type === 'repeat' && r.nagMode && r.nagSilencedUntil != null && !isPreAlert) {
+    if (r.type === 'repeat' && r.nagMode && r.nagSilencedUntil != null) {
       r.nextTrigger = advanceTrigger(r, Date.now());
       r.nagSilencedUntil = null;
       if (r.remindBefore.length > 0) {
@@ -316,13 +306,25 @@ export default class SimpleReminderPlugin extends Plugin {
       this.refreshView();
     }
 
-    if (r.url) {
-      const url = r.url.trim();
-      if (this.isWikiLink(url)) {
-        this.openNote(url);
-      } else if (this.isExternalUrl(url)) {
-        window.open(url, '_blank');
-      } else {
+    const urls = (r.urls && r.urls.length > 0 ? r.urls : r.url ? [r.url] : []).map((u) => u.trim()).filter(Boolean);
+
+    if (urls.length > 0) {
+      let openedAny = false;
+      const noteUrls = urls.filter((u) => this.isWikiLink(u));
+      const extUrls = urls.filter((u) => this.isExternalUrl(u) || (!this.isWikiLink(u) && u.includes('.')));
+
+      for (const extUrl of extUrls) {
+        const targetUrl = this.isExternalUrl(extUrl) ? extUrl : `https://${extUrl}`;
+        window.open(targetUrl, '_blank');
+        openedAny = true;
+      }
+
+      for (const noteUrl of noteUrls) {
+        this.openNote(noteUrl);
+        openedAny = true;
+      }
+
+      if (!openedAny) {
         new ReminderViewModal(this.app, r, this.t).open();
       }
     } else {
@@ -331,11 +333,11 @@ export default class SimpleReminderPlugin extends Plugin {
   }
 
   private isWikiLink(url: string): boolean {
-    return /^\[\[.+\]\]$/.test(url);
+    return isWikiLink(url);
   }
 
   private isExternalUrl(url: string): boolean {
-    return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
+    return isExternalUrl(url);
   }
 
   private openNote(wikiLink: string): void {

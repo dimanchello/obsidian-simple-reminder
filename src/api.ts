@@ -1,5 +1,5 @@
 import { Reminder, RepeatUnit, RemindBeforeUnit, DEFAULT_EMOJI } from './types';
-import { generateId, calcNextTrigger, calcRemindBeforeTriggers, shouldAutoCompleteOnceReminder } from './utils';
+import { generateId, calcNextTrigger, calcRemindBeforeTriggers } from './utils';
 import type SimpleReminderPlugin from './main';
 
 export interface OnceOptions {
@@ -33,6 +33,8 @@ export type AddReminderOptions = {
   remindBeforeValue?: number;
   remindBeforeUnit?: RemindBeforeUnit;
   remindBefore?: { value: number; unit: RemindBeforeUnit }[];
+  url?: string;
+  urls?: string[];
 } & (OnceOptions | RepeatOptions);
 
 export interface ReminderInfo {
@@ -107,8 +109,8 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
     this.listeners.get(event)?.forEach((cb) => {
       try {
         cb(payload);
-      } catch (err) {
-        void err;
+      } catch (e) {
+        void e;
       }
     });
   }
@@ -144,6 +146,7 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       timeWindowEnd: null,
       remindBefore: [],
       emoji: DEFAULT_EMOJI,
+      urls: [],
       nextTrigger: null,
       completedAt: null,
       nagSilencedUntil: null,
@@ -174,6 +177,14 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
       r.emoji = options.emoji;
     }
 
+    if (options.urls) {
+      r.urls = options.urls;
+      r.url = options.urls[0];
+    } else if (options.url) {
+      r.url = options.url;
+      r.urls = [options.url];
+    }
+
     const rawEntries =
       options.remindBefore ??
       (options.remindBeforeValue != null && options.remindBeforeValue > 0
@@ -183,10 +194,6 @@ export class SimpleReminderAPIImpl implements SimpleReminderAPI {
 
     r.nextTrigger = calcNextTrigger(r, now);
     r.remindBefore = calcRemindBeforeTriggers(r.nextTrigger, entries);
-    if (shouldAutoCompleteOnceReminder(r, now)) {
-      r.checked = true;
-      r.completedAt = now;
-    }
     this.plugin.reminders.push(r);
     void this.plugin.saveSettings();
     this._emitAdded(r);

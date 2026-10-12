@@ -106,6 +106,15 @@ describe('getStrings — English', () => {
   it('groupWeekLabel formats correctly', () => {
     expect(en.groupWeekLabel(32, 2026)).toBe('Week 32, 2026');
   });
+
+  it('has url strings', () => {
+    expect(en.urlLabel).toBe('🔗 Links');
+    expect(en.urlTypeExternal).toBe('Web link');
+    expect(en.urlTypeNote).toBe('Note link');
+    expect(en.urlAddExternalBtn).toBe('+ Web link');
+    expect(en.urlAddNoteBtn).toBe('+ Note link');
+    expect(en.errMultipleNoteLinks).toContain('Only one note link');
+  });
 });
 
 // ── getStrings — Russian ─────────────────────────────────────────────────────
@@ -179,6 +188,15 @@ describe('getStrings — Russian', () => {
   it('groupWeekLabel formats correctly in Russian', () => {
     expect(ru.groupWeekLabel(32, 2026)).toContain('32');
     expect(ru.groupWeekLabel(32, 2026)).toContain('2026');
+  });
+
+  it('has url strings in Russian', () => {
+    expect(ru.urlLabel).toBe('🔗 Ссылки');
+    expect(ru.urlTypeExternal).toBe('Ссылка на сайт');
+    expect(ru.urlTypeNote).toBe('Ссылка на заметку');
+    expect(ru.urlAddExternalBtn).toBe('+ Ссылка на сайт');
+    expect(ru.urlAddNoteBtn).toBe('+ Ссылка на заметку');
+    expect(ru.errMultipleNoteLinks).toContain('Разрешена только одна ссылка');
   });
 });
 
