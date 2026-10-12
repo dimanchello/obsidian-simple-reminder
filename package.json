@@ -1,6 +1,6 @@
 {
   "name": "simple-reminder",
-  "version": "1.13.5",
+  "version": "1.14",
   "type": "module",
   "description": "Simple Reminder plugin for Obsidian — system notifications with interval, one-shot and scheduled types.",
   "main": "main.js",
